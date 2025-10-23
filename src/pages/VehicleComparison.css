@@ -1,0 +1,391 @@
+.vehicle-comparison {
+  padding: 24px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-content h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.header-content h1 .icon {
+  color: #3b82f6;
+}
+
+.header-content p {
+  margin: 0;
+  color: #64748b;
+  font-size: 16px;
+}
+
+.btn-clear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.filters {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  size: 20px;
+}
+
+.filter-select {
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.comparison-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.vehicle-selection h2,
+.comparison-table h2 {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.vehicle-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.vehicle-image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #64748b;
+}
+
+.vehicle-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.vehicle-info .variant {
+  margin: 0 0 12px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.vehicle-info .price {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px 0;
+  font-weight: 600;
+  color: #059669;
+  font-size: 16px;
+}
+
+.specs {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.spec {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.btn-add {
+  width: 100%;
+  padding: 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-add:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-add:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.comparison-table {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.comparison-table-content {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.comparison-table-content th,
+.comparison-table-content td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.comparison-table-content th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.vehicle-header {
+  position: relative;
+  min-width: 200px;
+}
+
+.vehicle-title h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.vehicle-title p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.btn-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-remove:hover {
+  background: #fecaca;
+}
+
+.section-header td {
+  background: #f1f5f9;
+  font-weight: 700;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.spec-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.price-cell {
+  font-weight: 600;
+  color: #059669;
+}
+
+.feature-cell {
+  display: flex;
+  justify-content: center;
+}
+
+.check-icon {
+  color: #059669;
+  size: 20px;
+}
+
+.x-icon {
+  color: #dc2626;
+  size: 20px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: #64748b;
+}
+
+.empty-state svg {
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .vehicle-comparison {
+    padding: 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .vehicle-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .comparison-table {
+    padding: 16px;
+  }
+  
+  .comparison-table-content {
+    font-size: 14px;
+  }
+  
+  .comparison-table-content th,
+  .comparison-table-content td {
+    padding: 12px 8px;
+  }
+  
+  .vehicle-header {
+    min-width: 150px;
+  }
+  
+  .specs {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

@@ -18,6 +18,16 @@ import PaymentManagement from './pages/PaymentManagement';
 import InventoryManagement from './pages/InventoryManagement';
 import ReportManagement from './pages/ReportManagement';
 import UserManagement from './pages/UserManagement';
+import PromotionManagement from './pages/PromotionManagement';
+import AppointmentManagement from './pages/AppointmentManagement';
+import FeedbackManagement from './pages/FeedbackManagement';
+import DealerManagement from './pages/DealerManagement';
+import PricingManagement from './pages/PricingManagement';
+import InstallmentPlanManagement from './pages/InstallmentPlanManagement';
+import DealerTargetManagement from './pages/DealerTargetManagement';
+import VehicleComparison from './pages/VehicleComparison';
+import SalesPage from './pages/SalesPage';
+import PublicSalesPage from './pages/PublicSalesPage';
 import Profile from './pages/Profile';
 import ApiAudit from './pages/ApiAudit';
 import Unauthorized from './pages/Unauthorized';
@@ -42,16 +52,17 @@ function App() {
           <div className="App">
             <Routes>
               {/* Public Routes */}
+              <Route path="/" element={<PublicSalesPage />} />
               <Route path="/login" element={<Login />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
               {/* Protected Routes */}
-              <Route path="/" element={
+              <Route path="/admin" element={
                 <ProtectedRoute>
                   <Layout />
                 </ProtectedRoute>
               }>
-                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 
                 {/* Vehicle Management */}
@@ -60,16 +71,23 @@ function App() {
                 <Route path="vehicles/models" element={<VehicleManagement />} />
                 <Route path="vehicles/variants" element={<VehicleManagement />} />
                 <Route path="vehicles/colors" element={<VehicleManagement />} />
+                <Route path="vehicle-comparison" element={<VehicleComparison />} />
                 
                 {/* Customer Management */}
                 <Route path="customers" element={<CustomerManagement />} />
                 
                 {/* Sales Process */}
+                <Route path="sales" element={<SalesPage />} />
                 <Route path="quotations" element={<QuotationManagement />} />
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="contracts" element={<ContractManagement />} />
                 <Route path="deliveries" element={<DeliveryManagement />} />
                 <Route path="payments" element={<PaymentManagement />} />
+                
+                {/* Additional Features */}
+                <Route path="promotions" element={<PromotionManagement />} />
+                <Route path="appointments" element={<AppointmentManagement />} />
+                <Route path="feedbacks" element={<FeedbackManagement />} />
                 
                 {/* Inventory Management */}
                 <Route path="inventory" element={<InventoryManagement />} />
@@ -80,6 +98,28 @@ function App() {
                 <Route path="reports" element={
                   <ProtectedRoute requiredRoles={['admin', 'evm_staff', 'dealer_manager']}>
                     <ReportManagement />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Dealer & Pricing Management */}
+                <Route path="dealers" element={
+                  <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
+                    <DealerManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="pricing" element={
+                  <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
+                    <PricingManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="installment-plans" element={
+                  <ProtectedRoute requiredRoles={['admin', 'evm_staff', 'dealer_manager']}>
+                    <InstallmentPlanManagement />
+                  </ProtectedRoute>
+                } />
+                <Route path="dealer-targets" element={
+                  <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
+                    <DealerTargetManagement />
                   </ProtectedRoute>
                 } />
                 
@@ -98,7 +138,7 @@ function App() {
               </Route>
               
               {/* Catch all route */}
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             
             <Toaster

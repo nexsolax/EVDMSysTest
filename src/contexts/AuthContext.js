@@ -49,10 +49,19 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(credentials);
       const { accessToken, userId, username, role } = response.data;
       
+      // Map backend role to frontend role format
+      const roleMapping = {
+        'ADMIN': 'admin',
+        'EVM_STAFF': 'evm_staff', 
+        'DEALER_MANAGER': 'dealer_manager',
+        'DEALER_STAFF': 'dealer_staff'
+      };
+      
       const userData = {
         userId,
         username,
-        role,
+        role: roleMapping[role] || role.toLowerCase(),
+        originalRole: role, // Keep original role for API calls
       };
 
       setToken(accessToken);
@@ -114,6 +123,87 @@ export const AuthProvider = ({ children }) => {
     return roles.includes(user?.role);
   };
 
+  // New role-based utility functions
+  const isAdmin = () => {
+    return user?.role === 'admin';
+  };
+
+  const isEvmStaff = () => {
+    return user?.role === 'evm_staff';
+  };
+
+  const isDealerManager = () => {
+    return user?.role === 'dealer_manager';
+  };
+
+  const isDealerStaff = () => {
+    return user?.role === 'dealer_staff';
+  };
+
+  const canManageDealers = () => {
+    return ['admin', 'evm_staff'].includes(user?.role);
+  };
+
+  const canManagePricing = () => {
+    return ['admin', 'evm_staff'].includes(user?.role);
+  };
+
+  const canViewReports = () => {
+    return ['admin', 'evm_staff', 'dealer_manager'].includes(user?.role);
+  };
+
+  const canManageUsers = () => {
+    return ['admin', 'evm_staff'].includes(user?.role);
+  };
+
+  const canManageInventory = () => {
+    return ['admin', 'evm_staff', 'dealer_manager'].includes(user?.role);
+  };
+
+  const getRoleDisplayName = () => {
+    const roleNames = {
+      'admin': 'Quản trị viên',
+      'evm_staff': 'Nhân viên EVM',
+      'dealer_manager': 'Quản lý đại lý',
+      'dealer_staff': 'Nhân viên đại lý'
+    };
+    return roleNames[user?.role] || user?.role;
+  };
+
+  const getRolePermissions = () => {
+    const permissions = {
+      'admin': [
+        'manage_users', 'manage_dealers', 'manage_pricing', 'view_reports',
+        'manage_inventory', 'manage_appointments', 'manage_promotions',
+        'manage_feedbacks', 'manage_vehicles', 'manage_customers',
+        'manage_quotations', 'manage_orders', 'manage_contracts',
+        'manage_deliveries', 'manage_payments'
+      ],
+      'evm_staff': [
+        'manage_dealers', 'manage_pricing', 'view_reports', 'manage_inventory',
+        'manage_appointments', 'manage_promotions', 'manage_feedbacks',
+        'manage_vehicles', 'manage_customers', 'manage_quotations',
+        'manage_orders', 'manage_contracts', 'manage_deliveries', 'manage_payments'
+      ],
+      'dealer_manager': [
+        'view_reports', 'manage_inventory', 'manage_appointments',
+        'manage_promotions', 'manage_feedbacks', 'manage_vehicles',
+        'manage_customers', 'manage_quotations', 'manage_orders',
+        'manage_contracts', 'manage_deliveries', 'manage_payments'
+      ],
+      'dealer_staff': [
+        'manage_appointments', 'manage_feedbacks', 'manage_vehicles',
+        'manage_customers', 'manage_quotations', 'manage_orders',
+        'manage_contracts', 'manage_deliveries', 'manage_payments'
+      ]
+    };
+    return permissions[user?.role] || [];
+  };
+
+  const hasPermission = (permission) => {
+    return getRolePermissions().includes(permission);
+  };
+
   const value = {
     user,
     token,
@@ -124,6 +214,19 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     hasRole,
     hasAnyRole,
+    // New role-based functions
+    isAdmin,
+    isEvmStaff,
+    isDealerManager,
+    isDealerStaff,
+    canManageDealers,
+    canManagePricing,
+    canViewReports,
+    canManageUsers,
+    canManageInventory,
+    getRoleDisplayName,
+    getRolePermissions,
+    hasPermission,
   };
 
   return (

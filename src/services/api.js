@@ -9,6 +9,15 @@ const api = axios.create({
   },
 });
 
+// Create public axios instance (no auth required)
+const publicApi = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -219,7 +228,15 @@ export const userAPI = {
   getUsers: () => api.get('/users'),
   getActiveUsers: () => api.get('/users/active'),
   getUser: (id) => api.get(`/users/${id}`),
+  getUserByUsername: (username) => api.get(`/users/username/${username}`),
+  getUserByEmail: (email) => api.get(`/users/email/${email}`),
   getUsersByRole: (roleName) => api.get(`/users/role/${roleName}`),
+  getUsersByDealer: (dealerId) => api.get(`/users/dealer/${dealerId}`),
+  getUsersByRoleString: (roleString) => api.get(`/users/role-string/${roleString}`),
+  getDealerStaff: () => api.get('/users/dealer-staff'),
+  getDealerManagers: () => api.get('/users/dealer-managers'),
+  getEvmStaff: () => api.get('/users/evm-staff'),
+  getAdmins: () => api.get('/users/admins'),
   searchUsers: (name) => api.get(`/users/search?name=${name}`),
   createUser: (data) => api.post('/users', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
@@ -228,6 +245,13 @@ export const userAPI = {
   deleteUser: (id) => api.delete(`/users/${id}`),
   resetPassword: (id, newPassword) => api.post(`/users/${id}/reset-password?newPassword=${newPassword}`),
   changePassword: (id, oldPassword, newPassword) => api.put(`/users/${id}/change-password`, { oldPassword, newPassword }),
+  // Role management
+  getRoles: () => api.get('/users/roles'),
+  getRole: (id) => api.get(`/users/roles/${id}`),
+  getRoleByName: (roleName) => api.get(`/users/roles/name/${roleName}`),
+  createRole: (data) => api.post('/users/roles', data),
+  // Bulk operations
+  bulkResetPassword: (userIds) => api.post('/users/bulk-reset-password', { userIds }),
 };
 
 // Report API
@@ -238,6 +262,202 @@ export const reportAPI = {
   getCustomerDebt: () => api.get('/reports/customer-debt'),
   getMonthlySales: () => api.get('/reports/monthly-sales'),
   getDealerPerformance: () => api.get('/reports/dealer-performance'),
+};
+
+// Appointment API
+export const appointmentAPI = {
+  getAppointments: () => api.get('/appointments'),
+  getAppointment: (id) => api.get(`/appointments/${id}`),
+  getAppointmentsByCustomer: (customerId) => api.get(`/appointments/customer/${customerId}`),
+  getAppointmentsByStaff: (staffId) => api.get(`/appointments/staff/${staffId}`),
+  getAppointmentsByStatus: (status) => api.get(`/appointments/status/${status}`),
+  getAppointmentsByType: (appointmentType) => api.get(`/appointments/type/${appointmentType}`),
+  getAppointmentsByVariant: (variantId) => api.get(`/appointments/variant/${variantId}`),
+  getTestDriveAppointments: () => api.get('/appointments/test-drives'),
+  getUpcomingAppointments: () => api.get('/appointments/upcoming'),
+  searchAppointments: (title) => api.get(`/appointments/search?title=${title}`),
+  getAppointmentsByDateRange: (startDate, endDate) => 
+    api.get(`/appointments/date-range?startDate=${startDate}&endDate=${endDate}`),
+  createAppointment: (data) => api.post('/appointments', data),
+  updateAppointment: (id, data) => api.put(`/appointments/${id}`, data),
+  updateAppointmentStatus: (id, status) => api.put(`/appointments/${id}/status?status=${status}`),
+  deleteAppointment: (id) => api.delete(`/appointments/${id}`),
+};
+
+// Pricing Policy API
+export const pricingPolicyAPI = {
+  getPricingPolicies: () => api.get('/pricing-policies'),
+  getPricingPolicy: (id) => api.get(`/pricing-policies/${id}`),
+  getPricingPoliciesByVariant: (variantId) => api.get(`/pricing-policies/variant/${variantId}`),
+  getPricingPoliciesByStatus: (status) => api.get(`/pricing-policies/status/${status}`),
+  getPricingPoliciesByType: (policyType) => api.get(`/pricing-policies/type/${policyType}`),
+  getPricingPoliciesByCustomerType: (customerType) => api.get(`/pricing-policies/customer-type/${customerType}`),
+  getPricingPoliciesByRegion: (region) => api.get(`/pricing-policies/region/${region}`),
+  getPricingPoliciesByDealer: (dealerId) => api.get(`/pricing-policies/dealer/${dealerId}`),
+  getPricingPoliciesByScope: (scope) => api.get(`/pricing-policies/scope/${scope}`),
+  getGlobalPricingPolicies: () => api.get('/pricing-policies/global'),
+  getDealerSpecificPricingPolicies: () => api.get('/pricing-policies/dealer-specific'),
+  getActivePricingPolicies: () => api.get('/pricing-policies/active'),
+  getActivePricingPoliciesByDate: (date) => api.get(`/pricing-policies/active/date/${date}`),
+  getActivePricingPoliciesByVariant: (variantId) => api.get(`/pricing-policies/active/variant/${variantId}`),
+  getActivePricingPoliciesByVariantAndDate: (variantId, date) => 
+    api.get(`/pricing-policies/active/variant/${variantId}/date/${date}`),
+  getActivePricingPoliciesByVariantAndCustomerType: (variantId, customerType) => 
+    api.get(`/pricing-policies/active/variant/${variantId}/customer-type/${customerType}`),
+  searchPricingPolicies: (name) => api.get(`/pricing-policies/search?name=${name}`),
+  createPricingPolicy: (data) => api.post('/pricing-policies', data),
+  updatePricingPolicy: (id, data) => api.put(`/pricing-policies/${id}`, data),
+  updatePricingPolicyStatus: (id, status) => api.put(`/pricing-policies/${id}/status?status=${status}`),
+  deletePricingPolicy: (id) => api.delete(`/pricing-policies/${id}`),
+};
+
+// Installment Plan API
+export const installmentPlanAPI = {
+  getInstallmentPlans: () => api.get('/installment-plans'),
+  getInstallmentPlan: (planId) => api.get(`/installment-plans/${planId}`),
+  getInstallmentPlansByContract: (contractNumber) => api.get(`/installment-plans/contract/${contractNumber}`),
+  getInstallmentPlansByStatus: (status) => api.get(`/installment-plans/status/${status}`),
+  getInstallmentPlansByCustomer: (customerId) => api.get(`/installment-plans/customer/${customerId}`),
+  getInstallmentPlansByOrder: (orderId) => api.get(`/installment-plans/order/${orderId}`),
+  getInstallmentPlansByInvoice: (invoiceId) => api.get(`/installment-plans/invoice/${invoiceId}`),
+  getInstallmentPlansByDealer: (dealerId) => api.get(`/installment-plans/dealer/${dealerId}`),
+  getInstallmentPlansByPlanType: (planType) => api.get(`/installment-plans/plan-type/${planType}`),
+  getCustomerInstallmentPlans: () => api.get('/installment-plans/customer-plans'),
+  getDealerInstallmentPlans: () => api.get('/installment-plans/dealer-plans'),
+  getInstallmentPlansByFinanceCompany: (financeCompany) => 
+    api.get(`/installment-plans/finance-company/${financeCompany}`),
+  createInstallmentPlan: (data) => api.post('/installment-plans', data),
+  updateInstallmentPlan: (planId, data) => api.put(`/installment-plans/${planId}`, data),
+  updateInstallmentPlanStatus: (planId, status) => api.put(`/installment-plans/${planId}/status?status=${status}`),
+  deleteInstallmentPlan: (planId) => api.delete(`/installment-plans/${planId}`),
+};
+
+// Dealer Target API
+export const dealerTargetAPI = {
+  getDealerTargets: () => api.get('/dealer-targets'),
+  getDealerTarget: (targetId) => api.get(`/dealer-targets/${targetId}`),
+  getDealerTargetsByYear: (targetYear) => api.get(`/dealer-targets/year/${targetYear}`),
+  getDealerTargetsByMonth: (targetMonth) => api.get(`/dealer-targets/month/${targetMonth}`),
+  getDealerTargetsByType: (targetType) => api.get(`/dealer-targets/type/${targetType}`),
+  getDealerTargetsByStatus: (targetStatus) => api.get(`/dealer-targets/status/${targetStatus}`),
+  getDealerTargetsByDealer: (dealerId) => api.get(`/dealer-targets/dealer/${dealerId}`),
+  getDealerTargetsByScope: (targetScope) => api.get(`/dealer-targets/scope/${targetScope}`),
+  getDealerSpecificTargets: () => api.get('/dealer-targets/dealer-specific'),
+  getDealerTargetsByYearAndMonth: (targetYear, targetMonth) => 
+    api.get(`/dealer-targets/year/${targetYear}/month/${targetMonth}`),
+  getDealerTargetsByYearAndType: (targetYear, targetType) => 
+    api.get(`/dealer-targets/year/${targetYear}/type/${targetType}`),
+  getDealerTargetsByDealerAndYear: (dealerId, targetYear) => 
+    api.get(`/dealer-targets/dealer/${dealerId}/year/${targetYear}`),
+  getDealerTargetsByAchievementRateMin: (minRate) => 
+    api.get(`/dealer-targets/achievement-rate/min/${minRate}`),
+  getDealerTargetsByAchievementRateMax: (maxRate) => 
+    api.get(`/dealer-targets/achievement-rate/max/${maxRate}`),
+  createDealerTarget: (data) => api.post('/dealer-targets', data),
+  updateDealerTarget: (targetId, data) => api.put(`/dealer-targets/${targetId}`, data),
+  updateDealerTargetStatus: (targetId, status) => api.put(`/dealer-targets/${targetId}/status?status=${status}`),
+  updateDealerTargetAchievement: (targetId, achievement) => 
+    api.put(`/dealer-targets/${targetId}/achievement`, { achievement }),
+  deleteDealerTarget: (targetId) => api.delete(`/dealer-targets/${targetId}`),
+};
+
+// Dealer API
+export const dealerAPI = {
+  getDealers: () => api.get('/dealers'),
+  getDealer: (id) => api.get(`/dealers/${id}`),
+  getActiveDealers: () => api.get('/dealers/active'),
+  searchDealers: (name) => api.get(`/dealers/search?name=${name}`),
+  createDealer: (data) => api.post('/dealers', data),
+  updateDealer: (id, data) => api.put(`/dealers/${id}`, data),
+  activateDealer: (id) => api.put(`/dealers/${id}/activate`),
+  deactivateDealer: (id) => api.put(`/dealers/${id}/deactivate`),
+  deleteDealer: (id) => api.delete(`/dealers/${id}`),
+};
+
+// Promotion API
+export const promotionAPI = {
+  getPromotions: () => api.get('/promotions'),
+  getPromotion: (id) => api.get(`/promotions/${id}`),
+  getActivePromotions: () => api.get('/promotions/active'),
+  getPromotionsByType: (promotionType) => api.get(`/promotions/type/${promotionType}`),
+  getPromotionsByStatus: (status) => api.get(`/promotions/status/${status}`),
+  getPromotionsByDateRange: (startDate, endDate) => 
+    api.get(`/promotions/date-range?startDate=${startDate}&endDate=${endDate}`),
+  searchPromotions: (name) => api.get(`/promotions/search?name=${name}`),
+  createPromotion: (data) => api.post('/promotions', data),
+  updatePromotion: (id, data) => api.put(`/promotions/${id}`, data),
+  updatePromotionStatus: (id, status) => api.put(`/promotions/${id}/status?status=${status}`),
+  deletePromotion: (id) => api.delete(`/promotions/${id}`),
+};
+
+// Customer Feedback API
+export const feedbackAPI = {
+  getFeedbacks: () => api.get('/customer-feedbacks'),
+  getFeedback: (id) => api.get(`/customer-feedbacks/${id}`),
+  getFeedbacksByCustomer: (customerId) => api.get(`/customer-feedbacks/customer/${customerId}`),
+  getFeedbacksByOrder: (orderId) => api.get(`/customer-feedbacks/order/${orderId}`),
+  getFeedbacksByRating: (rating) => api.get(`/customer-feedbacks/rating/${rating}`),
+  getFeedbacksByStatus: (status) => api.get(`/customer-feedbacks/status/${status}`),
+  searchFeedbacks: (keyword) => api.get(`/customer-feedbacks/search?keyword=${keyword}`),
+  createFeedback: (data) => api.post('/customer-feedbacks', data),
+  updateFeedback: (id, data) => api.put(`/customer-feedbacks/${id}`, data),
+  updateFeedbackStatus: (id, status) => api.put(`/customer-feedbacks/${id}/status?status=${status}`),
+  deleteFeedback: (id) => api.delete(`/customer-feedbacks/${id}`),
+};
+
+// Public API services (no authentication required)
+export const publicVehicleAPI = {
+  // Vehicle Brands
+  getBrands: () => publicApi.get('/public/vehicle-brands'),
+  getActiveBrands: () => publicApi.get('/public/vehicle-brands/active'),
+  getBrand: (id) => publicApi.get(`/public/vehicle-brands/${id}`),
+  
+  // Vehicle Models
+  getModels: () => publicApi.get('/public/vehicle-models'),
+  getModelsByBrand: (brandId) => publicApi.get(`/public/vehicle-models/brand/${brandId}`),
+  getModel: (id) => publicApi.get(`/public/vehicle-models/${id}`),
+  
+  // Vehicle Variants
+  getVariants: () => publicApi.get('/public/vehicle-variants'),
+  getVariantsByModel: (modelId) => publicApi.get(`/public/vehicle-variants/model/${modelId}`),
+  getVariant: (id) => publicApi.get(`/public/vehicle-variants/${id}`),
+  
+  // Vehicle Colors
+  getColors: () => publicApi.get('/public/vehicle-colors'),
+  getColor: (id) => publicApi.get(`/public/vehicle-colors/${id}`),
+};
+
+export const publicInventoryAPI = {
+  getInventory: () => publicApi.get('/public/vehicle-inventory'),
+  getInventoryByStatus: (status) => publicApi.get(`/public/vehicle-inventory/status/${status}`),
+  getInventoryByVariant: (variantId) => publicApi.get(`/public/vehicle-inventory/variant/${variantId}`),
+  getInventoryItem: (id) => publicApi.get(`/public/vehicle-inventory/${id}`),
+};
+
+export const publicCustomerAPI = {
+  createCustomer: (data) => publicApi.post('/public/customers', data),
+};
+
+export const publicQuotationAPI = {
+  createQuotation: (data) => publicApi.post('/public/quotations', data),
+};
+
+export const publicOrderAPI = {
+  createOrder: (data) => publicApi.post('/public/orders', data),
+};
+
+export const publicFeedbackAPI = {
+  createFeedback: (data) => publicApi.post('/public/feedbacks', data),
+};
+
+export const publicAppointmentAPI = {
+  createAppointment: (data) => publicApi.post('/public/appointments', data),
+};
+
+export const publicPromotionAPI = {
+  getPromotions: () => publicApi.get('/public/promotions'),
+  getActivePromotions: () => publicApi.get('/public/promotions'),
+  getPromotion: (id) => publicApi.get(`/public/promotions/${id}`),
 };
 
 export default api;

@@ -32,7 +32,7 @@ const Login = () => {
       
       if (result.success) {
         toast.success('Đăng nhập thành công!');
-        navigate('/dashboard');
+        navigate('/admin/dashboard');
       } else {
         toast.error(result.error);
       }
@@ -107,13 +107,6 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="auth-footer">
-          <p className="demo-credentials">
-            <strong>Tài khoản demo:</strong><br />
-            Username: dealer_mgr_hcm<br />
-            Password: password
-          </p>
-        </div>
       </div>
     </div>
   );
