@@ -148,6 +148,11 @@ const PublicSalesPage = () => {
     loadData();
   };
 
+  const handleLogin = () => {
+    // Redirect to login page
+    window.location.href = '/login';
+  };
+
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesSearch = (vehicle.variant?.variantName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                          (vehicle.variant?.model?.modelName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -262,7 +267,7 @@ const PublicSalesPage = () => {
                   <span>info@evdm.com</span>
                 </div>
               </div>
-              <button className="login-btn">Đăng nhập</button>
+              <button className="login-btn" onClick={handleLogin}>Đăng nhập</button>
             </div>
           </div>
         </div>
@@ -295,9 +300,9 @@ const PublicSalesPage = () => {
 
       {/* Search and Filter */}
       <section className="search-section">
-        <div className="container">
+          <div className="container">
           <div className="search-controls">
-            <div className="search-bar">
+          <div className="search-bar">
               <Search className="search-icon" />
               <input
                 type="text"
@@ -316,20 +321,20 @@ const PublicSalesPage = () => {
             </button>
             <div className="filter-controls">
               <Filter className="filter-icon" />
-              <select
-                value={selectedBrand}
+                <select 
+                  value={selectedBrand} 
                 onChange={(e) => handleFilterByBrand(e.target.value)}
                 className="filter-select"
-              >
+                >
                 <option value="">Tất cả thương hiệu</option>
-                {brands.map(brand => (
+                  {brands.map(brand => (
                   <option key={brand.brandId} value={brand.brandName}>
-                    {brand.brandName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+                      {brand.brandName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              </div>
         </div>
       </section>
 
@@ -339,7 +344,7 @@ const PublicSalesPage = () => {
           <div className="section-header">
             <h2 className="section-title">Xe có sẵn ({filteredVehicles.length})</h2>
             <div className="view-controls">
-              <button 
+                <button 
                 className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
                 onClick={() => handleViewModeChange('grid')}
               >
@@ -350,9 +355,9 @@ const PublicSalesPage = () => {
                 onClick={() => handleViewModeChange('list')}
               >
                 Danh sách
-              </button>
+                </button>
+              </div>
             </div>
-          </div>
               
           {viewMode === 'grid' ? (
             <div className="vehicles-grid">
@@ -372,11 +377,11 @@ const PublicSalesPage = () => {
                       <div className="detail-item">
                         <Car className="detail-icon" />
                         <span>{vehicle.variant?.model?.brand?.brandName} {vehicle.variant?.model?.modelName}</span>
-                      </div>
+                    </div>
                       <div className="detail-item">
                         <Zap className="detail-icon" />
                         <span>{vehicle.variant?.batteryCapacity || 'N/A'} kWh</span>
-                      </div>
+                    </div>
                       <div className="detail-item">
                         <Shield className="detail-icon" />
                         <span>{vehicle.variant?.rangeKm || 'N/A'} km</span>
@@ -403,18 +408,18 @@ const PublicSalesPage = () => {
                         <Quote className="btn-icon" />
                         Báo giá
                       </button>
-                      <button 
+              <button 
                         className="action-btn secondary"
                         onClick={() => handleBookAppointment(vehicle)}
-                      >
+              >
                         <Calendar className="btn-icon" />
                         Đặt lịch
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              </button>
             </div>
+                </div>
+              </div>
+              ))}
+              </div>
           ) : (
             <div className="vehicles-list">
               {filteredVehicles.map(vehicle => (
@@ -424,8 +429,8 @@ const PublicSalesPage = () => {
                       vehicle={vehicle} 
                       className="vehicle-thumbnail"
                       size={24}
-                    />
-                  </div>
+                />
+              </div>
                   <div className="list-content">
                     <h3 className="list-title">{vehicle.variant?.variantName || 'N/A'}</h3>
                     <p className="list-brand">{vehicle.variant?.model?.brand?.brandName} {vehicle.variant?.model?.modelName}</p>
@@ -433,41 +438,41 @@ const PublicSalesPage = () => {
                       <span className="spec-item">
                         <Zap className="spec-icon" />
                         {vehicle.variant?.batteryCapacity || 'N/A'} kWh
-                      </span>
+                            </span>
                       <span className="spec-item">
                         <Shield className="spec-icon" />
                         {vehicle.variant?.rangeKm || 'N/A'} km
-                      </span>
+                          </span>
                       <span className="spec-item">
                         <Car className="spec-icon" />
                         {vehicle.variant?.powerKw || 'N/A'} kW
-                      </span>
+                          </span>
+                      </div>
                     </div>
-                  </div>
                   <div className="list-price">
                     <span className="price">{vehicle.sellingPrice?.toLocaleString('vi-VN')} VNĐ</span>
                   </div>
                   <div className="list-actions">
-                    <button 
+                <button 
                       className="action-btn primary"
                       onClick={() => handleViewDetail(vehicle)}
-                    >
+                >
                       <Eye className="btn-icon" />
                       Xem chi tiết
-                    </button>
-                    <button 
+                </button>
+                <button 
                       className="action-btn secondary"
                       onClick={() => handleRequestQuote(vehicle)}
-                    >
+                >
                       <Quote className="btn-icon" />
                       Báo giá
-                    </button>
-                  </div>
-                </div>
+                </button>
+              </div>
+          </div>
               ))}
-            </div>
-          )}
         </div>
+      )}
+            </div>
       </section>
 
       {/* Footer */}
@@ -479,7 +484,7 @@ const PublicSalesPage = () => {
               <p>Địa chỉ: 123 Đường ABC, Quận 1, TP.HCM</p>
               <p>Điện thoại: 0123 456 789</p>
               <p>Email: info@evdm.com</p>
-            </div>
+                </div>
             <div className="footer-section">
               <h3>Dịch vụ</h3>
               <ul>
@@ -497,7 +502,7 @@ const PublicSalesPage = () => {
                 <li>FAQ</li>
                 <li>Liên hệ</li>
               </ul>
-            </div>
+          </div>
           </div>
           <div className="footer-bottom">
             <p>&copy; 2024 EVDM. Tất cả quyền được bảo lưu.</p>
