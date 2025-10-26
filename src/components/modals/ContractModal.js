@@ -15,6 +15,7 @@ const ContractModal = ({ contract, isOpen, onClose, onSave, mode = 'view' }) => 
     paymentTerms: '',
     warrantyPeriod: '',
     status: 'DRAFT',
+    isActive: true,
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -41,6 +42,7 @@ useEffect(() => {
             paymentTerms: contract.paymentTerms || '',
             warrantyPeriod: contract.warrantyPeriod || '',
             status: contract.status || 'DRAFT',
+            isActive: contract.isActive !== undefined ? contract.isActive : true,
             notes: contract.notes || ''
           });
         }
@@ -299,6 +301,19 @@ useEffect(() => {
                 <option value="COMPLETED">Hoàn thành</option>
                 <option value="TERMINATED">Chấm dứt</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleInputChange}
+                  disabled={mode === 'view'}
+                />
+                <span>Đang hoạt động</span>
+              </label>
             </div>
 
             <div className="form-group full-width">

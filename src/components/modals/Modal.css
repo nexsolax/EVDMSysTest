@@ -228,6 +228,275 @@
   background-color: #2563eb;
 }
 
+.form-display {
+  padding: 8px 12px;
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+}
+
+/* Quote Modal Styles */
+.quote-modal {
+  max-width: 600px;
+}
+
+.vehicle-info {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.vehicle-image {
+  width: 80px;
+  height: 80px;
+  background: #e2e8f0;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vehicle-image .icon {
+  width: 2rem;
+  height: 2rem;
+  color: #64748b;
+}
+
+.vehicle-details h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #1a202c;
+}
+
+.vehicle-details p {
+  margin: 0 0 0.25rem 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.vehicle-details .price {
+  color: #667eea;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.quote-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.label-icon {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Appointment Modal Styles */
+.appointment-modal {
+  max-width: 700px;
+}
+
+.appointment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Feedback Modal Styles */
+.feedback-modal {
+  max-width: 600px;
+}
+
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.star-btn:hover {
+  background: #f1f5f9;
+}
+
+.star-btn.active .star-icon {
+  fill: #fbbf24;
+  color: #fbbf24;
+}
+
+.star-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.rating-text {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+/* Image Upload Modal */
+.image-upload-modal {
+  max-width: 600px;
+}
+
+.upload-info {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.upload-info p {
+  margin: 0.25rem 0;
+  color: #4a5568;
+}
+
+.upload-area {
+  text-align: center;
+  padding: 2rem;
+  border: 2px dashed #cbd5e0;
+  border-radius: 0.75rem;
+  background: #f7fafc;
+  transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+  border-color: #667eea;
+  background: #f0f4ff;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.upload-button:hover {
+  background: #5a67d8;
+  transform: translateY(-2px);
+}
+
+.upload-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.image-preview {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.preview-info {
+  text-align: left;
+}
+
+.preview-info p {
+  margin: 0.25rem 0;
+  color: #4a5568;
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .quote-modal,
+  .appointment-modal,
+  .feedback-modal,
+  .image-upload-modal {
+    max-width: 95%;
+    margin: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-info {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .vehicle-image {
+    align-self: center;
+  }
+
+  .upload-area {
+    padding: 1rem;
+  }
+
+  .upload-button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .modal-container {

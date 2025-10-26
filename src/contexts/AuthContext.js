@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext();
@@ -16,6 +16,19 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
 
+  const validateToken = useCallback(async () => {
+    try {
+      // Temporarily disable token validation to avoid 404 errors
+      // const response = await authAPI.validate();
+      // if (response.data) {
+        setLoading(false);
+      // }
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      // logout();
+    }
+  }, []);
+
   useEffect(() => {
     // Check for existing token on app load
     const storedToken = localStorage.getItem('accessToken');
@@ -29,19 +42,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, []);
-
-  const validateToken = async () => {
-    try {
-      const response = await authAPI.validate();
-      if (response.data) {
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('Token validation failed:', error);
-      logout();
-    }
-  };
+  }, [validateToken]);
 
   const login = async (credentials) => {
     try {

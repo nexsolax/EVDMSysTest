@@ -198,52 +198,6 @@ const VehicleManagement = () => {
            }
          };
 
-         const handleActivateDeactivate = async (item) => {
-           try {
-             switch (activeTab) {
-               case 'brands':
-                 if (item.isActive) {
-                   await vehicleAPI.deactivateBrand(item.brandId);
-                   toast.success('Vô hiệu hóa thương hiệu thành công');
-                 } else {
-                   await vehicleAPI.activateBrand(item.brandId);
-                   toast.success('Kích hoạt thương hiệu thành công');
-                 }
-                 break;
-               case 'models':
-                 if (item.isActive) {
-                   await vehicleAPI.deactivateModel(item.modelId);
-                   toast.success('Vô hiệu hóa dòng xe thành công');
-                 } else {
-                   await vehicleAPI.activateModel(item.modelId);
-                   toast.success('Kích hoạt dòng xe thành công');
-                 }
-                 break;
-               case 'variants':
-                 if (item.isActive) {
-                   await vehicleAPI.deactivateVariant(item.variantId);
-                   toast.success('Vô hiệu hóa phiên bản thành công');
-                 } else {
-                   await vehicleAPI.activateVariant(item.variantId);
-                   toast.success('Kích hoạt phiên bản thành công');
-                 }
-                 break;
-               case 'colors':
-                 if (item.isActive) {
-                   await vehicleAPI.deactivateColor(item.colorId);
-                   toast.success('Vô hiệu hóa màu sắc thành công');
-                 } else {
-                   await vehicleAPI.activateColor(item.colorId);
-                   toast.success('Kích hoạt màu sắc thành công');
-                 }
-                 break;
-             }
-             loadData();
-           } catch (error) {
-             console.error(`Error updating ${activeTab} status:`, error);
-             toast.error(`Không thể cập nhật trạng thái ${getTabTitle()}`);
-           }
-         };
 
   const handleSaveBrand = async (brandId, brandData) => {
     try {
@@ -396,13 +350,13 @@ const VehicleManagement = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       item.name?.toLowerCase().includes(searchLower) ||
-      item.brandName?.toLowerCase().includes(searchLower) ||
-      item.modelName?.toLowerCase().includes(searchLower) ||
-      item.variantName?.toLowerCase().includes(searchLower) ||
-      item.colorName?.toLowerCase().includes(searchLower) ||
-      item.description?.toLowerCase().includes(searchLower) ||
-      item.country?.toLowerCase().includes(searchLower) ||
-      item.vehicleType?.toLowerCase().includes(searchLower) ||
+      (item.brandName?.toLowerCase() || '').includes(searchLower) ||
+      (item.modelName?.toLowerCase() || '').includes(searchLower) ||
+      (item.variantName?.toLowerCase() || '').includes(searchLower) ||
+      (item.colorName?.toLowerCase() || '').includes(searchLower) ||
+      (item.description?.toLowerCase() || '').includes(searchLower) ||
+      (item.country?.toLowerCase() || '').includes(searchLower) ||
+      (item.vehicleType?.toLowerCase() || '').includes(searchLower) ||
       (item.brand?.brandName && item.brand.brandName.toLowerCase().includes(searchLower)) ||
       (item.brand?.name && item.brand.name.toLowerCase().includes(searchLower)) ||
       (item.model?.modelName && item.model.modelName.toLowerCase().includes(searchLower)) ||
@@ -486,7 +440,6 @@ const VehicleManagement = () => {
                  onEdit={handleEdit}
                  onDelete={(item) => handleDelete(item, activeTab.slice(0, -1))}
                  onView={handleView}
-                 onActivateDeactivate={handleActivateDeactivate}
                />
         
         {/* Debug info */}

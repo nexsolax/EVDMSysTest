@@ -16,7 +16,7 @@ const UserManagement = () => {
   const [filterRole, setFilterRole] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [showUserModal, setShowUserModal] = useState(false);
-  const [modalMode, setModalMode] = useState('view'); // 'view' or 'edit'
+  const [modalMode, setModalMode] = useState('view'); // 'view', 'edit', or 'create'
 
   useEffect(() => {
     loadUsers();
@@ -25,8 +25,20 @@ const UserManagement = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      console.log('Loading users from API...');
       const response = await userAPI.getUsers();
-      setUsers(response.data || []);
+      console.log('Users API response:', response.data);
+      
+      const usersData = response.data || [];
+      console.log('Setting users state with:', usersData.length, 'users');
+      
+      setUsers(usersData);
+      
+      // Log each user's role for debugging
+      usersData.forEach(user => {
+        console.log(`User ${user.username}: role.roleName = ${user.role?.roleName || 'null'}, roleString = ${user.roleString || 'null'}`);
+      });
+      
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Không thể tải danh sách người dùng');
@@ -50,7 +62,8 @@ const UserManagement = () => {
       user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesRole = !filterRole || user.role?.roleName === filterRole;
+    const userRole = user.roleString || user.role?.roleName;
+    const matchesRole = !filterRole || userRole === filterRole;
     
     return matchesSearch && matchesRole;
   });
@@ -67,14 +80,62 @@ const UserManagement = () => {
     setShowUserModal(true);
   };
 
+  const handleCreateUser = () => {
+    setSelectedUser(null);
+    setModalMode('create');
+    setShowUserModal(true);
+  };
+
   const handleSaveUser = async (userId, userData) => {
     try {
-      await userAPI.updateUser(userId, userData);
-      toast.success('Cập nhật người dùng thành công');
-      loadUsers();
+      let response;
+      
+      if (userId === null) {
+        // Create new user
+        console.log('Creating new user with data:', userData);
+        response = await userAPI.createUser(userData);
+        console.log('Create response:', response.data);
+        toast.success('Tạo người dùng thành công');
+      } else {
+        // Update existing user
+        console.log('Updating user with data:', userData);
+        console.log('User ID being updated:', userId);
+        response = await userAPI.updateUser(userId, userData);
+        console.log('Update response:', response.data);
+        toast.success('Cập nhật người dùng thành công');
+      }
+      
+      // Close modal first
+      setShowUserModal(false);
+      setSelectedUser(null);
+      
+      // Then reload users data
+      console.log('Reloading users data...');
+      await loadUsers();
+      console.log('Users data reloaded successfully');
+      
     } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error('Không thể cập nhật người dùng');
+      console.error('Error saving user:', error);
+      
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        
+        if (error.response.data && error.response.data.message) {
+          toast.error(`Lỗi: ${error.response.data.message}`);
+        } else if (error.response.status === 400) {
+          toast.error('Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.');
+        } else if (error.response.status === 401) {
+          toast.error('Không có quyền thực hiện thao tác này');
+        } else if (error.response.status === 404) {
+          toast.error('Không tìm thấy người dùng');
+        } else {
+          toast.error(userId === null ? 'Không thể tạo người dùng' : 'Không thể cập nhật người dùng');
+        }
+      } else {
+        toast.error('Lỗi kết nối đến server');
+      }
+      
       throw error;
     }
   };
@@ -92,35 +153,6 @@ const UserManagement = () => {
     }
   };
 
-  const handleActivateUser = async (user) => {
-    try {
-      await userAPI.activateUser(user.userId);
-      toast.success('Kích hoạt người dùng thành công');
-      loadUsers();
-    } catch (error) {
-      console.error('Error activating user:', error);
-      toast.error('Không thể kích hoạt người dùng');
-    }
-  };
-
-  const handleDeactivateUser = async (user) => {
-    try {
-      await userAPI.deactivateUser(user.userId);
-      toast.success('Vô hiệu hóa người dùng thành công');
-      loadUsers();
-    } catch (error) {
-      console.error('Error deactivating user:', error);
-      toast.error('Không thể vô hiệu hóa người dùng');
-    }
-  };
-
-  const handleActivateDeactivate = async (user) => {
-    if (user.isActive) {
-      await handleDeactivateUser(user);
-    } else {
-      await handleActivateUser(user);
-    }
-  };
 
   const handleChangePassword = async (user) => {
     const newPassword = window.prompt(`Đặt mật khẩu mới cho người dùng "${user.username}":`);
@@ -194,8 +226,8 @@ const UserManagement = () => {
 
         <div className="section-header">
           <h2>Danh sách người dùng</h2>
-          <button className="btn btn-primary">
-            <Plus size={20} />
+          <button className="btn btn-primary btn-sm" onClick={handleCreateUser}>
+            <Plus size={16} />
             Thêm người dùng
           </button>
         </div>
@@ -265,7 +297,12 @@ const UserManagement = () => {
                     <td>{user.email || 'N/A'}</td>
                     <td>{user.phone || 'N/A'}</td>
                     <td>
-                      {(() => { const b = getRoleBadge(user.role?.roleName); return (<span className={`badge ${b.class}`}>{b.text}</span>); })()}
+                      {(() => { 
+                        // Use roleString if available, fallback to role.roleName
+                        const roleName = user.roleString || user.role?.roleName;
+                        const b = getRoleBadge(roleName); 
+                        return (<span className={`badge ${b.class}`}>{b.text}</span>); 
+                      })()}
                     </td>
                     <td>
                       {(() => { const b = getActiveBadge(user.isActive); return (<span className={`badge ${b.class}`}>{b.text}</span>); })()}
@@ -289,13 +326,6 @@ const UserManagement = () => {
                                </button>
                                {user.userId !== currentUser?.userId && (
                                  <>
-                                   <button 
-                                     className="btn btn-sm btn-warning"
-                                     onClick={() => handleActivateDeactivate(user)}
-                                     title={user.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-                                   >
-                                     {user.isActive ? "Vô hiệu hóa" : "Kích hoạt"}
-                                   </button>
                                    <button 
                                      className="btn btn-sm btn-info"
                                      onClick={() => handleChangePassword(user)}

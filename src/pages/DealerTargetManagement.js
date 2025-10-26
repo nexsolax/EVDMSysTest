@@ -186,9 +186,9 @@ const DealerTargetManagement = () => {
 
   const filteredTargets = dealerTargets.filter(target => {
     const matchesSearch = 
-      target.targetName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      target.dealer?.dealerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      target.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      (target.targetName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (target.dealer?.dealerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (target.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || target.targetStatus === statusFilter;
     const matchesType = typeFilter === 'all' || target.targetType === typeFilter;

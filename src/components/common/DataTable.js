@@ -143,7 +143,12 @@ const DataTable = ({
                 <tr key={item.id || rowIndex} className="data-row">
                   {columns.map((column, colIndex) => (
                     <td key={colIndex} className={column.cellClassName || ''}>
-                      {column.render ? column.render(item) : item[column.key]}
+                      {column.render ? column.render(item) : (() => {
+                        const value = item[column.key];
+                        if (value === null || value === undefined) return 'N/A';
+                        if (typeof value === 'object') return JSON.stringify(value);
+                        return value;
+                      })()}
                     </td>
                   ))}
                   {actions && (

@@ -70,52 +70,6 @@ const ContractManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (contract) => {
-    const statusOptions = [
-      { value: 'DRAFT', label: 'Nháp' },
-      { value: 'PENDING_SIGNATURE', label: 'Chờ ký' },
-      { value: 'SIGNED', label: 'Đã ký' },
-      { value: 'ACTIVE', label: 'Có hiệu lực' },
-      { value: 'COMPLETED', label: 'Hoàn thành' },
-      { value: 'CANCELLED', label: 'Đã hủy' },
-      { value: 'EXPIRED', label: 'Hết hạn' }
-    ];
-
-    const currentStatus = statusOptions.find(s => s.value === contract.status);
-    const availableStatuses = statusOptions.filter(s => s.value !== contract.status);
-
-    if (availableStatuses.length === 0) {
-      toast('Hợp đồng đã ở trạng thái cuối cùng', { icon: 'ℹ️' });
-      return;
-    }
-
-    const newStatus = window.prompt(
-      `Cập nhật trạng thái hợp đồng "${contract.contractNumber}"\n\n` +
-      `Trạng thái hiện tại: ${currentStatus?.label || contract.status}\n\n` +
-      `Chọn trạng thái mới:\n` +
-      availableStatuses.map((s, i) => `${i + 1}. ${s.label}`).join('\n') +
-      `\n\nNhập số thứ tự (1-${availableStatuses.length}):`
-    );
-
-    if (newStatus === null) return; // User cancelled
-
-    const statusIndex = parseInt(newStatus) - 1;
-    if (isNaN(statusIndex) || statusIndex < 0 || statusIndex >= availableStatuses.length) {
-      toast.error('Lựa chọn không hợp lệ');
-      return;
-    }
-
-    const selectedStatus = availableStatuses[statusIndex].value;
-
-    try {
-      await contractAPI.updateContractStatus(contract.contractId, selectedStatus);
-      toast.success('Cập nhật trạng thái hợp đồng thành công');
-      loadContracts();
-    } catch (error) {
-      console.error('Error updating contract status:', error);
-      toast.error('Không thể cập nhật trạng thái hợp đồng');
-    }
-  };
 
   const handleSignContract = async (contract) => {
     try {
@@ -312,7 +266,6 @@ const ContractManagement = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
-          onUpdateStatus={handleUpdateStatus}
           onSignContract={handleSignContract}
           onSendContract={handleSendContract}
           onExportPDF={handleExportPDF}

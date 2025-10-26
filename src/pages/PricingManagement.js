@@ -2,12 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import PricingModal from '../components/modals/PricingModal';
 import { pricingPolicyAPI, dealerAPI, vehicleAPI } from '../services/api';
 import './PricingManagement.css';
 
 const PricingManagement = () => {
   const [pricingPolicies, setPricingPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [modalMode, setModalMode] = useState('view');
   const [dealers, setDealers] = useState([]);
   const [variants, setVariants] = useState([]);
   const [filterScope, setFilterScope] = useState('all');
@@ -117,57 +121,16 @@ const PricingManagement = () => {
     return <span className={`badge ${typeInfo.class}`}>{typeInfo.text}</span>;
   };
 
-  const handleView = async (policy) => {
-    try {
-      const response = await pricingPolicyAPI.getPricingPolicy(policy.policyId);
-      const policyData = response.data;
-      
-      // Show policy details in a modal or alert
-      const details = `
-        Tên chính sách: ${policyData.policyName || 'N/A'}
-        Loại: ${policyData.policyType || 'N/A'}
-        Phạm vi: ${policyData.scope || 'N/A'}
-        Đại lý: ${getDealerName(policyData.dealer?.dealerId)}
-        Xe: ${getVariantName(policyData.variant?.variantId)}
-        Giá trị: ${formatCurrency(policyData.policyValue)}
-        Ngày bắt đầu: ${formatDate(policyData.startDate)}
-        Ngày kết thúc: ${formatDate(policyData.endDate)}
-        Trạng thái: ${policyData.status || 'N/A'}
-        Mô tả: ${policyData.description || 'Không có'}
-      `;
-      
-      alert(details);
-    } catch (error) {
-      console.error('Error loading policy details:', error);
-      toast.error('Không thể tải thông tin chính sách giá');
-    }
+  const handleView = (policy) => {
+    setSelectedPolicy(policy);
+    setModalMode('view');
+    setShowPricingModal(true);
   };
 
-  const handleEdit = async (policy) => {
-    try {
-      const response = await pricingPolicyAPI.getPricingPolicy(policy.policyId);
-      const policyData = response.data;
-      
-      // Open edit modal with policyData
-      const editData = {
-        policyName: policyData.policyName,
-        policyType: policyData.policyType,
-        scope: policyData.scope,
-        dealerId: policyData.dealer?.dealerId,
-        variantId: policyData.variant?.variantId,
-        policyValue: policyData.policyValue,
-        startDate: policyData.startDate,
-        endDate: policyData.endDate,
-        status: policyData.status,
-        description: policyData.description
-      };
-      
-      console.log('Edit policy data:', editData);
-      toast.info('Chức năng chỉnh sửa sẽ được implement trong modal');
-    } catch (error) {
-      console.error('Error loading policy for edit:', error);
-      toast.error('Không thể tải thông tin chính sách giá');
-    }
+  const handleEdit = (policy) => {
+    setSelectedPolicy(policy);
+    setModalMode('edit');
+    setShowPricingModal(true);
   };
 
   const handleDelete = async (policy) => {
@@ -183,14 +146,28 @@ const PricingManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (policy, newStatus) => {
+  const handleCreate = () => {
+    setSelectedPolicy(null);
+    setModalMode('create');
+    setShowPricingModal(true);
+  };
+
+  const handleSavePolicy = async (policyId, policyData) => {
     try {
-      await pricingPolicyAPI.updatePricingPolicyStatus(policy.policyId, newStatus);
-      toast.success('Cập nhật trạng thái thành công');
+      if (policyId) {
+        // Update existing policy
+        await pricingPolicyAPI.updatePricingPolicy(policyId, policyData);
+        toast.success('Cập nhật chính sách giá thành công');
+      } else {
+        // Create new policy
+        await pricingPolicyAPI.createPricingPolicy(policyData);
+        toast.success('Tạo chính sách giá thành công');
+      }
       loadData();
+      setShowPricingModal(false);
     } catch (error) {
-      console.error('Error updating policy status:', error);
-      toast.error('Không thể cập nhật trạng thái');
+      console.error('Error saving pricing policy:', error);
+      throw error; // Re-throw to be handled by modal
     }
   };
 
@@ -260,23 +237,6 @@ const PricingManagement = () => {
     }
   ];
 
-  const statusActions = [
-    {
-      label: 'Kích hoạt',
-      value: 'active',
-      className: 'btn-success'
-    },
-    {
-      label: 'Vô hiệu hóa',
-      value: 'inactive',
-      className: 'btn-secondary'
-    },
-    {
-      label: 'Hết hạn',
-      value: 'expired',
-      className: 'btn-danger'
-    }
-  ];
 
   if (loading) {
     return <LoadingSpinner />;
@@ -289,7 +249,7 @@ const PricingManagement = () => {
         <div className="header-actions">
           <button 
             className="btn btn-primary"
-            onClick={() => toast.info('Chức năng tạo chính sách giá mới sẽ được implement')}
+            onClick={handleCreate}
           >
             <i className="fas fa-plus"></i> Tạo chính sách mới
           </button>
@@ -330,12 +290,23 @@ const PricingManagement = () => {
           data={pricingPolicies}
           columns={columns}
           actions={actions}
-          statusActions={statusActions}
-          onStatusUpdate={handleUpdateStatus}
           searchable={true}
           searchPlaceholder="Tìm kiếm chính sách giá..."
         />
       </div>
+
+      {/* Pricing Modal */}
+      <PricingModal
+        policy={selectedPolicy}
+        isOpen={showPricingModal}
+        mode={modalMode}
+        onClose={() => {
+          setShowPricingModal(false);
+          setSelectedPolicy(null);
+          setModalMode('view');
+        }}
+        onSave={handleSavePolicy}
+      />
     </div>
   );
 };

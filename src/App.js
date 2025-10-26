@@ -28,7 +28,10 @@ import DealerTargetManagement from './pages/DealerTargetManagement';
 import VehicleComparison from './pages/VehicleComparison';
 import SalesPage from './pages/SalesPage';
 import PublicSalesPage from './pages/PublicSalesPage';
+import VehicleImageManagement from './pages/VehicleImageManagement';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
+import RoleManagement from './pages/RoleManagement';
 import ApiAudit from './pages/ApiAudit';
 import Unauthorized from './pages/Unauthorized';
 
@@ -130,8 +133,24 @@ function App() {
                   </ProtectedRoute>
                 } />
                 
-                {/* Profile */}
+                {/* Profile & Settings */}
                 <Route path="profile" element={<Profile />} />
+                <Route path="settings" element={<Settings />} />
+                
+                {/* Role Management */}
+                <Route path="roles" element={
+                  <ProtectedRoute requiredRoles={['admin']}>
+                    <RoleManagement />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Vehicle Image Management */}
+                <Route path="vehicle-images" element={
+                  <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
+                    <VehicleImageManagement />
+                  </ProtectedRoute>
+                } />
+                
                 {process.env.NODE_ENV !== 'production' && (
                   <Route path="dev/api-audit" element={<ApiAudit />} />
                 )}

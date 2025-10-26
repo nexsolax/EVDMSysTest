@@ -15,6 +15,7 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
     depositAmount: '',
     remainingAmount: '',
     status: 'PENDING',
+    isActive: true,
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -41,6 +42,7 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
             depositAmount: order.depositAmount || '',
             remainingAmount: order.remainingAmount || '',
             status: order.status || 'PENDING',
+            isActive: order.isActive !== undefined ? order.isActive : true,
             notes: order.notes || ''
           });
         }
@@ -303,6 +305,19 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
                 <option value="DELIVERED">Đã giao hàng</option>
                 <option value="CANCELLED">Đã hủy</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleInputChange}
+                  disabled={mode === 'view'}
+                />
+                <span>Đang hoạt động</span>
+              </label>
             </div>
 
             <div className="form-group full-width">

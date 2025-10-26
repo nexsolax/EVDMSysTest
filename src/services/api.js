@@ -11,12 +11,16 @@ const api = axios.create({
 
 // Create public axios instance (no auth required)
 const publicApi = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api/public',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+
+// Export public API for use in components
+export const publicAPI = publicApi;
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -61,7 +65,7 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
-// Vehicle API
+// Vehicle API (Authenticated)
 export const vehicleAPI = {
   // Brands
   getBrands: () => api.get('/vehicles/brands'),
@@ -69,38 +73,38 @@ export const vehicleAPI = {
   getBrand: (id) => api.get(`/vehicles/brands/${id}`),
   createBrand: (data) => api.post('/vehicles/brands', data),
   updateBrand: (id, data) => api.put(`/vehicles/brands/${id}`, data),
-  activateBrand: (id) => api.put(`/vehicles/brands/${id}/activate`),
-  deactivateBrand: (id) => api.put(`/vehicles/brands/${id}/deactivate`),
   deleteBrand: (id) => api.delete(`/vehicles/brands/${id}`),
 
   // Models
   getModels: () => api.get('/vehicles/models'),
-  getModelsByBrand: (brandId) => api.get(`/vehicles/models/brand/${brandId}`),
+  getActiveModels: () => api.get('/vehicles/models/active'),
   getModel: (id) => api.get(`/vehicles/models/${id}`),
   createModel: (data) => api.post('/vehicles/models', data),
   updateModel: (id, data) => api.put(`/vehicles/models/${id}`, data),
-  activateModel: (id) => api.put(`/vehicles/models/${id}/activate`),
-  deactivateModel: (id) => api.put(`/vehicles/models/${id}/deactivate`),
   deleteModel: (id) => api.delete(`/vehicles/models/${id}`),
 
   // Variants
   getVariants: () => api.get('/vehicles/variants'),
-  getVariantsByModel: (modelId) => api.get(`/vehicles/variants/model/${modelId}`),
+  getActiveVariants: () => api.get('/vehicles/variants/active'),
   getVariant: (id) => api.get(`/vehicles/variants/${id}`),
   createVariant: (data) => api.post('/vehicles/variants', data),
   updateVariant: (id, data) => api.put(`/vehicles/variants/${id}`, data),
-  activateVariant: (id) => api.put(`/vehicles/variants/${id}/activate`),
-  deactivateVariant: (id) => api.put(`/vehicles/variants/${id}/deactivate`),
   deleteVariant: (id) => api.delete(`/vehicles/variants/${id}`),
 
   // Colors
   getColors: () => api.get('/vehicles/colors'),
+  getActiveColors: () => api.get('/vehicles/colors/active'),
   getColor: (id) => api.get(`/vehicles/colors/${id}`),
   createColor: (data) => api.post('/vehicles/colors', data),
   updateColor: (id, data) => api.put(`/vehicles/colors/${id}`, data),
-  activateColor: (id) => api.put(`/vehicles/colors/${id}/activate`),
-  deactivateColor: (id) => api.put(`/vehicles/colors/${id}/deactivate`),
   deleteColor: (id) => api.delete(`/vehicles/colors/${id}`),
+
+  // Vehicle Comparison
+  getAvailableVehicles: () => api.get('/vehicles/compare/available'),
+  quickCompare: (variantIds) => api.get(`/vehicles/compare/quick?variantIds=${variantIds.join(',')}`),
+  detailedCompare: (data) => api.post('/vehicles/compare', data),
+  compareTwoVehicles: (id1, id2) => api.post(`/vehicles/compare/${id1}/vs/${id2}`),
+  getComparisonCriteria: () => api.get('/vehicles/compare/criteria'),
 };
 
 // Customer API
@@ -131,19 +135,19 @@ export const warehouseAPI = {
   deleteWarehouse: (id) => api.delete(`/warehouses/${id}`),
 };
 
-// Vehicle Inventory API
+// Vehicle Inventory API (Authenticated)
 export const inventoryAPI = {
   getInventory: () => api.get('/vehicle-inventory'),
-  getInventoryByStatus: (status) => api.get(`/vehicle-inventory/status/${status}`),
+  getInventoryById: (id) => api.get(`/vehicle-inventory/${id}`),
+  getAvailableInventory: () => api.get('/vehicle-inventory/available'),
+  getInventoryByBrand: (brandId) => api.get(`/vehicle-inventory/brand/${brandId}`),
+  getInventoryByModel: (modelId) => api.get(`/vehicle-inventory/model/${modelId}`),
   getInventoryByVariant: (variantId) => api.get(`/vehicle-inventory/variant/${variantId}`),
-  getInventoryByWarehouse: (warehouseId) => api.get(`/vehicle-inventory/warehouse/${warehouseId}`),
-  getInventoryItem: (id) => api.get(`/vehicle-inventory/${id}`),
+  getInventoryByColor: (colorId) => api.get(`/vehicle-inventory/color/${colorId}`),
+  getInventoryByPriceRange: (minPrice, maxPrice) => 
+    api.get(`/vehicle-inventory/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
   createInventory: (data) => api.post('/vehicle-inventory', data),
   updateInventory: (id, data) => api.put(`/vehicle-inventory/${id}`, data),
-  updateInventoryStatus: (id, status) => api.put(`/vehicle-inventory/${id}/status?status=${status}`),
-  reserveVehicle: (id) => api.post(`/vehicle-inventory/${id}/reserve`),
-  releaseVehicle: (id) => api.post(`/vehicle-inventory/${id}/release`),
-  getVehicleHistory: (id) => api.get(`/vehicle-inventory/${id}/history`),
   deleteInventory: (id) => api.delete(`/vehicle-inventory/${id}`),
 };
 
@@ -238,7 +242,7 @@ export const userAPI = {
   getEvmStaff: () => api.get('/users/evm-staff'),
   getAdmins: () => api.get('/users/admins'),
   searchUsers: (name) => api.get(`/users/search?name=${name}`),
-  createUser: (data) => api.post('/users', data),
+  createUser: (data) => api.post('/users/dto', data),
   updateUser: (id, data) => api.put(`/users/${id}`, data),
   activateUser: (id) => api.put(`/users/${id}/activate`),
   deactivateUser: (id) => api.put(`/users/${id}/deactivate`),
@@ -250,6 +254,8 @@ export const userAPI = {
   getRole: (id) => api.get(`/users/roles/${id}`),
   getRoleByName: (roleName) => api.get(`/users/roles/name/${roleName}`),
   createRole: (data) => api.post('/users/roles', data),
+  updateRole: (id, data) => api.put(`/users/roles/${id}`, data),
+  deleteRole: (id) => api.delete(`/users/roles/${id}`),
   // Bulk operations
   bulkResetPassword: (userIds) => api.post('/users/bulk-reset-password', { userIds }),
 };
@@ -408,56 +414,100 @@ export const feedbackAPI = {
 // Public API services (no authentication required)
 export const publicVehicleAPI = {
   // Vehicle Brands
-  getBrands: () => publicApi.get('/public/vehicle-brands'),
-  getActiveBrands: () => publicApi.get('/public/vehicle-brands/active'),
-  getBrand: (id) => publicApi.get(`/public/vehicle-brands/${id}`),
+  getBrands: () => publicApi.get('/vehicle-brands'),
+  getBrandById: (id) => publicApi.get(`/vehicle-brands/${id}`),
   
   // Vehicle Models
-  getModels: () => publicApi.get('/public/vehicle-models'),
-  getModelsByBrand: (brandId) => publicApi.get(`/public/vehicle-models/brand/${brandId}`),
-  getModel: (id) => publicApi.get(`/public/vehicle-models/${id}`),
+  getModels: () => publicApi.get('/vehicle-models'),
+  getModelById: (id) => publicApi.get(`/vehicle-models/${id}`),
   
   // Vehicle Variants
-  getVariants: () => publicApi.get('/public/vehicle-variants'),
-  getVariantsByModel: (modelId) => publicApi.get(`/public/vehicle-variants/model/${modelId}`),
-  getVariant: (id) => publicApi.get(`/public/vehicle-variants/${id}`),
+  getVariants: () => publicApi.get('/vehicle-variants'),
+  getVariantById: (id) => publicApi.get(`/vehicle-variants/${id}`),
   
   // Vehicle Colors
-  getColors: () => publicApi.get('/public/vehicle-colors'),
-  getColor: (id) => publicApi.get(`/public/vehicle-colors/${id}`),
+  getColors: () => publicApi.get('/vehicle-colors'),
+  getColorById: (id) => publicApi.get(`/vehicle-colors/${id}`),
 };
 
 export const publicInventoryAPI = {
-  getInventory: () => publicApi.get('/public/vehicle-inventory'),
-  getInventoryByStatus: (status) => publicApi.get(`/public/vehicle-inventory/status/${status}`),
-  getInventoryByVariant: (variantId) => publicApi.get(`/public/vehicle-inventory/variant/${variantId}`),
-  getInventoryItem: (id) => publicApi.get(`/public/vehicle-inventory/${id}`),
-};
-
-export const publicCustomerAPI = {
-  createCustomer: (data) => publicApi.post('/public/customers', data),
-};
-
-export const publicQuotationAPI = {
-  createQuotation: (data) => publicApi.post('/public/quotations', data),
-};
-
-export const publicOrderAPI = {
-  createOrder: (data) => publicApi.post('/public/orders', data),
-};
-
-export const publicFeedbackAPI = {
-  createFeedback: (data) => publicApi.post('/public/feedbacks', data),
-};
-
-export const publicAppointmentAPI = {
-  createAppointment: (data) => publicApi.post('/public/appointments', data),
+  getInventory: () => publicApi.get('/vehicle-inventory'),
+  getInventoryById: (id) => publicApi.get(`/vehicle-inventory/${id}`),
+  getInventoryByBrand: (brandId) => publicApi.get(`/vehicle-inventory/brand/${brandId}`),
+  getInventoryByModel: (modelId) => publicApi.get(`/vehicle-inventory/model/${modelId}`),
+  getInventoryByVariant: (variantId) => publicApi.get(`/vehicle-inventory/variant/${variantId}`),
+  getInventoryByColor: (colorId) => publicApi.get(`/vehicle-inventory/color/${colorId}`),
+  getInventoryByPriceRange: (minPrice, maxPrice) => 
+    publicApi.get(`/vehicle-inventory/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
+  getAvailableInventory: () => publicApi.get('/vehicle-inventory/available'),
 };
 
 export const publicPromotionAPI = {
-  getPromotions: () => publicApi.get('/public/promotions'),
-  getActivePromotions: () => publicApi.get('/public/promotions'),
-  getPromotion: (id) => publicApi.get(`/public/promotions/${id}`),
+  getPromotions: () => publicApi.get('/promotions'),
+  getPromotionById: (id) => publicApi.get(`/promotions/${id}`),
+};
+
+export const publicQuotationAPI = {
+  getQuotations: () => publicApi.get('/quotations'),
+  getQuotationById: (id) => publicApi.get(`/quotations/${id}`),
+  createQuotation: (data) => publicApi.post('/quotations', data),
+};
+
+export const publicOrderAPI = {
+  createOrder: (data) => publicApi.post('/orders', data),
+  getOrderById: (id) => publicApi.get(`/orders/${id}`),
+  getOrderByNumber: (orderNumber) => publicApi.get(`/orders/order-number/${orderNumber}`),
+  cancelOrder: (id, reason) => publicApi.put(`/orders/${id}/cancel?reason=${encodeURIComponent(reason)}`),
+  getOrderStatus: (id) => publicApi.get(`/orders/${id}/status`),
+  trackOrder: (orderNumber) => publicApi.get(`/orders/track/${orderNumber}`),
+};
+
+export const publicPaymentAPI = {
+  createDeposit: (data) => publicApi.post('/payments/deposit', data),
+  createFullPayment: (data) => publicApi.post('/payments/full-payment', data),
+  getPaymentStatus: (id) => publicApi.get(`/payments/${id}/status`),
+  getPaymentsByOrder: (orderId) => publicApi.get(`/payments/order/${orderId}`),
+  getPaymentMethods: () => publicApi.get('/payments/methods'),
+};
+
+export const publicAppointmentAPI = {
+  createAppointment: (data) => publicApi.post('/appointments', data),
+  getAppointmentById: (id) => publicApi.get(`/appointments/${id}`),
+  updateAppointment: (id, data) => publicApi.put(`/appointments/${id}`, data),
+  cancelAppointment: (id) => publicApi.delete(`/appointments/${id}`),
+  getAvailableSlots: () => publicApi.get('/appointments/available-slots'),
+  getAppointmentTypes: () => publicApi.get('/appointments/types'),
+};
+
+export const publicFeedbackAPI = {
+  submitFeedback: (data) => publicApi.post('/feedbacks', data),
+  getFeedbackById: (id) => publicApi.get(`/feedbacks/${id}`),
+  getFeedbacksByVehicle: (inventoryId) => publicApi.get(`/feedbacks/vehicle/${inventoryId}`),
+  getFeedbacksByRating: (rating) => publicApi.get(`/feedbacks/rating/${rating}`),
+};
+
+export const publicVehicleComparisonAPI = {
+  quickCompare: (variantIds) => publicApi.get(`/vehicle-compare/quick?variantIds=${variantIds.join(',')}`),
+  detailedCompare: (data) => publicApi.post('/vehicle-compare', data),
+  getAvailableForCompare: () => publicApi.get('/vehicle-compare/available'),
+  compareTwoVehicles: (id1, id2) => publicApi.post(`/vehicle-compare/${id1}/vs/${id2}`),
+  getComparisonCriteria: () => publicApi.get('/vehicle-compare/criteria'),
+};
+
+export const publicContractAPI = {
+  getContractTemplate: () => publicApi.get('/contracts/template'),
+  generateContract: (data) => publicApi.post('/contracts/generate', data),
+};
+
+// Notification API
+export const notificationAPI = {
+  getNotifications: () => api.get('/notifications'),
+  getNotification: (id) => api.get(`/notifications/${id}`),
+  getUnreadNotifications: () => api.get('/notifications/unread'),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+  deleteNotification: (id) => api.delete(`/notifications/${id}`),
+  createNotification: (data) => api.post('/notifications', data),
 };
 
 export default api;

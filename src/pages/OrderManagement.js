@@ -70,52 +70,6 @@ const OrderManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (order) => {
-    const statusOptions = [
-      { value: 'PENDING', label: 'Chờ xử lý' },
-      { value: 'CONFIRMED', label: 'Đã xác nhận' },
-      { value: 'PROCESSING', label: 'Đang xử lý' },
-      { value: 'SHIPPED', label: 'Đã giao hàng' },
-      { value: 'DELIVERED', label: 'Đã giao' },
-      { value: 'CANCELLED', label: 'Đã hủy' },
-      { value: 'REFUNDED', label: 'Đã hoàn tiền' }
-    ];
-
-    const currentStatus = statusOptions.find(s => s.value === order.status);
-    const availableStatuses = statusOptions.filter(s => s.value !== order.status);
-
-    if (availableStatuses.length === 0) {
-      toast('Đơn hàng đã ở trạng thái cuối cùng', { icon: 'ℹ️' });
-      return;
-    }
-
-    const newStatus = window.prompt(
-      `Cập nhật trạng thái đơn hàng "${order.orderNumber}"\n\n` +
-      `Trạng thái hiện tại: ${currentStatus?.label || order.status}\n\n` +
-      `Chọn trạng thái mới:\n` +
-      availableStatuses.map((s, i) => `${i + 1}. ${s.label}`).join('\n') +
-      `\n\nNhập số thứ tự (1-${availableStatuses.length}):`
-    );
-
-    if (newStatus === null) return; // User cancelled
-
-    const statusIndex = parseInt(newStatus) - 1;
-    if (isNaN(statusIndex) || statusIndex < 0 || statusIndex >= availableStatuses.length) {
-      toast.error('Lựa chọn không hợp lệ');
-      return;
-    }
-
-    const selectedStatus = availableStatuses[statusIndex].value;
-
-    try {
-      await orderAPI.updateOrderStatus(order.orderId, selectedStatus);
-      toast.success('Cập nhật trạng thái đơn hàng thành công');
-      loadOrders();
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error('Không thể cập nhật trạng thái đơn hàng');
-    }
-  };
 
   const handleConvertToContract = async (order) => {
     if (window.confirm(`Bạn có chắc chắn muốn chuyển đổi đơn hàng "${order.orderNumber}" thành hợp đồng?`)) {
@@ -292,7 +246,6 @@ const OrderManagement = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
-          onUpdateStatus={handleUpdateStatus}
           onConvertToContract={handleConvertToContract}
           onCancelOrder={handleCancelOrder}
           onExportPDF={handleExportPDF}

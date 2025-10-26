@@ -12,6 +12,7 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
     amount: '',
     method: '',
     status: 'PENDING',
+    isActive: true,
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,7 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
             amount: payment.amount || '',
             method: payment.method || '',
             status: payment.status || 'PENDING',
+            isActive: payment.isActive !== undefined ? payment.isActive : true,
             notes: payment.notes || ''
           });
         }
@@ -220,6 +222,19 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
                 <option value="REFUNDED">Đã hoàn tiền</option>
                 <option value="FAILED">Thất bại</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleChange}
+                  disabled={mode === 'view'}
+                />
+                <span>Đang hoạt động</span>
+              </label>
             </div>
 
             <div className="form-group full-width">

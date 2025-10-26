@@ -1,457 +1,457 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from 'react-query';
-import { toast } from 'react-hot-toast';
 import { 
-  Car,
-  Battery,
-  Gauge,
-  Zap,
-  Clock,
-  Users,
-  Scale,
-  Ruler,
-  DollarSign,
-  Star,
-  Check,
-  X,
+  Search, 
+  Filter, 
+  BarChart3, 
+  Table, 
+  Grid, 
+  List, 
+  X, 
+  RefreshCw,
   Plus,
   Trash2,
-  Search,
-  Filter
+  Star,
+  Award,
+  TrendingUp
 } from 'lucide-react';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import { vehicleAPI } from '../services/api';
+import { publicVehicleComparisonAPI } from '../services/api';
+import VehicleComparisonCard from '../components/VehicleComparisonCard';
+import ComparisonTable from '../components/ComparisonTable';
+import ComparisonChart from '../components/ComparisonChart';
+import toast from 'react-hot-toast';
 import './VehicleComparison.css';
 
 const VehicleComparison = () => {
+  const [vehicles, setVehicles] = useState([]);
+  const [filteredVehicles, setFilteredVehicles] = useState([]);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
+  const [comparisonData, setComparisonData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [brandFilter, setBrandFilter] = useState('all');
-  const [priceRangeFilter, setPriceRangeFilter] = useState('all');
-  const [maxVehicles] = useState(4); // Maximum 4 vehicles for comparison
+  const [viewMode, setViewMode] = useState('grid'); // grid, list, table, chart
+  const [showComparison, setShowComparison] = useState(false);
+  const [filters, setFilters] = useState({
+    brand: '',
+    priceRange: { min: 0, max: 10000000000 },
+    range: { min: 0, max: 1000 },
+    power: { min: 0, max: 1000 }
+  });
 
-  // Fetch vehicles
-  const { data: vehicles, isLoading, error } = useQuery(
-    'vehicles',
-    () => vehicleAPI.getVariants(),
-    {
-      select: (response) => response.data || []
-    }
-  );
+  useEffect(() => {
+    loadVehicles();
+  }, []);
 
-  // Filter vehicles
-  const filteredVehicles = vehicles?.filter(vehicle => {
-    const matchesSearch = vehicle.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.variant?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesBrand = brandFilter === 'all' || vehicle.brand === brandFilter;
-    
-    let matchesPrice = true;
-    if (priceRangeFilter !== 'all') {
-      const price = vehicle.price || 0;
-      switch (priceRangeFilter) {
-        case 'under_500m':
-          matchesPrice = price < 500000000;
-          break;
-        case '500m_1b':
-          matchesPrice = price >= 500000000 && price < 1000000000;
-          break;
-        case '1b_2b':
-          matchesPrice = price >= 1000000000 && price < 2000000000;
-          break;
-        case 'over_2b':
-          matchesPrice = price >= 2000000000;
-          break;
-      }
-    }
-    
-    return matchesSearch && matchesBrand && matchesPrice;
-  }) || [];
+  useEffect(() => {
+    filterVehicles();
+  }, [vehicles, searchTerm, filters]);
 
-  // Get unique brands for filter
-  const brands = [...new Set(vehicles?.map(v => v.brand))].filter(Boolean);
-
-  // Handle vehicle selection
-  const handleAddVehicle = (vehicle) => {
-    if (selectedVehicles.length >= maxVehicles) {
-      toast.error(`Chỉ có thể so sánh tối đa ${maxVehicles} xe`);
-      return;
+  const loadVehicles = async () => {
+    try {
+      setLoading(true);
+      const response = await publicVehicleComparisonAPI.getAvailableForCompare();
+      setVehicles(response.data || []);
+    } catch (error) {
+      console.error('Error loading vehicles:', error);
+      toast.error('Không thể tải danh sách xe');
+    } finally {
+      setLoading(false);
     }
-    
-    if (selectedVehicles.find(v => v.vehicleId === vehicle.vehicleId)) {
-      toast.error('Xe này đã được chọn để so sánh');
-      return;
-    }
-    
-    setSelectedVehicles([...selectedVehicles, vehicle]);
-    toast.success(`Đã thêm ${vehicle.brand} ${vehicle.model} vào danh sách so sánh`);
   };
 
-  const handleRemoveVehicle = (vehicleId) => {
-    setSelectedVehicles(selectedVehicles.filter(v => v.vehicleId !== vehicleId));
+  const filterVehicles = () => {
+    let filtered = vehicles.filter(vehicle => {
+      const matchesSearch = 
+        (vehicle.variantName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (vehicle.model?.modelName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (vehicle.model?.brand?.brandName?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+      const matchesBrand = !filters.brand || 
+        vehicle.model?.brand?.brandName === filters.brand;
+
+      const matchesPrice = 
+        vehicle.basePrice >= filters.priceRange.min && 
+        vehicle.basePrice <= filters.priceRange.max;
+
+      const matchesRange = 
+        (vehicle.range || 0) >= filters.range.min && 
+        (vehicle.range || 0) <= filters.range.max;
+
+      const matchesPower = 
+        (vehicle.powerKw || 0) >= filters.power.min && 
+        (vehicle.powerKw || 0) <= filters.power.max;
+
+      return matchesSearch && matchesBrand && matchesPrice && matchesRange && matchesPower;
+    });
+
+    setFilteredVehicles(filtered);
   };
 
-  const handleClearAll = () => {
+  const handleSelectVehicle = (variantId) => {
+    if (selectedVehicles.includes(variantId)) {
+      setSelectedVehicles(selectedVehicles.filter(id => id !== variantId));
+    } else if (selectedVehicles.length < 5) {
+      setSelectedVehicles([...selectedVehicles, variantId]);
+    } else {
+      toast.error('Chỉ có thể so sánh tối đa 5 xe');
+    }
+  };
+
+  const handleRemoveVehicle = (variantId) => {
+    setSelectedVehicles(selectedVehicles.filter(id => id !== variantId));
+    if (selectedVehicles.length === 1) {
+      setShowComparison(false);
+      setComparisonData(null);
+    }
+  };
+
+  const handleCompare = async () => {
+    if (selectedVehicles.length < 2) {
+      toast.error('Vui lòng chọn ít nhất 2 xe để so sánh');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await publicVehicleComparisonAPI.detailedCompare({
+        variantIds: selectedVehicles,
+        comparisonCriteria: ['price', 'range', 'power', 'batteryCapacity', 'chargingTime'],
+        includeDetails: true,
+        includePricing: true,
+        includeAvailability: true
+      });
+
+      setComparisonData(response.data);
+      setShowComparison(true);
+      toast.success('So sánh xe thành công!');
+    } catch (error) {
+      console.error('Error comparing vehicles:', error);
+      toast.error('Không thể so sánh xe');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearComparison = () => {
     setSelectedVehicles([]);
+    setShowComparison(false);
+    setComparisonData(null);
   };
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <div className="error">Không thể tải dữ liệu xe</div>;
+  const getSelectedVehiclesData = () => {
+    return selectedVehicles.map(id => {
+      const vehicle = vehicles.find(v => v.variantId === id);
+      const comparison = comparisonData?.vehicles?.find(v => v.variantId === id);
+      return { ...vehicle, ...comparison };
+    });
+  };
+
+  const getBrands = () => {
+    const brands = [...new Set(vehicles.map(v => v.model?.brand?.brandName).filter(Boolean))];
+    return brands.sort();
+  };
+
+  const formatPrice = (price) => {
+    if (!price) return 'Liên hệ';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  if (loading && vehicles.length === 0) {
+    return (
+      <div className="vehicle-comparison-loading">
+        <div className="loading-spinner">
+          <RefreshCw size={32} className="spinning" />
+        </div>
+        <p>Đang tải danh sách xe...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="vehicle-comparison">
-      <div className="page-header">
+      <div className="comparison-header">
         <div className="header-content">
-          <h1>
-            <Car className="icon" />
-            So sánh mẫu xe
-          </h1>
-          <p>So sánh tính năng và thông số kỹ thuật giữa các mẫu xe điện</p>
+          <h1>So sánh xe điện</h1>
+          <p>Tìm và so sánh các mẫu xe điện phù hợp với nhu cầu của bạn</p>
         </div>
+        
         {selectedVehicles.length > 0 && (
-          <button
-            className="btn-clear"
-            onClick={handleClearAll}
-          >
-            <Trash2 size={20} />
-            Xóa tất cả
-          </button>
+          <div className="comparison-actions">
+            <div className="selected-count">
+              <span>{selectedVehicles.length} xe đã chọn</span>
+            </div>
+            <button 
+              className="compare-button"
+              onClick={handleCompare}
+              disabled={selectedVehicles.length < 2}
+            >
+              <BarChart3 size={16} />
+              So sánh ({selectedVehicles.length})
+            </button>
+            <button 
+              className="clear-button"
+              onClick={clearComparison}
+            >
+              <X size={16} />
+              Xóa tất cả
+            </button>
+          </div>
         )}
       </div>
 
-      <div className="filters">
-        <div className="filter-group">
-          <div className="search-box">
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo thương hiệu, dòng xe..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          <select
-            value={brandFilter}
-            onChange={(e) => setBrandFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">Tất cả thương hiệu</option>
-            {brands.map(brand => (
-              <option key={brand} value={brand}>{brand}</option>
-            ))}
-          </select>
+      <div className="comparison-content">
+        {!showComparison ? (
+          <>
+            {/* Search and Filters */}
+            <div className="search-filters">
+              <div className="search-bar">
+                <Search size={20} />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm xe theo tên, thương hiệu..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
 
-          <select
-            value={priceRangeFilter}
-            onChange={(e) => setPriceRangeFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">Tất cả mức giá</option>
-            <option value="under_500m">Dưới 500 triệu</option>
-            <option value="500m_1b">500 triệu - 1 tỷ</option>
-            <option value="1b_2b">1 tỷ - 2 tỷ</option>
-            <option value="over_2b">Trên 2 tỷ</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="comparison-container">
-        {/* Vehicle Selection */}
-        <div className="vehicle-selection">
-          <h2>Chọn xe để so sánh</h2>
-          <div className="vehicle-grid">
-            {filteredVehicles.map(vehicle => (
-              <div key={vehicle.vehicleId} className="vehicle-card">
-                <div className="vehicle-image">
-                  <Car size={48} />
+              <div className="filters">
+                <div className="filter-group">
+                  <label>Thương hiệu:</label>
+                  <select
+                    value={filters.brand}
+                    onChange={(e) => setFilters({...filters, brand: e.target.value})}
+                  >
+                    <option value="">Tất cả</option>
+                    {getBrands().map(brand => (
+                      <option key={brand} value={brand}>{brand}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="vehicle-info">
-                  <h3>{vehicle.brand} {vehicle.model}</h3>
-                  <p className="variant">{vehicle.variant}</p>
-                  <p className="price">
-                    <DollarSign size={16} />
-                    {vehicle.price?.toLocaleString()} VNĐ
-                  </p>
-                  <div className="specs">
-                    <div className="spec">
-                      <Battery size={14} />
-                      {vehicle.batteryCapacity || 'N/A'} kWh
+
+                <div className="filter-group">
+                  <label>Khoảng giá:</label>
+                  <div className="range-inputs">
+                    <input
+                      type="number"
+                      placeholder="Từ"
+                      value={filters.priceRange.min}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        priceRange: {...filters.priceRange, min: parseInt(e.target.value) || 0}
+                      })}
+                    />
+                    <span>-</span>
+                    <input
+                      type="number"
+                      placeholder="Đến"
+                      value={filters.priceRange.max}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        priceRange: {...filters.priceRange, max: parseInt(e.target.value) || 10000000000}
+                      })}
+                    />
+                  </div>
+                </div>
+
+                <div className="filter-group">
+                  <label>Tầm hoạt động (km):</label>
+                  <div className="range-inputs">
+                    <input
+                      type="number"
+                      placeholder="Từ"
+                      value={filters.range.min}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        range: {...filters.range, min: parseInt(e.target.value) || 0}
+                      })}
+                    />
+                    <span>-</span>
+                    <input
+                      type="number"
+                      placeholder="Đến"
+                      value={filters.range.max}
+                      onChange={(e) => setFilters({
+                        ...filters, 
+                        range: {...filters.range, max: parseInt(e.target.value) || 1000}
+                      })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="view-controls">
+              <div className="view-modes">
+                <button 
+                  className={`view-mode ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid size={16} />
+                  Lưới
+                </button>
+                <button 
+                  className={`view-mode ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <List size={16} />
+                  Danh sách
+                </button>
+              </div>
+
+              <div className="results-count">
+                {filteredVehicles.length} xe tìm thấy
+              </div>
+            </div>
+
+            {/* Vehicle List */}
+            <div className={`vehicles-container ${viewMode}`}>
+              {filteredVehicles.map(vehicle => (
+                <VehicleComparisonCard
+                  key={vehicle.variantId}
+                  vehicle={vehicle}
+                  isSelected={selectedVehicles.includes(vehicle.variantId)}
+                  onSelect={handleSelectVehicle}
+                  showRemoveButton={false}
+                />
+              ))}
+            </div>
+
+            {filteredVehicles.length === 0 && (
+              <div className="no-results">
+                <div className="no-results-icon">
+                  <Search size={48} />
+                </div>
+                <h3>Không tìm thấy xe phù hợp</h3>
+                <p>Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                <button 
+                  className="reset-filters"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilters({
+                      brand: '',
+                      priceRange: { min: 0, max: 10000000000 },
+                      range: { min: 0, max: 1000 },
+                      power: { min: 0, max: 1000 }
+                    });
+                  }}
+                >
+                  <RefreshCw size={16} />
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Comparison Results */}
+            <div className="comparison-results">
+              <div className="results-header">
+                <h2>Kết quả so sánh</h2>
+                <div className="results-actions">
+                  <div className="view-mode-tabs">
+                    <button 
+                      className={`tab ${viewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <Grid size={16} />
+                      Thẻ
+                    </button>
+                    <button 
+                      className={`tab ${viewMode === 'table' ? 'active' : ''}`}
+                      onClick={() => setViewMode('table')}
+                    >
+                      <Table size={16} />
+                      Bảng
+                    </button>
+                    <button 
+                      className={`tab ${viewMode === 'chart' ? 'active' : ''}`}
+                      onClick={() => setViewMode('chart')}
+                    >
+                      <BarChart3 size={16} />
+                      Biểu đồ
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {viewMode === 'grid' && (
+                <div className="comparison-cards">
+                  {getSelectedVehiclesData().map((vehicle, index) => (
+                    <VehicleComparisonCard
+                      key={vehicle.variantId}
+                      vehicle={vehicle}
+                      comparisonData={vehicle}
+                      rank={vehicle.rank}
+                      showRemoveButton={true}
+                      onRemove={handleRemoveVehicle}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {viewMode === 'table' && (
+                <ComparisonTable 
+                  comparisonData={comparisonData}
+                  vehicles={getSelectedVehiclesData()}
+                />
+              )}
+
+              {viewMode === 'chart' && (
+                <ComparisonChart 
+                  comparisonData={comparisonData}
+                  vehicles={getSelectedVehiclesData()}
+                />
+              )}
+
+              {comparisonData && (
+                <div className="comparison-summary">
+                  <h3>Tóm tắt so sánh</h3>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <div className="summary-icon">
+                        <Award size={20} />
+                      </div>
+                      <div className="summary-content">
+                        <h4>Xe tốt nhất</h4>
+                        <p>{comparisonData.bestVehicle?.variantName}</p>
+                        <span className="summary-score">{comparisonData.bestVehicle?.overallScore} điểm</span>
+                      </div>
                     </div>
-                    <div className="spec">
-                      <Gauge size={14} />
-                      {vehicle.range || 'N/A'} km
+                    
+                    <div className="summary-item">
+                      <div className="summary-icon">
+                        <TrendingUp size={20} />
+                      </div>
+                      <div className="summary-content">
+                        <h4>Giá trung bình</h4>
+                        <p>{formatPrice(comparisonData.priceRange?.average)}</p>
+                        <span className="summary-range">
+                          {formatPrice(comparisonData.priceRange?.min)} - {formatPrice(comparisonData.priceRange?.max)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="summary-item">
+                      <div className="summary-icon">
+                        <Star size={20} />
+                      </div>
+                      <div className="summary-content">
+                        <h4>Điểm trung bình</h4>
+                        <p>{Math.round(comparisonData.averageScore || 0)} điểm</p>
+                        <span className="summary-range">
+                          {comparisonData.minScore || 0} - {comparisonData.maxScore || 0}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <button
-                  className="btn-add"
-                  onClick={() => handleAddVehicle(vehicle)}
-                  disabled={selectedVehicles.find(v => v.vehicleId === vehicle.vehicleId) || selectedVehicles.length >= maxVehicles}
-                >
-                  <Plus size={16} />
-                  {selectedVehicles.find(v => v.vehicleId === vehicle.vehicleId) ? 'Đã chọn' : 'Thêm'}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Comparison Table */}
-        {selectedVehicles.length > 0 && (
-          <div className="comparison-table">
-            <h2>Bảng so sánh</h2>
-            <div className="table-container">
-              <table className="comparison-table-content">
-                <thead>
-                  <tr>
-                    <th>Thông số</th>
-                    {selectedVehicles.map(vehicle => (
-                      <th key={vehicle.vehicleId} className="vehicle-header">
-                        <div className="vehicle-title">
-                          <h3>{vehicle.brand} {vehicle.model}</h3>
-                          <p>{vehicle.variant}</p>
-                        </div>
-                        <button
-                          className="btn-remove"
-                          onClick={() => handleRemoveVehicle(vehicle.vehicleId)}
-                        >
-                          <X size={16} />
-                        </button>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* Basic Information */}
-                  <tr className="section-header">
-                    <td colSpan={selectedVehicles.length + 1}>Thông tin cơ bản</td>
-                  </tr>
-                  <tr>
-                    <td>Thương hiệu</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>{vehicle.brand}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Dòng xe</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>{vehicle.model}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Phiên bản</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>{vehicle.variant}</td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Giá bán</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId} className="price-cell">
-                        {vehicle.price?.toLocaleString()} VNĐ
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Performance */}
-                  <tr className="section-header">
-                    <td colSpan={selectedVehicles.length + 1}>Hiệu suất</td>
-                  </tr>
-                  <tr>
-                    <td>Dung lượng pin</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Battery size={16} />
-                          {vehicle.batteryCapacity || 'N/A'} kWh
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Tầm hoạt động</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Gauge size={16} />
-                          {vehicle.range || 'N/A'} km
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Công suất</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Zap size={16} />
-                          {vehicle.power || 'N/A'} kW
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Thời gian sạc (0-80%)</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Clock size={16} />
-                          {vehicle.chargingTime || 'N/A'} phút
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Dimensions */}
-                  <tr className="section-header">
-                    <td colSpan={selectedVehicles.length + 1}>Kích thước</td>
-                  </tr>
-                  <tr>
-                    <td>Chiều dài</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Ruler size={16} />
-                          {vehicle.length || 'N/A'} mm
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Chiều rộng</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Ruler size={16} />
-                          {vehicle.width || 'N/A'} mm
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Chiều cao</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Ruler size={16} />
-                          {vehicle.height || 'N/A'} mm
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Trọng lượng</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Scale size={16} />
-                          {vehicle.weight || 'N/A'} kg
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Capacity */}
-                  <tr className="section-header">
-                    <td colSpan={selectedVehicles.length + 1}>Sức chứa</td>
-                  </tr>
-                  <tr>
-                    <td>Số chỗ ngồi</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Users size={16} />
-                          {vehicle.seats || 'N/A'} chỗ
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Dung tích cốp</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="spec-cell">
-                          <Car size={16} />
-                          {vehicle.trunkCapacity || 'N/A'} L
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* Features */}
-                  <tr className="section-header">
-                    <td colSpan={selectedVehicles.length + 1}>Tính năng</td>
-                  </tr>
-                  <tr>
-                    <td>Hệ thống lái tự động</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="feature-cell">
-                          {vehicle.autopilot ? (
-                            <Check className="check-icon" />
-                          ) : (
-                            <X className="x-icon" />
-                          )}
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Hệ thống sạc nhanh</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="feature-cell">
-                          {vehicle.fastCharging ? (
-                            <Check className="check-icon" />
-                          ) : (
-                            <X className="x-icon" />
-                          )}
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Hệ thống âm thanh cao cấp</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="feature-cell">
-                          {vehicle.premiumAudio ? (
-                            <Check className="check-icon" />
-                          ) : (
-                            <X className="x-icon" />
-                          )}
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td>Hệ thống điều hòa tự động</td>
-                    {selectedVehicles.map(vehicle => (
-                      <td key={vehicle.vehicleId}>
-                        <div className="feature-cell">
-                          {vehicle.autoAC ? (
-                            <Check className="check-icon" />
-                          ) : (
-                            <X className="x-icon" />
-                          )}
-                        </div>
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
+              )}
             </div>
-          </div>
-        )}
-
-        {selectedVehicles.length === 0 && (
-          <div className="empty-state">
-            <Car size={64} />
-            <h3>Chưa có xe nào được chọn</h3>
-            <p>Hãy chọn ít nhất 2 xe để bắt đầu so sánh</p>
-          </div>
+          </>
         )}
       </div>
     </div>

@@ -104,9 +104,9 @@ const SalesPage = () => {
   };
 
   const filteredVehicles = vehicles.filter(vehicle =>
-    vehicle.variantName?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-    vehicle.model?.modelName?.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-    vehicle.model?.brand?.brandName?.toLowerCase().includes(vehicleSearch.toLowerCase())
+    (vehicle.variantName?.toLowerCase() || '').includes(vehicleSearch.toLowerCase()) ||
+    (vehicle.model?.modelName?.toLowerCase() || '').includes(vehicleSearch.toLowerCase()) ||
+    (vehicle.model?.brand?.brandName?.toLowerCase() || '').includes(vehicleSearch.toLowerCase())
   );
 
   const filteredCustomers = customers.filter(customer =>

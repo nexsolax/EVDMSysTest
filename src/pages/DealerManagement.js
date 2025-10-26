@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import DealerModal from '../components/modals/DealerModal';
 import { dealerAPI } from '../services/api';
 import './DealerManagement.css';
 
@@ -9,6 +10,9 @@ const DealerManagement = () => {
   const [dealers, setDealers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedDealer, setSelectedDealer] = useState(null);
+  const [showDealerModal, setShowDealerModal] = useState(false);
+  const [modalMode, setModalMode] = useState('view');
 
   useEffect(() => {
     loadData();
@@ -65,63 +69,16 @@ const DealerManagement = () => {
     return <span className={`badge ${typeInfo.class}`}>{typeInfo.text}</span>;
   };
 
-  const handleView = async (dealer) => {
-    try {
-      const response = await dealerAPI.getDealer(dealer.dealerId);
-      const dealerData = response.data;
-      
-      // Show dealer details in a modal or alert
-      const details = `
-        Tên đại lý: ${dealerData.dealerName || 'N/A'}
-        Mã đại lý: ${dealerData.dealerCode || 'N/A'}
-        Loại: ${dealerData.dealerType || 'N/A'}
-        Địa chỉ: ${dealerData.address || 'N/A'}
-        Thành phố: ${dealerData.city || 'N/A'}
-        Tỉnh: ${dealerData.province || 'N/A'}
-        Mã bưu điện: ${dealerData.postalCode || 'N/A'}
-        Điện thoại: ${dealerData.phone || 'N/A'}
-        Email: ${dealerData.email || 'N/A'}
-        Website: ${dealerData.website || 'N/A'}
-        Ngày thành lập: ${formatDate(dealerData.establishedDate)}
-        Trạng thái: ${dealerData.status || 'N/A'}
-        Mô tả: ${dealerData.description || 'Không có'}
-      `;
-      
-      alert(details);
-    } catch (error) {
-      console.error('Error loading dealer details:', error);
-      toast.error('Không thể tải thông tin đại lý');
-    }
+  const handleView = (dealer) => {
+    setSelectedDealer(dealer);
+    setModalMode('view');
+    setShowDealerModal(true);
   };
 
-  const handleEdit = async (dealer) => {
-    try {
-      const response = await dealerAPI.getDealer(dealer.dealerId);
-      const dealerData = response.data;
-      
-      // Open edit modal with dealerData
-      const editData = {
-        dealerName: dealerData.dealerName,
-        dealerCode: dealerData.dealerCode,
-        dealerType: dealerData.dealerType,
-        address: dealerData.address,
-        city: dealerData.city,
-        province: dealerData.province,
-        postalCode: dealerData.postalCode,
-        phone: dealerData.phone,
-        email: dealerData.email,
-        website: dealerData.website,
-        establishedDate: dealerData.establishedDate,
-        status: dealerData.status,
-        description: dealerData.description
-      };
-      
-      console.log('Edit dealer data:', editData);
-      toast.info('Chức năng chỉnh sửa sẽ được implement trong modal');
-    } catch (error) {
-      console.error('Error loading dealer for edit:', error);
-      toast.error('Không thể tải thông tin đại lý');
-    }
+  const handleEdit = (dealer) => {
+    setSelectedDealer(dealer);
+    setModalMode('edit');
+    setShowDealerModal(true);
   };
 
   const handleDelete = async (dealer) => {
@@ -137,18 +94,28 @@ const DealerManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (dealer, newStatus) => {
+  const handleCreate = () => {
+    setSelectedDealer(null);
+    setModalMode('create');
+    setShowDealerModal(true);
+  };
+
+  const handleSaveDealer = async (dealerId, dealerData) => {
     try {
-      if (newStatus === 'active') {
-        await dealerAPI.activateDealer(dealer.dealerId);
-      } else if (newStatus === 'inactive') {
-        await dealerAPI.deactivateDealer(dealer.dealerId);
+      if (dealerId) {
+        // Update existing dealer
+        await dealerAPI.updateDealer(dealerId, dealerData);
+        toast.success('Cập nhật đại lý thành công');
+      } else {
+        // Create new dealer
+        await dealerAPI.createDealer(dealerData);
+        toast.success('Tạo đại lý thành công');
       }
-      toast.success('Cập nhật trạng thái thành công');
       loadData();
+      setShowDealerModal(false);
     } catch (error) {
-      console.error('Error updating dealer status:', error);
-      toast.error('Không thể cập nhật trạng thái');
+      console.error('Error saving dealer:', error);
+      throw error; // Re-throw to be handled by modal
     }
   };
 
@@ -218,18 +185,6 @@ const DealerManagement = () => {
     }
   ];
 
-  const statusActions = [
-    {
-      label: 'Kích hoạt',
-      value: 'active',
-      className: 'btn-success'
-    },
-    {
-      label: 'Vô hiệu hóa',
-      value: 'inactive',
-      className: 'btn-secondary'
-    }
-  ];
 
   if (loading) {
     return <LoadingSpinner />;
@@ -242,7 +197,7 @@ const DealerManagement = () => {
         <div className="header-actions">
           <button 
             className="btn btn-primary"
-            onClick={() => toast.info('Chức năng tạo đại lý mới sẽ được implement')}
+            onClick={handleCreate}
           >
             <i className="fas fa-plus"></i> Tạo đại lý mới
           </button>
@@ -271,12 +226,23 @@ const DealerManagement = () => {
           data={dealers}
           columns={columns}
           actions={actions}
-          statusActions={statusActions}
-          onStatusUpdate={handleUpdateStatus}
           searchable={true}
           searchPlaceholder="Tìm kiếm đại lý..."
         />
       </div>
+
+      {/* Dealer Modal */}
+      <DealerModal
+        dealer={selectedDealer}
+        isOpen={showDealerModal}
+        mode={modalMode}
+        onClose={() => {
+          setShowDealerModal(false);
+          setSelectedDealer(null);
+          setModalMode('view');
+        }}
+        onSave={handleSaveDealer}
+      />
     </div>
   );
 };

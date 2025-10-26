@@ -69,21 +69,6 @@ const CustomerManagement = () => {
     }
   };
 
-  const handleActivateDeactivate = async (customer) => {
-    try {
-      if (customer.isActive) {
-        await customerAPI.deactivateCustomer(customer.customerId);
-        toast.success('Vô hiệu hóa khách hàng thành công');
-      } else {
-        await customerAPI.activateCustomer(customer.customerId);
-        toast.success('Kích hoạt khách hàng thành công');
-      }
-      loadCustomers();
-    } catch (error) {
-      console.error('Error updating customer status:', error);
-      toast.error('Không thể cập nhật trạng thái khách hàng');
-    }
-  };
 
   const filteredCustomers = customers.filter(customer => {
     const searchLower = searchTerm.toLowerCase();
@@ -193,7 +178,6 @@ const CustomerManagement = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
-          onActivateDeactivate={handleActivateDeactivate}
         />
 
         {/* Customer Modal */}

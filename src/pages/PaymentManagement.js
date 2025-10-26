@@ -80,51 +80,6 @@ const PaymentManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (payment) => {
-    const statusOptions = [
-      { value: 'PENDING', label: 'Chờ xử lý' },
-      { value: 'PROCESSING', label: 'Đang xử lý' },
-      { value: 'COMPLETED', label: 'Hoàn thành' },
-      { value: 'FAILED', label: 'Thất bại' },
-      { value: 'CANCELLED', label: 'Đã hủy' },
-      { value: 'REFUNDED', label: 'Đã hoàn tiền' }
-    ];
-
-    const currentStatus = statusOptions.find(s => s.value === payment.status);
-    const availableStatuses = statusOptions.filter(s => s.value !== payment.status);
-
-    if (availableStatuses.length === 0) {
-      toast('Thanh toán đã ở trạng thái cuối cùng', { icon: 'ℹ️' });
-      return;
-    }
-
-    const newStatus = window.prompt(
-      `Cập nhật trạng thái thanh toán "${payment.paymentNumber}"\n\n` +
-      `Trạng thái hiện tại: ${currentStatus?.label || payment.status}\n\n` +
-      `Chọn trạng thái mới:\n` +
-      availableStatuses.map((s, i) => `${i + 1}. ${s.label}`).join('\n') +
-      `\n\nNhập số thứ tự (1-${availableStatuses.length}):`
-    );
-
-    if (newStatus === null) return; // User cancelled
-
-    const statusIndex = parseInt(newStatus) - 1;
-    if (isNaN(statusIndex) || statusIndex < 0 || statusIndex >= availableStatuses.length) {
-      toast.error('Lựa chọn không hợp lệ');
-      return;
-    }
-
-    const selectedStatus = availableStatuses[statusIndex].value;
-
-    try {
-      await paymentAPI.updatePaymentStatus(payment.paymentId, selectedStatus);
-      toast.success('Cập nhật trạng thái thanh toán thành công');
-      loadPayments();
-    } catch (error) {
-      console.error('Error updating payment status:', error);
-      toast.error('Không thể cập nhật trạng thái thanh toán');
-    }
-  };
 
   const handleProcess = async (payment) => {
     try {
@@ -284,7 +239,6 @@ const PaymentManagement = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
-          onUpdateStatus={handleUpdateStatus}
           onProcessPayment={handleProcess}
           onRefundPayment={handleRefund}
           onExportReceipt={handleReceipt}

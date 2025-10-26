@@ -81,50 +81,6 @@ const DeliveryManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (delivery) => {
-    const statusOptions = [
-      { value: 'SCHEDULED', label: 'Đã lên lịch' },
-      { value: 'IN_TRANSIT', label: 'Đang giao' },
-      { value: 'DELIVERED', label: 'Đã giao' },
-      { value: 'FAILED', label: 'Giao thất bại' },
-      { value: 'CANCELLED', label: 'Đã hủy' }
-    ];
-
-    const currentStatus = statusOptions.find(s => s.value === delivery.status);
-    const availableStatuses = statusOptions.filter(s => s.value !== delivery.status);
-
-    if (availableStatuses.length === 0) {
-      toast('Giao xe đã ở trạng thái cuối cùng', { icon: 'ℹ️' });
-      return;
-    }
-
-    const newStatus = window.prompt(
-      `Cập nhật trạng thái giao xe "${delivery.deliveryNumber}"\n\n` +
-      `Trạng thái hiện tại: ${currentStatus?.label || delivery.status}\n\n` +
-      `Chọn trạng thái mới:\n` +
-      availableStatuses.map((s, i) => `${i + 1}. ${s.label}`).join('\n') +
-      `\n\nNhập số thứ tự (1-${availableStatuses.length}):`
-    );
-
-    if (newStatus === null) return; // User cancelled
-
-    const statusIndex = parseInt(newStatus) - 1;
-    if (isNaN(statusIndex) || statusIndex < 0 || statusIndex >= availableStatuses.length) {
-      toast.error('Lựa chọn không hợp lệ');
-      return;
-    }
-
-    const selectedStatus = availableStatuses[statusIndex].value;
-
-    try {
-      await deliveryAPI.updateDeliveryStatus(delivery.deliveryId, selectedStatus);
-      toast.success('Cập nhật trạng thái giao xe thành công');
-      loadDeliveries();
-    } catch (error) {
-      console.error('Error updating delivery status:', error);
-      toast.error('Không thể cập nhật trạng thái giao xe');
-    }
-  };
 
   const handleSchedule = async (delivery) => {
     try {
@@ -276,7 +232,6 @@ const DeliveryManagement = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onView={handleView}
-          onUpdateStatus={handleUpdateStatus}
           onScheduleDelivery={handleSchedule}
           onCompleteDelivery={handleComplete}
           onGetTracking={handleTracking}

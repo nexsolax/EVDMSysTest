@@ -165,91 +165,6 @@ const InventoryManagement = () => {
     }
   };
 
-  const handleUpdateStatus = async (item) => {
-    try {
-      switch (activeTab) {
-        case 'warehouses':
-          const warehouseStatusOptions = [
-            { value: 'ACTIVE', label: 'Kích hoạt' },
-            { value: 'INACTIVE', label: 'Vô hiệu hóa' }
-          ];
-          
-          const currentWarehouseStatus = item.isActive ? 'ACTIVE' : 'INACTIVE';
-          const availableWarehouseStatuses = warehouseStatusOptions.filter(s => s.value !== currentWarehouseStatus);
-          
-          if (availableWarehouseStatuses.length === 0) {
-            toast('Kho đã ở trạng thái cuối cùng', { icon: 'ℹ️' });
-            return;
-          }
-          
-          const newWarehouseStatus = window.prompt(
-            `Cập nhật trạng thái kho "${item.warehouseName}"\n\n` +
-            `Trạng thái hiện tại: ${item.isActive ? 'Hoạt động' : 'Không hoạt động'}\n\n` +
-            `Chọn trạng thái mới:\n` +
-            availableWarehouseStatuses.map((s, i) => `${i + 1}. ${s.label}`).join('\n') +
-            `\n\nNhập số thứ tự (1-${availableWarehouseStatuses.length}):`
-          );
-          
-          if (newWarehouseStatus === null) return;
-          
-          const warehouseStatusIndex = parseInt(newWarehouseStatus) - 1;
-          if (isNaN(warehouseStatusIndex) || warehouseStatusIndex < 0 || warehouseStatusIndex >= availableWarehouseStatuses.length) {
-            toast.error('Lựa chọn không hợp lệ');
-            return;
-          }
-          
-          const selectedWarehouseStatus = availableWarehouseStatuses[warehouseStatusIndex].value;
-          
-          if (selectedWarehouseStatus === 'ACTIVE') {
-            await warehouseAPI.activateWarehouse(item.warehouseId);
-          } else {
-            await warehouseAPI.deactivateWarehouse(item.warehouseId);
-          }
-          break;
-          
-        case 'vehicles':
-          const inventoryStatusOptions = [
-            { value: 'AVAILABLE', label: 'Có sẵn' },
-            { value: 'RESERVED', label: 'Đã đặt' },
-            { value: 'SOLD', label: 'Đã bán' },
-            { value: 'MAINTENANCE', label: 'Bảo trì' }
-          ];
-          
-          const currentInventoryStatus = item.status;
-          const availableInventoryStatuses = inventoryStatusOptions.filter(s => s.value !== currentInventoryStatus);
-          
-          if (availableInventoryStatuses.length === 0) {
-            toast('Xe đã ở trạng thái cuối cùng', { icon: 'ℹ️' });
-            return;
-          }
-          
-          const newInventoryStatus = window.prompt(
-            `Cập nhật trạng thái xe "${item.vehicle?.brand?.brandName} ${item.vehicle?.model?.modelName}"\n\n` +
-            `Trạng thái hiện tại: ${inventoryStatusOptions.find(s => s.value === currentInventoryStatus)?.label || currentInventoryStatus}\n\n` +
-            `Chọn trạng thái mới:\n` +
-            availableInventoryStatuses.map((s, i) => `${i + 1}. ${s.label}`).join('\n') +
-            `\n\nNhập số thứ tự (1-${availableInventoryStatuses.length}):`
-          );
-          
-          if (newInventoryStatus === null) return;
-          
-          const inventoryStatusIndex = parseInt(newInventoryStatus) - 1;
-          if (isNaN(inventoryStatusIndex) || inventoryStatusIndex < 0 || inventoryStatusIndex >= availableInventoryStatuses.length) {
-            toast.error('Lựa chọn không hợp lệ');
-            return;
-          }
-          
-          const selectedInventoryStatus = availableInventoryStatuses[inventoryStatusIndex].value;
-          await inventoryAPI.updateInventoryStatus(item.inventoryId, selectedInventoryStatus);
-          break;
-      }
-      toast.success(`Cập nhật trạng thái ${getTabTitle()} thành công`);
-      loadData();
-    } catch (error) {
-      console.error(`Error updating ${activeTab} status:`, error);
-      toast.error(`Không thể cập nhật trạng thái ${getTabTitle()}`);
-    }
-  };
 
   const getColumns = () => {
     switch (activeTab) {
@@ -354,9 +269,9 @@ const InventoryManagement = () => {
       item.address?.toLowerCase().includes(searchLower) ||
       item.city?.toLowerCase().includes(searchLower) ||
       item.vin?.toLowerCase().includes(searchLower) ||
-      item.vehicle?.brand?.brandName?.toLowerCase().includes(searchLower) ||
-      item.vehicle?.model?.modelName?.toLowerCase().includes(searchLower) ||
-      item.color?.colorName?.toLowerCase().includes(searchLower)
+      (item.vehicle?.brand?.brandName?.toLowerCase() || '').includes(searchLower) ||
+      (item.vehicle?.model?.modelName?.toLowerCase() || '').includes(searchLower) ||
+      (item.color?.colorName?.toLowerCase() || '').includes(searchLower)
     );
   });
 
@@ -385,7 +300,6 @@ const InventoryManagement = () => {
           onEdit={handleEdit}
           onDelete={(item) => handleDelete(item, activeTab.slice(0, -1))}
           onView={handleView}
-          onUpdateStatus={handleUpdateStatus}
           onReserveVehicle={activeTab === 'vehicles' ? async (item) => {
             try {
               await inventoryAPI.reserveVehicle(item.inventoryId);

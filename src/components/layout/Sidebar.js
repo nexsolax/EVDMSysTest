@@ -8,6 +8,7 @@ import {
   Package, 
   BarChart3, 
   Settings,
+  Shield,
   LogOut,
   User,
   ShoppingCart,
@@ -120,7 +121,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['admin', 'evm_staff', 'dealer_manager'],
       submenu: [
         { path: '/admin/inventory/warehouses', label: 'Kho' },
-        { path: '/admin/inventory/vehicles', label: 'Tồn kho xe' }
+        { path: '/admin/inventory/vehicles', label: 'Tồn kho xe' },
+        { path: '/admin/vehicle-images', label: 'Hình ảnh xe' }
       ]
     },
     {
@@ -158,6 +160,12 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: User,
       label: 'Người dùng',
       roles: ['admin', 'evm_staff']
+    },
+    {
+      path: '/admin/roles',
+      icon: Shield,
+      label: 'Vai trò',
+      roles: ['admin']
     },
     {
       path: '/admin/profile',

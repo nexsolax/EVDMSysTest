@@ -12,6 +12,7 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
     deliveryAddress: '',
     scheduledDate: '',
     status: 'SCHEDULED',
+    isActive: true,
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -36,6 +37,7 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
               deliveryAddress: delivery.deliveryAddress || '',
               scheduledDate: delivery.scheduledDate ? delivery.scheduledDate.slice(0, 10) : '',
               status: delivery.status || 'SCHEDULED',
+              isActive: delivery.isActive !== undefined ? delivery.isActive : true,
               notes: delivery.notes || ''
             });
           }
@@ -242,6 +244,19 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
                 <option value="FAILED">Giao thất bại</option>
                 <option value="CANCELLED">Đã hủy</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={formData.isActive}
+                  onChange={handleChange}
+                  disabled={mode === 'view'}
+                />
+                <span>Đang hoạt động</span>
+              </label>
             </div>
 
             <div className="form-group full-width">
