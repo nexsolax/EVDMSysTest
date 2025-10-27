@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Phone, Mail, Car, Zap, Shield, Eye, Calendar, Quote, ArrowLeft } from 'lucide-react';
-import { publicInventoryAPI, publicVehicleAPI, publicPromotionAPI } from '../services/api';
+import { publicInventoryAPI, publicVehicleAPI } from '../services/api';
 import QuoteModal from '../components/modals/QuoteModal';
 import AppointmentModal from '../components/modals/AppointmentModal';
 import FeedbackModal from '../components/modals/FeedbackModal';
@@ -10,7 +10,6 @@ import './PublicSalesPage.css';
 const PublicSalesPage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [brands, setBrands] = useState([]);
-  // const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
@@ -20,6 +19,8 @@ const PublicSalesPage = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [selectedVehicleDetail, setSelectedVehicleDetail] = useState(null);
+  const [selectedVehicles, setSelectedVehicles] = useState([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -125,10 +126,6 @@ const PublicSalesPage = () => {
     setShowAppointmentModal(true);
   };
 
-  // const handleSendFeedback = (vehicle) => {
-  //   setSelectedVehicle(vehicle);
-  //   setShowFeedbackModal(true);
-  // };
 
   const handleViewDetail = (vehicle) => {
     setSelectedVehicleDetail(vehicle);
@@ -151,6 +148,28 @@ const PublicSalesPage = () => {
   const handleLogin = () => {
     // Redirect to login page
     window.location.href = '/login';
+  };
+
+  const handleAddToComparison = (vehicle) => {
+    if (selectedVehicles.length >= 3) {
+      alert('Chỉ có thể so sánh tối đa 3 xe');
+      return;
+    }
+    if (!selectedVehicles.find(v => v.inventoryId === vehicle.inventoryId)) {
+      setSelectedVehicles([...selectedVehicles, vehicle]);
+    }
+  };
+
+  const handleRemoveFromComparison = (vehicleId) => {
+    setSelectedVehicles(selectedVehicles.filter(v => v.inventoryId !== vehicleId));
+  };
+
+  const handleCompare = () => {
+    if (selectedVehicles.length < 2) {
+      alert('Vui lòng chọn ít nhất 2 xe để so sánh');
+      return;
+    }
+    setShowComparison(true);
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
@@ -403,18 +422,19 @@ const PublicSalesPage = () => {
                       </button>
                       <button 
                         className="action-btn secondary"
+                        onClick={() => handleAddToComparison(vehicle)}
+                        disabled={selectedVehicles.find(v => v.inventoryId === vehicle.inventoryId)}
+                      >
+                        <Zap className="btn-icon" />
+                        {selectedVehicles.find(v => v.inventoryId === vehicle.inventoryId) ? 'Đã chọn' : 'So sánh'}
+                      </button>
+                      <button 
+                        className="action-btn secondary"
                         onClick={() => handleRequestQuote(vehicle)}
                       >
                         <Quote className="btn-icon" />
                         Báo giá
                       </button>
-              <button 
-                        className="action-btn secondary"
-                        onClick={() => handleBookAppointment(vehicle)}
-              >
-                        <Calendar className="btn-icon" />
-                        Đặt lịch
-              </button>
             </div>
                 </div>
               </div>
@@ -453,20 +473,28 @@ const PublicSalesPage = () => {
                     <span className="price">{vehicle.sellingPrice?.toLocaleString('vi-VN')} VNĐ</span>
                   </div>
                   <div className="list-actions">
-                <button 
+                    <button 
                       className="action-btn primary"
                       onClick={() => handleViewDetail(vehicle)}
-                >
+                    >
                       <Eye className="btn-icon" />
                       Xem chi tiết
-                </button>
-                <button 
+                    </button>
+                    <button 
+                      className="action-btn secondary"
+                      onClick={() => handleAddToComparison(vehicle)}
+                      disabled={selectedVehicles.find(v => v.inventoryId === vehicle.inventoryId)}
+                    >
+                      <Zap className="btn-icon" />
+                      {selectedVehicles.find(v => v.inventoryId === vehicle.inventoryId) ? 'Đã chọn' : 'So sánh'}
+                    </button>
+                    <button 
                       className="action-btn secondary"
                       onClick={() => handleRequestQuote(vehicle)}
-                >
+                    >
                       <Quote className="btn-icon" />
                       Báo giá
-                </button>
+                    </button>
               </div>
           </div>
               ))}
@@ -474,6 +502,129 @@ const PublicSalesPage = () => {
       )}
             </div>
       </section>
+
+      {/* Comparison Bar */}
+      {selectedVehicles.length > 0 && (
+        <div className="comparison-bar">
+          <div className="container">
+            <div className="comparison-content">
+              <div className="comparison-info">
+                <h3>Đã chọn {selectedVehicles.length} xe để so sánh</h3>
+                <div className="selected-vehicles">
+                  {selectedVehicles.map(vehicle => (
+                    <div key={vehicle.inventoryId} className="selected-vehicle">
+                      <span>{vehicle.variant?.variantName}</span>
+                      <button 
+                        className="remove-btn"
+                        onClick={() => handleRemoveFromComparison(vehicle.inventoryId)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="comparison-actions">
+                <button 
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedVehicles([])}
+                >
+                  Xóa tất cả
+                </button>
+                <button 
+                  className="btn btn-primary"
+                  onClick={handleCompare}
+                  disabled={selectedVehicles.length < 2}
+                >
+                  <Zap className="btn-icon" />
+                  So sánh xe
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comparison Modal */}
+      {showComparison && (
+        <div className="comparison-modal">
+          <div className="comparison-modal-content">
+            <div className="comparison-modal-header">
+              <h2>So sánh xe</h2>
+              <button 
+                className="close-btn"
+                onClick={() => setShowComparison(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="comparison-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Thông số</th>
+                    {selectedVehicles.map(vehicle => (
+                      <th key={vehicle.inventoryId}>
+                        {vehicle.variant?.variantName}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Thương hiệu</td>
+                    {selectedVehicles.map(vehicle => (
+                      <td key={vehicle.inventoryId}>
+                        {vehicle.variant?.model?.brand?.brandName}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td>Dòng xe</td>
+                    {selectedVehicles.map(vehicle => (
+                      <td key={vehicle.inventoryId}>
+                        {vehicle.variant?.model?.modelName}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td>Giá bán</td>
+                    {selectedVehicles.map(vehicle => (
+                      <td key={vehicle.inventoryId}>
+                        {vehicle.sellingPrice?.toLocaleString('vi-VN')} VNĐ
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td>Dung lượng pin</td>
+                    {selectedVehicles.map(vehicle => (
+                      <td key={vehicle.inventoryId}>
+                        {vehicle.variant?.batteryCapacity} kWh
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td>Tầm hoạt động</td>
+                    {selectedVehicles.map(vehicle => (
+                      <td key={vehicle.inventoryId}>
+                        {vehicle.variant?.rangeKm} km
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
+                    <td>Công suất</td>
+                    {selectedVehicles.map(vehicle => (
+                      <td key={vehicle.inventoryId}>
+                        {vehicle.variant?.powerKw} kW
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="public-footer">

@@ -188,12 +188,12 @@ const FeedbackManagement = () => {
     {
       key: 'customer',
       label: 'Khách hàng',
-      render: (value, row) => getCustomerName(row.customer?.customerId)
+      render: (value, row) => getCustomerName(row?.customer?.customerId)
     },
     {
       key: 'order',
       label: 'Đơn hàng',
-      render: (value, row) => getOrderNumber(row.order?.orderId)
+      render: (value, row) => getOrderNumber(row?.order?.orderId)
     },
     {
       key: 'rating',

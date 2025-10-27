@@ -155,14 +155,53 @@ const PromotionManagement = () => {
 
   const columns = [
     {
+      key: 'promotionId',
+      label: 'ID',
+      render: (value) => {
+        console.log('promotionId render:', value, typeof value);
+        return value || 'N/A';
+      }
+    },
+    {
       key: 'promotionName',
       label: 'Tên khuyến mãi',
       render: (value) => <strong>{value || 'N/A'}</strong>
     },
     {
+      key: 'variant',
+      label: 'Xe áp dụng',
+      render: (value, row) => {
+        console.log('variant render:', value, typeof value, row);
+        if (typeof value === 'object' && value !== null) {
+          return value.variantName || value.name || 'N/A';
+        }
+        return value || 'N/A';
+      }
+    },
+    {
       key: 'promotionType',
       label: 'Loại',
       render: (value) => getTypeBadge(value)
+    },
+    {
+      key: 'title',
+      label: 'Tiêu đề',
+      render: (value) => value || 'N/A'
+    },
+    {
+      key: 'description',
+      label: 'Mô tả',
+      render: (value) => value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'N/A'
+    },
+    {
+      key: 'discountPercent',
+      label: 'Giảm %',
+      render: (value) => value ? `${value}%` : 'N/A'
+    },
+    {
+      key: 'discountAmount',
+      label: 'Giảm tiền',
+      render: (value) => formatCurrency(value)
     },
     {
       key: 'promotionValue',
@@ -183,11 +222,6 @@ const PromotionManagement = () => {
       key: 'maxUsage',
       label: 'Số lượng',
       render: (value) => value ? value : 'Không giới hạn'
-    },
-    {
-      key: 'usedCount',
-      label: 'Đã sử dụng',
-      render: (value) => value || 0
     },
     {
       key: 'status',

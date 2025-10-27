@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Car, 
@@ -21,14 +21,12 @@ import {
   Building2,
   DollarSign,
   Target,
-  GitCompare
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout, getRoleDisplayName } = useAuth();
-  const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -42,9 +40,15 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
-      path: '/admin/vehicles',
+      path: '/admin/vehicle-management',
       icon: Car,
       label: 'Quản lý xe',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/vehicles',
+      icon: Car,
+      label: 'Quản lý xe (cũ)',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff'],
       submenu: [
         { path: '/admin/vehicles/brands', label: 'Thương hiệu' },

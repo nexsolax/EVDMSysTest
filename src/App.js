@@ -29,6 +29,7 @@ import VehicleComparison from './pages/VehicleComparison';
 import SalesPage from './pages/SalesPage';
 import PublicSalesPage from './pages/PublicSalesPage';
 import VehicleImageManagement from './pages/VehicleImageManagement';
+import VehicleManagementUnified from './pages/VehicleManagementUnified';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
@@ -145,11 +146,16 @@ function App() {
                 } />
                 
                 {/* Vehicle Image Management */}
-                <Route path="vehicle-images" element={
-                  <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
-                    <VehicleImageManagement />
-                  </ProtectedRoute>
-                } />
+            <Route path="vehicle-images" element={
+              <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
+                <VehicleImageManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="vehicle-management" element={
+              <ProtectedRoute requiredRoles={['admin', 'evm_staff', 'dealer_manager']}>
+                <VehicleManagementUnified />
+              </ProtectedRoute>
+            } />
                 
                 {process.env.NODE_ENV !== 'production' && (
                   <Route path="dev/api-audit" element={<ApiAudit />} />

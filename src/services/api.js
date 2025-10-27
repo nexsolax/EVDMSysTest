@@ -105,6 +105,31 @@ export const vehicleAPI = {
   detailedCompare: (data) => api.post('/vehicles/compare', data),
   compareTwoVehicles: (id1, id2) => api.post(`/vehicles/compare/${id1}/vs/${id2}`),
   getComparisonCriteria: () => api.get('/vehicles/compare/criteria'),
+
+  // Complete Vehicle Creation (Tạo xe hoàn chỉnh từ đầu)
+  createFullVehicle: (data) => api.post('/vehicle-creation/create-full-vehicle', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+
+  // Create Vehicle From Existing Data (Tạo xe từ dữ liệu có sẵn)
+  createVehicleFromExisting: (data) => api.post('/vehicle-creation-from-existing/create', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  }),
+  
+  // Create Vehicle From Existing Data (JSON version - easier for frontend)
+  createVehicleFromExistingJson: (data) => api.post('/vehicles/create-from-existing-json', data, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  }),
+  getCreateFromExistingBrands: () => api.get('/vehicle-creation-from-existing/brands'),
+  getCreateFromExistingModelsByBrand: (brandId) => api.get(`/vehicle-creation-from-existing/models/${brandId}`),
+  getCreateFromExistingColors: () => api.get('/vehicle-creation-from-existing/colors'),
+  getCreateFromExistingWarehouses: () => api.get('/vehicle-creation-from-existing/warehouses'),
 };
 
 // Customer API
@@ -130,7 +155,6 @@ export const warehouseAPI = {
   updateWarehouse: (id, data) => api.put(`/warehouses/${id}`, data),
   activateWarehouse: (id) => api.put(`/warehouses/${id}/activate`),
   deactivateWarehouse: (id) => api.put(`/warehouses/${id}/deactivate`),
-  getWarehouseInventory: (id) => api.get(`/warehouses/${id}/inventory`),
   transferWarehouse: (id, data) => api.post(`/warehouses/${id}/transfer`, data),
   deleteWarehouse: (id) => api.delete(`/warehouses/${id}`),
 };
@@ -138,6 +162,7 @@ export const warehouseAPI = {
 // Vehicle Inventory API (Authenticated)
 export const inventoryAPI = {
   getInventory: () => api.get('/vehicle-inventory'),
+  getAllInventory: () => api.get('/vehicle-inventory/all'), // New endpoint for all statuses
   getInventoryById: (id) => api.get(`/vehicle-inventory/${id}`),
   getAvailableInventory: () => api.get('/vehicle-inventory/available'),
   getInventoryByBrand: (brandId) => api.get(`/vehicle-inventory/brand/${brandId}`),
@@ -508,6 +533,88 @@ export const notificationAPI = {
   markAllAsRead: () => api.put('/notifications/read-all'),
   deleteNotification: (id) => api.delete(`/notifications/${id}`),
   createNotification: (data) => api.post('/notifications', data),
+};
+
+// Image Management APIs
+export const imageAPI = {
+  // READ APIs
+  getImageList: (page = 0, size = 20, sortBy = 'uploadDate', sortDir = 'desc') => 
+    api.get(`/images/list?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`),
+  
+  getImagesByCategory: (category, page = 0, size = 20) => 
+    api.get(`/images/list/${category}?page=${page}&size=${size}`),
+  
+  getImageInfo: (category, filename) => 
+    api.get(`/images/info/${category}/${filename}`),
+  
+  searchImages: (query, category = null, page = 0, size = 20) => {
+    let url = `/images/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`;
+    if (category) url += `&category=${category}`;
+    return api.get(url);
+  },
+  
+  getImageStats: () => api.get('/images/stats'),
+  
+  getCategoryStats: (category) => api.get(`/images/stats/${category}`),
+  
+  getImageConfig: () => api.get('/images/info'),
+  
+  // UPDATE APIs
+  updateImage: (category, filename, data) => 
+    api.put(`/images/update/${category}/${filename}`, data),
+  
+  renameImage: (category, oldFilename, newFilename) => 
+    api.put(`/images/rename/${category}/${oldFilename}`, { newFilename }),
+  
+  moveImage: (oldCategory, filename, newCategory) => 
+    api.put(`/images/move/${oldCategory}/${filename}`, { newCategory }),
+  
+  // DELETE APIs
+  deleteImage: (category, filename) => 
+    api.delete(`/images/delete/${category}/${filename}`),
+  
+  deleteCategory: (category) => 
+    api.delete(`/images/delete-category/${category}`),
+  
+  // BULK OPERATIONS
+  bulkDeleteImages: (imageIds) => 
+    api.post('/images/bulk-delete', { imageIds }),
+  
+  bulkMoveImages: (imageIds, newCategory) => 
+    api.post('/images/bulk-move', { imageIds, newCategory }),
+  
+  // UPLOAD APIs for Vehicle Creation
+  uploadVehicleBrandImage: (formData) => 
+    api.post('/images/upload-vehicle-brand', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  uploadModelImage: (formData) => 
+    api.post('/images/upload-model-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  uploadVariantImage: (formData) => 
+    api.post('/images/upload-variant-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  uploadInventoryImages: (formData) => 
+    api.post('/images/upload-inventory-images', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  // UPLOAD
+  uploadImage: (formData, config) => 
+    api.post('/images/upload', formData, config),
 };
 
 export default api;

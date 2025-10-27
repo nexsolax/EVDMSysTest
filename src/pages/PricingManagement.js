@@ -190,12 +190,12 @@ const PricingManagement = () => {
     {
       key: 'dealer',
       label: 'Đại lý',
-      render: (value, row) => getDealerName(row.dealer?.dealerId)
+      render: (value, row) => getDealerName(row?.dealer?.dealerId)
     },
     {
       key: 'variant',
       label: 'Xe',
-      render: (value, row) => getVariantName(row.variant?.variantId)
+      render: (value, row) => getVariantName(row?.variant?.variantId)
     },
     {
       key: 'policyValue',

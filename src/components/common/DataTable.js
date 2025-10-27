@@ -145,8 +145,12 @@ const DataTable = ({
                     <td key={colIndex} className={column.cellClassName || ''}>
                       {column.render ? column.render(item) : (() => {
                         const value = item[column.key];
+                        console.log(`Column ${column.key} value:`, value, typeof value);
                         if (value === null || value === undefined) return 'N/A';
-                        if (typeof value === 'object') return JSON.stringify(value);
+                        if (typeof value === 'object') {
+                          console.log(`Object detected in column ${column.key}:`, value);
+                          return JSON.stringify(value);
+                        }
                         return value;
                       })()}
                     </td>

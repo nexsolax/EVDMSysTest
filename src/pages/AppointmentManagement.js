@@ -191,6 +191,11 @@ const AppointmentManagement = () => {
 
   const columns = [
     {
+      key: 'appointmentId',
+      label: 'ID',
+      render: (value) => value || 'N/A'
+    },
+    {
       key: 'title',
       label: 'Tiêu đề',
       render: (value) => <strong>{value || 'N/A'}</strong>
@@ -203,17 +208,26 @@ const AppointmentManagement = () => {
     {
       key: 'customer',
       label: 'Khách hàng',
-      render: (value, row) => getCustomerName(row.customer?.customerId)
+      render: (value, row) => {
+        const customerId = row?.customer?.customerId;
+        return customerId ? getCustomerName(customerId) : 'N/A';
+      }
     },
     {
       key: 'staff',
       label: 'Nhân viên',
-      render: (value, row) => getStaffName(row.staff?.userId)
+      render: (value, row) => {
+        const staffId = row?.staff?.userId;
+        return staffId ? getStaffName(staffId) : 'N/A';
+      }
     },
     {
       key: 'variant',
       label: 'Xe',
-      render: (value, row) => getVariantName(row.variant?.variantId)
+      render: (value, row) => {
+        const variantId = row?.variant?.variantId;
+        return variantId ? getVariantName(variantId) : 'N/A';
+      }
     },
     {
       key: 'appointmentDate',
