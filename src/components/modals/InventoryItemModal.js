@@ -6,31 +6,51 @@ import './Modal.css';
 
 const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) => {
   const [formData, setFormData] = useState({
-    vehicleId: '',
+    variantId: '',
     warehouseId: '',
     colorId: '',
     vin: '',
-    status: 'AVAILABLE',
+    status: 'available',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
   const [warehouses, setWarehouses] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [colors, setColors] = useState([]);
 
   useEffect(() => {
     if (!isOpen) return;
     const init = async () => {
-      await Promise.all([loadWarehouses(), loadVehicles()]);
-      if (item) {
-        if (mode === 'edit') {
-          await loadItemDetails();
+      // Load all dropdown data first - MUST complete before loading item details
+      const [loadedWarehouses] = await Promise.all([
+        loadWarehouses(), 
+        loadVehicles(), 
+        loadColors()
+      ]);
+      
+      // Use loaded warehouses directly instead of waiting for state update
+      if (mode === 'create') {
+        setFormData({
+          variantId: '',
+          warehouseId: '',
+          colorId: '',
+          vin: '',
+          status: 'available',
+          notes: ''
+        });
+      } else if (item) {
+        // Always load details for view and edit modes to ensure we have full data
+        if (mode === 'view' || mode === 'edit') {
+          // Pass loaded warehouses to loadItemDetails
+          await loadItemDetails(loadedWarehouses);
         } else {
+          // Convert IDs to strings for consistent comparison
           setFormData({
-            vehicleId: item.vehicle?.vehicleId || item.vehicleId || '',
-            warehouseId: item.warehouse?.warehouseId || item.warehouseId || '',
-            colorId: item.color?.colorId || item.colorId || '',
+            variantId: String(item.variant?.variantId || item.variantId || ''),
+            warehouseId: String(item.warehouse?.warehouseId || item.warehouseId || ''),
+            colorId: String(item.color?.colorId || item.colorId || ''),
             vin: item.vin || '',
-            status: item.status || 'AVAILABLE',
+            status: item.status || 'available',
             notes: item.notes || ''
           });
         }
@@ -40,31 +60,104 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, item, mode]);
 
+  // Update formData when warehouses are loaded (to ensure dropdown selection works)
+  useEffect(() => {
+    if (warehouses.length > 0 && formData.warehouseId && mode === 'view') {
+      const warehouseIdStr = String(formData.warehouseId);
+      const warehouseExists = warehouses.some(w => String(w.warehouseId) === warehouseIdStr);
+      if (!warehouseExists) {
+        console.warn('Warehouse ID not found in loaded warehouses:', {
+          formDataWarehouseId: warehouseIdStr,
+          availableIds: warehouses.map(w => String(w.warehouseId))
+        });
+      }
+    }
+  }, [warehouses, formData.warehouseId, mode]);
+
   const loadWarehouses = async () => {
     try {
-      const res = await warehouseAPI.getActiveWarehouses?.();
-      setWarehouses(res?.data || []);
-    } catch {}
+      // Try getActiveWarehouses first, fallback to getWarehouses
+      let res;
+      if (warehouseAPI.getActiveWarehouses) {
+        try {
+          res = await warehouseAPI.getActiveWarehouses();
+        } catch (e) {
+          console.log('getActiveWarehouses failed, using getWarehouses');
+          res = await warehouseAPI.getWarehouses();
+        }
+      } else {
+        res = await warehouseAPI.getWarehouses();
+      }
+      const warehousesData = res?.data || [];
+      console.log('Loaded warehouses:', warehousesData.length, 'items');
+      console.log('Warehouses data:', warehousesData.map(w => ({ id: w.warehouseId, name: w.warehouseName })));
+      
+      if (warehousesData.length === 0) {
+        console.warn('No warehouses returned from API!');
+      }
+      
+      setWarehouses(warehousesData);
+      return warehousesData; // Return for use in loadItemDetails
+    } catch (error) {
+      console.error('Error loading warehouses:', error);
+      // Fallback: try getWarehouses if getActiveWarehouses fails
+      try {
+        const fallbackRes = await warehouseAPI.getWarehouses();
+        const warehousesData = fallbackRes?.data || [];
+        setWarehouses(warehousesData);
+        return warehousesData;
+      } catch (fallbackError) {
+        console.error('Error loading warehouses (fallback):', fallbackError);
+        toast.error('Không thể tải danh sách kho');
+        setWarehouses([]);
+        return [];
+      }
+    }
   };
 
   const loadVehicles = async () => {
     try {
-      const res = await vehicleAPI.getActiveVehicles?.();
+      // Load variants instead of vehicles
+      const res = await vehicleAPI.getVariants();
       setVehicles(res?.data || []);
-    } catch {}
+    } catch (error) {
+      console.error('Error loading variants:', error);
+    }
   };
 
-  const loadItemDetails = async () => {
+  const loadColors = async () => {
+    try {
+      const res = await vehicleAPI.getColors();
+      setColors(res?.data || []);
+    } catch (error) {
+      console.error('Error loading colors:', error);
+    }
+  };
+
+  const loadItemDetails = async (preloadedWarehouses = null) => {
     try {
       setLoading(true);
-      const res = await inventoryAPI.getInventoryItem(item.inventoryId);
+      const res = await inventoryAPI.getInventoryById(item.inventoryId || item.id);
       const i = res.data;
+      
+      // Use preloaded warehouses if provided, otherwise use state
+      const currentWarehouses = preloadedWarehouses || (warehouses.length > 0 ? warehouses : []);
+      
+      // Backend now returns warehouseId directly in DTO (after backend fix)
+      // Priority: direct field first (i.warehouseId), then nested object for backward compatibility
+      const warehouseIdValue = 
+        i.warehouseId ||           // Direct field from DTO (preferred - matches backend fix)
+        i.warehouse?.warehouseId || // Nested object (fallback for backward compatibility)
+        null;
+      
+      const warehouseIdStr = warehouseIdValue ? String(warehouseIdValue) : '';
+      
       setFormData({
-        vehicleId: i.vehicle?.vehicleId || i.vehicleId || '',
-        warehouseId: i.warehouse?.warehouseId || i.warehouseId || '',
-        colorId: i.color?.colorId || i.colorId || '',
+        variantId: String(i.variant?.variantId || i.variantId || ''),
+        warehouseId: warehouseIdStr,
+        colorId: String(i.color?.colorId || i.colorId || ''),
         vin: i.vin || '',
-        status: i.status || 'AVAILABLE',
+        status: i.status || 'available',
         notes: i.notes || ''
       });
     } catch (e) {
@@ -85,7 +178,24 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
     if (mode === 'view') return;
     try {
       setLoading(true);
-      await onSave(item.inventoryId, formData);
+      
+      // Prepare submit data - ensure warehouseId is UUID string or null (not empty string)
+      const submitData = {
+        ...formData,
+        warehouseId: formData.warehouseId && formData.warehouseId.trim() !== '' 
+          ? formData.warehouseId 
+          : null, // Send null instead of empty string for optional field
+        variantId: formData.variantId || null,
+        colorId: formData.colorId && formData.colorId.trim() !== '' 
+          ? formData.colorId 
+          : null, // Optional field
+      };
+      
+      // Log for debugging (can be removed in production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Submitting inventory data:', submitData);
+      }
+      await onSave(mode === 'create' ? null : item?.inventoryId || item?.id, submitData);
       onClose();
     } catch (e) {
       // upstream toast
@@ -102,7 +212,11 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
         <div className="modal-header">
           <div className="modal-title">
             <Package size={24} />
-            <h2>{mode === 'view' ? 'Xem chi tiết tồn kho' : 'Chỉnh sửa tồn kho'}</h2>
+            <h2>
+              {mode === 'view' ? 'Xem chi tiết tồn kho' : 
+               mode === 'create' ? 'Thêm tồn kho mới' : 
+               'Chỉnh sửa tồn kho'}
+            </h2>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={24} />
@@ -112,12 +226,12 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="vehicleId">Xe</label>
-              <select id="vehicleId" name="vehicleId" className="form-select" value={formData.vehicleId} onChange={handleChange} disabled={mode === 'view'} required>
-                <option value="">Chọn xe</option>
-                {vehicles.map((v) => (
-                  <option key={v.vehicleId} value={v.vehicleId}>
-                    {v.brand?.brandName} {v.model?.modelName} {v.variant?.variantName}
+              <label htmlFor="variantId">Phiên bản xe</label>
+              <select id="variantId" name="variantId" className="form-select" value={formData.variantId} onChange={handleChange} disabled={mode === 'view'} required>
+                <option value="">Chọn phiên bản xe</option>
+                {vehicles.map((variant) => (
+                  <option key={variant.variantId} value={variant.variantId}>
+                    {variant.model?.brand?.brandName} {variant.model?.modelName} {variant.variantName}
                   </option>
                 ))}
               </select>
@@ -125,19 +239,29 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
 
             <div className="form-group">
               <label htmlFor="warehouseId">Kho</label>
-              <select id="warehouseId" name="warehouseId" className="form-select" value={formData.warehouseId} onChange={handleChange} disabled={mode === 'view'} required>
+              <select id="warehouseId" name="warehouseId" className="form-select" value={String(formData.warehouseId || '')} onChange={handleChange} disabled={mode === 'view'} required>
                 <option value="">Chọn kho</option>
-                {warehouses.map((w) => (
-                  <option key={w.warehouseId} value={w.warehouseId}>
-                    {w.warehouseName}
-                  </option>
-                ))}
+                {warehouses.map((w) => {
+                  const whId = String(w.warehouseId || '');
+                  return (
+                    <option key={whId} value={whId}>
+                      {w.warehouseName}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
             <div className="form-group">
               <label htmlFor="colorId">Màu</label>
-              <input id="colorId" name="colorId" className="form-input" value={formData.colorId} onChange={handleChange} disabled={mode === 'view'} placeholder="ID màu (tạm thời)" />
+              <select id="colorId" name="colorId" className="form-select" value={formData.colorId} onChange={handleChange} disabled={mode === 'view'}>
+                <option value="">Chọn màu</option>
+                {colors.map((color) => (
+                  <option key={color.colorId} value={color.colorId}>
+                    {color.colorName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
@@ -151,10 +275,12 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
             <div className="form-group">
               <label htmlFor="status">Trạng thái</label>
               <select id="status" name="status" className="form-select" value={formData.status} onChange={handleChange} disabled={mode === 'view'} required>
-                <option value="AVAILABLE">Có sẵn</option>
-                <option value="RESERVED">Đã đặt</option>
-                <option value="SOLD">Đã bán</option>
-                <option value="MAINTENANCE">Bảo trì</option>
+                <option value="available">Có sẵn</option>
+                <option value="reserved">Đã đặt</option>
+                <option value="sold">Đã bán</option>
+                <option value="in_stock">Trong kho</option>
+                <option value="transit">Đang vận chuyển</option>
+                <option value="maintenance">Bảo trì</option>
               </select>
             </div>
 
@@ -168,10 +294,10 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
             <button type="button" className="btn btn-outline" onClick={onClose}>
               {mode === 'view' ? 'Đóng' : 'Hủy'}
             </button>
-            {mode === 'edit' && (
+            {(mode === 'edit' || mode === 'create') && (
               <button type="submit" className="btn btn-primary" disabled={loading}>
                 <Save size={20} />
-                {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                {loading ? 'Đang lưu...' : mode === 'create' ? 'Tạo tồn kho' : 'Lưu thay đổi'}
               </button>
             )}
           </div>

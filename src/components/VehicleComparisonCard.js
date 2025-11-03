@@ -92,7 +92,7 @@ const VehicleComparisonCard = ({
           <div className="spec-item">
             <DollarSign size={16} />
             <span className="spec-label">Giá:</span>
-            <span className="spec-value">{formatPrice(vehicle.basePrice)}</span>
+            <span className="spec-value">{formatPrice(vehicle.priceBase || vehicle.basePrice)}</span>
           </div>
           
           <div className="spec-item">
@@ -104,7 +104,7 @@ const VehicleComparisonCard = ({
           <div className="spec-item">
             <Gauge size={16} />
             <span className="spec-label">Tầm hoạt động:</span>
-            <span className="spec-value">{vehicle.range || 'N/A'}km</span>
+            <span className="spec-value">{vehicle.rangeKm || vehicle.range || 'N/A'}km</span>
           </div>
           
           <div className="spec-item">
@@ -115,8 +115,11 @@ const VehicleComparisonCard = ({
           
           <div className="spec-item">
             <Clock size={16} />
-            <span className="spec-label">Sạc:</span>
-            <span className="spec-value">{vehicle.chargingTime || 'N/A'}h</span>
+            <span className="spec-label">Sạc nhanh:</span>
+            <span className="spec-value">
+              {vehicle.chargingTimeFast ? `${vehicle.chargingTimeFast} phút` : 
+               vehicle.chargingTimeSlow ? `${vehicle.chargingTimeSlow} phút (chậm)` : 'N/A'}
+            </span>
           </div>
         </div>
 

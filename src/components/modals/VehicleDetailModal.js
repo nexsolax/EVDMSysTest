@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Car, Zap, Palette, Package, Image as ImageIcon, Edit, Eye, Star, MapPin, Calendar, DollarSign } from 'lucide-react';
-import { inventoryAPI, warehouseAPI, vehicleAPI } from '../../services/api';
+import { X, Save, Car, Zap, Package, Image as ImageIcon, Star, DollarSign } from 'lucide-react';
+import { inventoryAPI, warehouseAPI } from '../../services/api';
 import VehicleImage from '../VehicleImage';
 import './Modal.css';
 
@@ -12,7 +12,6 @@ const VehicleDetailModal = ({ isOpen, onClose, onSave, mode = 'view', inventoryI
   
   // Data states
   const [warehouses, setWarehouses] = useState([]);
-  const [colors, setColors] = useState([]);
   const [images, setImages] = useState([]);
   
   // Form data
@@ -46,17 +45,13 @@ const VehicleDetailModal = ({ isOpen, onClose, onSave, mode = 'view', inventoryI
       loadData();
       loadItemDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, inventoryItem]);
 
   const loadData = async () => {
     try {
-      const [warehousesRes, colorsRes] = await Promise.all([
-        warehouseAPI.getActiveWarehouses(),
-        vehicleAPI.getActiveColors()
-      ]);
-      
+      const warehousesRes = await warehouseAPI.getActiveWarehouses();
       setWarehouses(warehousesRes.data || []);
-      setColors(colorsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
     }

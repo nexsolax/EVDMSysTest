@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Bell, Search, UserCircle, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import './Header.css';
+import '../../styles/layout.css';
 
 const Header = ({ onMenuClick, title }) => {
   const { user, logout } = useAuth();

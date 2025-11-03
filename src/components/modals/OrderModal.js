@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, ShoppingCart, DollarSign, Calendar, FileText } from 'lucide-react';
-import { orderAPI, customerAPI, vehicleAPI, quotationAPI } from '../../services/api';
+import { orderAPI, customerAPI, vehicleAPI, quotationAPI, inventoryAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Modal.css';
 
@@ -8,10 +8,10 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
   const [formData, setFormData] = useState({
     customerId: '',
     quotationId: '',
-    vehicleId: '',
+    inventoryId: '',
     orderDate: '',
     deliveryDate: '',
-    orderAmount: '',
+    totalAmount: '',
     depositAmount: '',
     remainingAmount: '',
     status: 'PENDING',
@@ -35,10 +35,10 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
           setFormData({
             customerId: order.customer?.customerId || order.customerId || '',
             quotationId: order.quotation?.quotationId || order.quotationId || '',
-            vehicleId: order.vehicle?.vehicleId || order.vehicleId || '',
+            inventoryId: order.inventory?.inventoryId || order.inventoryId || '',
             orderDate: order.orderDate || '',
             deliveryDate: order.deliveryDate || '',
-            orderAmount: order.orderAmount || '',
+            totalAmount: order.totalAmount || order.orderAmount || '',
             depositAmount: order.depositAmount || '',
             remainingAmount: order.remainingAmount || '',
             status: order.status || 'PENDING',
@@ -62,10 +62,11 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getActiveVehicles();
+      // Load inventory items instead of vehicles
+      const response = await inventoryAPI.getInventory();
       setVehicles(response.data || []);
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      console.error('Error loading inventory:', error);
     }
   };
 
@@ -86,10 +87,10 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
       setFormData({
         customerId: orderData.customer?.customerId || orderData.customerId || '',
         quotationId: orderData.quotation?.quotationId || orderData.quotationId || '',
-        vehicleId: orderData.vehicle?.vehicleId || orderData.vehicleId || '',
+        inventoryId: orderData.inventory?.inventoryId || orderData.inventoryId || '',
         orderDate: orderData.orderDate || '',
         deliveryDate: orderData.deliveryDate || '',
-        orderAmount: orderData.orderAmount || '',
+        totalAmount: orderData.totalAmount || orderData.orderAmount || '',
         depositAmount: orderData.depositAmount || '',
         remainingAmount: orderData.remainingAmount || '',
         status: orderData.status || 'PENDING',
@@ -111,10 +112,10 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
     }));
 
     // Auto calculate remaining amount
-    if (name === 'orderAmount' || name === 'depositAmount') {
-      const orderAmount = parseFloat(name === 'orderAmount' ? value : formData.orderAmount) || 0;
+    if (name === 'totalAmount' || name === 'depositAmount') {
+      const totalAmount = parseFloat(name === 'totalAmount' ? value : formData.totalAmount) || 0;
       const depositAmount = parseFloat(name === 'depositAmount' ? value : formData.depositAmount) || 0;
-      const remainingAmount = orderAmount - depositAmount;
+      const remainingAmount = totalAmount - depositAmount;
       setFormData(prev => ({
         ...prev,
         remainingAmount: remainingAmount.toString()
@@ -194,20 +195,20 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="vehicleId">Xe</label>
+              <label htmlFor="inventoryId">Xe trong kho</label>
               <select
-                id="vehicleId"
-                name="vehicleId"
-                value={formData.vehicleId}
+                id="inventoryId"
+                name="inventoryId"
+                value={formData.inventoryId}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-select"
                 required
               >
-                <option value="">Chọn xe</option>
+                <option value="">Chọn xe trong kho</option>
                 {vehicles.map(vehicle => (
-                  <option key={vehicle.vehicleId} value={vehicle.vehicleId}>
-                    {vehicle.brand?.brandName} {vehicle.model?.modelName} {vehicle.variant?.variantName}
+                  <option key={vehicle.inventoryId} value={vehicle.inventoryId}>
+                    {vehicle.variant?.model?.brand?.brandName} {vehicle.variant?.model?.modelName} {vehicle.variant?.variantName} - VIN: {vehicle.vin || 'N/A'}
                   </option>
                 ))}
               </select>
@@ -241,12 +242,12 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="orderAmount">Tổng giá trị đơn hàng (VNĐ)</label>
+              <label htmlFor="totalAmount">Tổng giá trị đơn hàng (VNĐ)</label>
               <input
                 type="number"
-                id="orderAmount"
-                name="orderAmount"
-                value={formData.orderAmount}
+                id="totalAmount"
+                name="totalAmount"
+                value={formData.totalAmount}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
@@ -343,7 +344,7 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
               </div>
               <div className="info-item">
                 <DollarSign size={16} />
-                <span>Tổng giá trị: {formData.orderAmount ? new Intl.NumberFormat('vi-VN').format(formData.orderAmount) + ' VNĐ' : 'N/A'}</span>
+                <span>Tổng giá trị: {formData.totalAmount ? new Intl.NumberFormat('vi-VN').format(formData.totalAmount) + ' VNĐ' : 'N/A'}</span>
               </div>
               <div className="info-item">
                 <FileText size={16} />

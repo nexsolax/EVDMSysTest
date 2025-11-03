@@ -1,3 +1,6 @@
+/* Import form styles */
+@import '../components/forms/Forms.css';
+
 /* Settings Page Styles */
 .settings-page {
   padding: 24px;
@@ -12,6 +15,7 @@
   margin: 0 auto;
 }
 
+/* Settings Management specific styles */
 .settings-sidebar {
   width: 280px;
   background: white;
@@ -159,84 +163,18 @@
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.data-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.action-button {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 24px;
-  background: #f8fafc;
-  border: 2px dashed #d1d5db;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #6b7280;
-}
-
-.action-button:hover {
-  background: #f1f5f9;
-  border-color: #667eea;
-  color: #667eea;
-}
-
-.action-button.export:hover {
-  background: #f0f9ff;
-  border-color: #3b82f6;
-  color: #3b82f6;
-}
-
-.action-button.import:hover {
-  background: #f0fdf4;
-  border-color: #10b981;
-  color: #10b981;
-}
-
-.action-button.backup:hover {
-  background: #fef3c7;
-  border-color: #f59e0b;
-  color: #f59e0b;
-}
-
-.action-button span {
-  font-size: 14px;
-  font-weight: 500;
+.save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .settings-container {
     flex-direction: column;
-    gap: 16px;
   }
   
   .settings-sidebar {
     width: 100%;
   }
-  
-  .settings-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 8px;
-  }
-  
-  .nav-item {
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  
-  .settings-main {
-    padding: 20px;
-  }
-  
-  .data-actions {
-    grid-template-columns: 1fr;
-  }
 }
-

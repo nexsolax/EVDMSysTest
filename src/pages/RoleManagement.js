@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Search, Edit, Trash2, Eye, MoreVertical } from 'lucide-react';
+import { Shield, Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { userAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import RoleModal from '../components/modals/RoleModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './RoleManagement.css';
 
 const RoleManagement = () => {
-  const { user: currentUser } = useAuth();
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');

@@ -8,10 +8,6 @@ import {
   Edit, 
   Trash2, 
   Eye,
-  Calendar,
-  DollarSign,
-  User,
-  FileText,
   CheckCircle,
   XCircle,
   Clock
@@ -19,6 +15,7 @@ import {
 import { installmentPlanAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import DataTable from '../components/common/DataTable';
+import '../styles/common.css';
 import './InstallmentPlanManagement.css';
 
 const InstallmentPlanManagement = () => {
@@ -28,6 +25,7 @@ const InstallmentPlanManagement = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [planTypeFilter, setPlanTypeFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [modalMode, setModalMode] = useState('create'); // create, edit, view
 
@@ -76,17 +74,6 @@ const InstallmentPlanManagement = () => {
         console.error('Error deleting installment plan:', error);
         toast.error('Lỗi khi xóa kế hoạch trả góp');
       }
-    }
-  };
-
-  const handleStatusUpdate = async (planId, newStatus) => {
-    try {
-      await installmentPlanAPI.updateInstallmentPlanStatus(planId, newStatus);
-      toast.success('Cập nhật trạng thái thành công');
-      loadData();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Lỗi khi cập nhật trạng thái');
     }
   };
 

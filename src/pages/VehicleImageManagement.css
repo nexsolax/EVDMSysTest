@@ -1,3 +1,6 @@
+/* Import common styles */
+@import '../styles/common.css';
+
 /* Vehicle Image Management Styles */
 .vehicle-image-management {
   padding: 2rem;
@@ -5,34 +8,7 @@
   margin: 0 auto;
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  font-size: 2rem;
-  font-weight: bold;
-  color: #1a202c;
-  margin-bottom: 0.5rem;
-}
-
-.page-icon {
-  width: 2rem;
-  height: 2rem;
-  color: #667eea;
-}
-
-.page-subtitle {
-  color: #64748b;
-  font-size: 1.1rem;
-  margin: 0;
-}
-
+/* Vehicle Image Management specific styles */
 .search-section {
   display: flex;
   gap: 1rem;
@@ -269,10 +245,6 @@
 @media (max-width: 768px) {
   .vehicle-image-management {
     padding: 1rem;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
   }
 
   .search-section {

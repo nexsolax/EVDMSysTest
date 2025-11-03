@@ -1,40 +1,13 @@
+/* Import common styles */
+@import '../styles/common.css';
+
 .report-management {
   width: 100%;
   margin: 0;
   max-width: none;
 }
 
-.page-header {
-  margin-bottom: 40px;
-  padding: 0 8px;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.title-icon {
-  width: 40px;
-  height: 40px;
-  color: #667eea;
-}
-
-.page-title h1 {
-  font-size: 36px;
-  font-weight: 700;
-  color: #1a202c;
-  margin: 0;
-}
-
-.page-header p {
-  color: #6b7280;
-  font-size: 18px;
-  margin: 0;
-}
-
+/* Report Management specific styles */
 .reports-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -99,6 +72,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #6b7280;
+}
+
+.report-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .chart-placeholder {
@@ -122,6 +104,7 @@
   border: 1px solid #e5e7eb;
   padding: 32px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
 }
 
 .filters-header {
@@ -173,13 +156,8 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .page-title h1 {
-    font-size: 24px;
-  }
-  
   .reports-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
   }
   
   .report-stats {

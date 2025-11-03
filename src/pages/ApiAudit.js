@@ -33,20 +33,6 @@ const KNOWN_MODULE_PREFIXES = [
   '/reports'
 ];
 
-const KNOWN_TAG_TO_PAGE = {
-  Users: '/users',
-  Vehicles: '/vehicles',
-  Customers: '/customers',
-  Quotations: '/quotations',
-  Orders: '/orders',
-  Contracts: '/contracts',
-  Deliveries: '/deliveries',
-  Payments: '/payments',
-  Inventory: '/inventory',
-  Warehouses: '/inventory/warehouses',
-  Reports: '/reports',
-  Auth: '/login'
-};
 
 const AuditRow = ({ method, path, tags }) => {
   const known = KNOWN_MODULE_PREFIXES.some((p) => path.startsWith(p));
@@ -99,16 +85,6 @@ const ApiAudit = () => {
     rows.sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
     return rows;
   }, [spec]);
-
-  const groupedByTag = useMemo(() => {
-    const map = {};
-    allEndpoints.forEach((e) => {
-      const tag = (e.tags && e.tags[0]) || 'Untagged';
-      if (!map[tag]) map[tag] = [];
-      map[tag].push(e);
-    });
-    return map;
-  }, [allEndpoints]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

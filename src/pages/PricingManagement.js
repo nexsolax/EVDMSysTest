@@ -4,6 +4,8 @@ import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PricingModal from '../components/modals/PricingModal';
 import { pricingPolicyAPI, dealerAPI, vehicleAPI } from '../services/api';
+import '../styles/common.css';
+import '../styles/filters.css';
 import './PricingManagement.css';
 
 const PricingManagement = () => {
@@ -19,6 +21,7 @@ const PricingManagement = () => {
   useEffect(() => {
     loadData();
     loadReferenceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterScope]);
 
   const loadData = async () => {

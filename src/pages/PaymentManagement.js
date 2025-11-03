@@ -6,6 +6,7 @@ import DataTable from '../components/common/DataTable';
 import PaymentModal from '../components/modals/PaymentModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './PaymentManagement.css';
 
 const PaymentManagement = () => {

@@ -27,3 +27,4 @@ const ProtectedRoute = ({ children, requiredRole = null, requiredRoles = null })
 };
 
 export default ProtectedRoute;
+

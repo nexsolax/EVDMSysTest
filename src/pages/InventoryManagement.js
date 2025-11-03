@@ -8,6 +8,7 @@ import WarehouseModal from '../components/modals/WarehouseModal';
 import InventoryItemModal from '../components/modals/InventoryItemModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './InventoryManagement.css';
 
 const InventoryManagement = () => {
@@ -42,10 +43,12 @@ const InventoryManagement = () => {
   useEffect(() => {
     const newTab = getCurrentTab();
     setActiveTab(newTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const loadData = async () => {
@@ -58,7 +61,15 @@ const InventoryManagement = () => {
           break;
         case 'vehicles':
           const inventoryResponse = await inventoryAPI.getInventory();
-          setInventory(inventoryResponse.data || []);
+          const inventoryData = inventoryResponse.data || [];
+          console.log('Loaded inventory data:', inventoryData);
+          if (inventoryData.length > 0) {
+            console.log('First inventory item:', inventoryData[0]);
+            console.log('Variant:', inventoryData[0].variant);
+            console.log('Color:', inventoryData[0].color);
+            console.log('Warehouse:', inventoryData[0].warehouse);
+          }
+          setInventory(inventoryData);
           break;
         default:
           break;
@@ -89,6 +100,9 @@ const InventoryManagement = () => {
           case 'inventory':
             await inventoryAPI.deleteInventory(item.inventoryId);
             break;
+          default:
+            console.warn('Unknown delete type:', type);
+            break;
         }
         toast.success(`Xóa ${getTabTitle()} thành công`);
         loadData();
@@ -112,6 +126,9 @@ const InventoryManagement = () => {
           setModalMode('edit');
           setShowInventoryModal(true);
           break;
+        default:
+          console.warn('Unknown tab for edit:', activeTab);
+          break;
       }
       
     } catch (error) {
@@ -133,6 +150,9 @@ const InventoryManagement = () => {
           setModalMode('view');
           setShowInventoryModal(true);
           break;
+        default:
+          console.warn('Unknown tab for view:', activeTab);
+          break;
       }
       
     } catch (error) {
@@ -141,26 +161,56 @@ const InventoryManagement = () => {
     }
   };
 
+  const handleCreate = () => {
+    if (activeTab === 'warehouses') {
+      setSelectedWarehouse(null);
+      setModalMode('create');
+      setShowWarehouseModal(true);
+    } else if (activeTab === 'vehicles') {
+      setSelectedInventoryItem(null);
+      setModalMode('create');
+      setShowInventoryModal(true);
+    }
+  };
+
   const handleSaveWarehouse = async (warehouseId, data) => {
     try {
-      await warehouseAPI.updateWarehouse(warehouseId, data);
-      toast.success('Cập nhật kho thành công');
+      if (warehouseId) {
+        // Update existing warehouse
+        await warehouseAPI.updateWarehouse(warehouseId, data);
+        toast.success('Cập nhật kho thành công');
+      } else {
+        // Create new warehouse
+        await warehouseAPI.createWarehouse(data);
+        toast.success('Tạo kho thành công');
+      }
       loadData();
+      setShowWarehouseModal(false);
     } catch (error) {
-      console.error('Error updating warehouse:', error);
-      toast.error('Không thể cập nhật kho');
+      console.error('Error saving warehouse:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(errorMessage || 'Không thể lưu kho');
       throw error;
     }
   };
 
   const handleSaveInventoryItem = async (inventoryId, data) => {
     try {
-      await inventoryAPI.updateInventory(inventoryId, data);
-      toast.success('Cập nhật tồn kho thành công');
+      if (inventoryId) {
+        // Update existing inventory
+        await inventoryAPI.updateInventory(inventoryId, data);
+        toast.success('Cập nhật tồn kho thành công');
+      } else {
+        // Create new inventory
+        await inventoryAPI.createInventory(data);
+        toast.success('Tạo tồn kho thành công');
+      }
       loadData();
+      setShowInventoryModal(false);
     } catch (error) {
-      console.error('Error updating inventory item:', error);
-      toast.error('Không thể cập nhật tồn kho');
+      console.error('Error saving inventory item:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      toast.error(errorMessage || 'Không thể lưu tồn kho');
       throw error;
     }
   };
@@ -192,47 +242,87 @@ const InventoryManagement = () => {
           { 
             key: 'vehicle', 
             header: 'Xe',
-            render: (item) => (
-              <div>
-                <div className="font-medium">
-                  {item.vehicle?.brand?.brandName} {item.vehicle?.model?.modelName}
+            render: (item) => {
+              const variant = item.variant;
+              if (!variant) return <span className="text-gray-400">N/A</span>;
+              
+              return (
+                <div>
+                  <div className="font-medium">
+                    {variant.model?.brand?.brandName || ''} {variant.model?.modelName || ''}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {variant.variantName || ''}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">
-                  {item.vehicle?.variant?.variantName}
-                </div>
-              </div>
-            )
+              );
+            }
           },
           { 
             key: 'color', 
             header: 'Màu sắc',
-            render: (item) => (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div 
-                  style={{ 
-                    width: '20px', 
-                    height: '20px', 
-                    backgroundColor: item.color?.hexCode,
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '4px'
-                  }}
-                />
-                {item.color?.colorName}
-              </div>
-            )
+            render: (item) => {
+              const color = item.color;
+              if (!color) return <span className="text-gray-400">N/A</span>;
+              
+              // Sử dụng colorCode hoặc colorSwatchUrl/Path từ entity
+              const colorCode = color.colorCode;
+              const swatchUrl = color.colorSwatchUrl || color.colorSwatchPath;
+              const colorName = color.colorName || 'N/A';
+              
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {swatchUrl ? (
+                    <img 
+                      src={swatchUrl} 
+                      alt={colorName}
+                      style={{ 
+                        width: '20px', 
+                        height: '20px', 
+                        objectFit: 'cover',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '4px'
+                      }}
+                      onError={(e) => {
+                        // Fallback to colorCode if image fails
+                        e.target.style.display = 'none';
+                        const fallback = e.target.nextElementSibling;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    style={{ 
+                      display: swatchUrl ? 'none' : 'flex',
+                      width: '20px', 
+                      height: '20px', 
+                      backgroundColor: colorCode || '#cccccc',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '4px'
+                    }}
+                  />
+                  <span>{colorName}</span>
+                </div>
+              );
+            }
           },
           { key: 'vin', header: 'VIN' },
           { 
             key: 'warehouse', 
             header: 'Kho',
-            render: (item) => (
-              <div>
-                <div className="font-medium">{item.warehouse?.warehouseName || 'N/A'}</div>
-                {item.warehouse?.warehouseCode && (
-                  <div className="text-sm text-gray-500">{item.warehouse.warehouseCode}</div>
-                )}
-              </div>
-            )
+            render: (item) => {
+              const warehouse = item.warehouse;
+              if (!warehouse) return <span className="text-gray-400">N/A</span>;
+              
+              return (
+                <div>
+                  <div className="font-medium">{warehouse.warehouseName || 'N/A'}</div>
+                  {warehouse.warehouseCode && (
+                    <div className="text-sm text-gray-500">{warehouse.warehouseCode}</div>
+                  )}
+                </div>
+              );
+            }
           },
           { 
             key: 'status', 
@@ -269,8 +359,9 @@ const InventoryManagement = () => {
       item.address?.toLowerCase().includes(searchLower) ||
       item.city?.toLowerCase().includes(searchLower) ||
       item.vin?.toLowerCase().includes(searchLower) ||
-      (item.vehicle?.brand?.brandName?.toLowerCase() || '').includes(searchLower) ||
-      (item.vehicle?.model?.modelName?.toLowerCase() || '').includes(searchLower) ||
+      (item.variant?.model?.brand?.brandName?.toLowerCase() || '').includes(searchLower) ||
+      (item.variant?.model?.modelName?.toLowerCase() || '').includes(searchLower) ||
+      (item.variant?.variantName?.toLowerCase() || '').includes(searchLower) ||
       (item.color?.colorName?.toLowerCase() || '').includes(searchLower)
     );
   });
@@ -284,7 +375,7 @@ const InventoryManagement = () => {
       <>
         <div className="section-header">
           <h2>Quản lý {getTabTitle()}</h2>
-          <button className="btn btn-primary">
+          <button className="btn btn-primary" onClick={handleCreate}>
             <Plus size={20} />
             Thêm {getTabTitle()}
           </button>

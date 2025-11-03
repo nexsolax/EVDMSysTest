@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Save, Eye, EyeOff, Camera, Mail, Phone, MapPin, Calendar } from 'lucide-react';
+import { User, Save, Eye, EyeOff, Mail, Phone, MapPin, Calendar } from 'lucide-react';
 import { userAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import '../components/forms/Forms.css';
 import './Profile.css';
 
 const Profile = () => {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -32,6 +33,7 @@ const Profile = () => {
     if (user) {
       loadUserProfile();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadUserProfile = async () => {
@@ -92,7 +94,7 @@ const Profile = () => {
       newErrors.email = 'Email không hợp lệ';
     }
 
-    if (formData.phone && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(formData.phone)) {
+    if (formData.phone && !/^[+]?[0-9\s\-()]{10,}$/.test(formData.phone)) {
       newErrors.phone = 'Số điện thoại không hợp lệ';
     }
 

@@ -134,9 +134,6 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
     try {
       setLoading(true);
       
-      // Find the selected role object
-      const selectedRole = roles.find(r => r.roleName === formData.role);
-      
       // Prepare data for backend - match UserRequest DTO structure
       const submitData = {
         username: formData.username.trim(),

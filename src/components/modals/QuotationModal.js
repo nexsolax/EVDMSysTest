@@ -7,7 +7,7 @@ import './Modal.css';
 const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) => {
   const [formData, setFormData] = useState({
     customerId: '',
-    vehicleId: '',
+    variantId: '',
     quotationDate: '',
     validUntil: '',
     basePrice: '',
@@ -31,7 +31,7 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
         } else {
           setFormData({
             customerId: quotation.customer?.customerId || quotation.customerId || '',
-            vehicleId: quotation.vehicle?.vehicleId || quotation.vehicleId || '',
+            variantId: quotation.variant?.variantId || quotation.variantId || '',
             quotationDate: quotation.quotationDate || '',
             validUntil: quotation.validUntil || '',
             basePrice: quotation.basePrice || '',
@@ -58,10 +58,11 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getActiveVehicles();
+      // Load variants instead of vehicles
+      const response = await vehicleAPI.getVariants();
       setVehicles(response.data || []);
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      console.error('Error loading variants:', error);
     }
   };
 
@@ -72,7 +73,7 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
       const quotationData = response.data;
       setFormData({
         customerId: quotationData.customer?.customerId || quotationData.customerId || '',
-        vehicleId: quotationData.vehicle?.vehicleId || quotationData.vehicleId || '',
+        variantId: quotationData.variant?.variantId || quotationData.variantId || '',
         quotationDate: quotationData.quotationDate || '',
         validUntil: quotationData.validUntil || '',
         basePrice: quotationData.basePrice || '',
@@ -163,20 +164,20 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
             </div>
 
             <div className="form-group">
-              <label htmlFor="vehicleId">Xe</label>
+              <label htmlFor="variantId">Phiên bản xe</label>
               <select
-                id="vehicleId"
-                name="vehicleId"
-                value={formData.vehicleId}
+                id="variantId"
+                name="variantId"
+                value={formData.variantId}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-select"
                 required
               >
-                <option value="">Chọn xe</option>
-                {vehicles.map(vehicle => (
-                  <option key={vehicle.vehicleId} value={vehicle.vehicleId}>
-                    {vehicle.brand?.brandName} {vehicle.model?.modelName} {vehicle.variant?.variantName}
+                <option value="">Chọn phiên bản xe</option>
+                {vehicles.map(variant => (
+                  <option key={variant.variantId} value={variant.variantId}>
+                    {variant.model?.brand?.brandName} {variant.model?.modelName} {variant.variantName}
                   </option>
                 ))}
               </select>

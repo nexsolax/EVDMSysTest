@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Download, Filter, Calendar, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
+import { BarChart3, Download, Filter, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
 import { reportAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './ReportManagement.css';
 
 const ReportManagement = () => {
@@ -23,6 +24,7 @@ const ReportManagement = () => {
 
   useEffect(() => {
     loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const loadReports = async () => {
@@ -76,9 +78,6 @@ const ReportManagement = () => {
     }).format(amount);
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
   if (loading) {
     return <LoadingSpinner text="Đang tải báo cáo..." />;
   }

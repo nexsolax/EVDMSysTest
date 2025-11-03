@@ -6,6 +6,7 @@ import DataTable from '../components/common/DataTable';
 import DeliveryModal from '../components/modals/DeliveryModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './DeliveryManagement.css';
 
 const DeliveryManagement = () => {
@@ -165,9 +166,10 @@ const DeliveryManagement = () => {
           <Package size={16} />
           <div>
             <div className="vehicle-name">
-              {delivery.vehicle?.variant?.model?.brand?.name} {delivery.vehicle?.variant?.model?.name}
+              {delivery.inventory?.variant?.model?.brand?.brandName || delivery.vehicle?.variant?.model?.brand?.brandName} {delivery.inventory?.variant?.model?.modelName || delivery.vehicle?.variant?.model?.modelName}
             </div>
-            <div className="vehicle-variant">{delivery.vehicle?.variant?.name}</div>
+            <div className="vehicle-variant">{delivery.inventory?.variant?.variantName || delivery.vehicle?.variant?.variantName}</div>
+            {(delivery.inventory?.vin || delivery.vehicle?.vin) && <div className="vehicle-vin">VIN: {delivery.inventory?.vin || delivery.vehicle?.vin}</div>}
           </div>
         </div>
       )

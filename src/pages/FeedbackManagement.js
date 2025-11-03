@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { feedbackAPI, customerAPI, orderAPI } from '../services/api';
+import '../styles/common.css';
+import '../styles/filters.css';
 import './FeedbackManagement.css';
 
 const FeedbackManagement = () => {
@@ -15,6 +17,7 @@ const FeedbackManagement = () => {
   useEffect(() => {
     loadData();
     loadReferenceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterRating]);
 
   const loadData = async () => {
@@ -79,19 +82,6 @@ const FeedbackManagement = () => {
       );
     }
     return <div className="rating-stars">{stars}</div>;
-  };
-
-  const getRatingBadge = (rating) => {
-    const ratingMap = {
-      5: { text: 'Xuất sắc', class: 'badge-success' },
-      4: { text: 'Tốt', class: 'badge-primary' },
-      3: { text: 'Trung bình', class: 'badge-warning' },
-      2: { text: 'Kém', class: 'badge-danger' },
-      1: { text: 'Rất kém', class: 'badge-danger' }
-    };
-    
-    const ratingInfo = ratingMap[rating] || { text: 'N/A', class: 'badge-secondary' };
-    return <span className={`badge ${ratingInfo.class}`}>{ratingInfo.text}</span>;
   };
 
   const getStatusBadge = (status) => {

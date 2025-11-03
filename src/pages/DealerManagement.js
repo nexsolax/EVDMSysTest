@@ -4,6 +4,8 @@ import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import DealerModal from '../components/modals/DealerModal';
 import { dealerAPI } from '../services/api';
+import '../styles/common.css';
+import '../styles/filters.css';
 import './DealerManagement.css';
 
 const DealerManagement = () => {
@@ -16,6 +18,7 @@ const DealerManagement = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
 
   const loadData = async () => {
@@ -46,6 +49,9 @@ const DealerManagement = () => {
   };
 
   const getStatusBadge = (status) => {
+    if (!status) return <span className="badge badge-secondary">N/A</span>;
+    
+    const statusLower = status.toLowerCase();
     const statusMap = {
       'active': { text: 'Hoạt động', class: 'badge-success' },
       'inactive': { text: 'Không hoạt động', class: 'badge-secondary' },
@@ -53,32 +59,52 @@ const DealerManagement = () => {
       'terminated': { text: 'Chấm dứt', class: 'badge-danger' }
     };
     
-    const statusInfo = statusMap[status] || { text: status, class: 'badge-secondary' };
+    const statusInfo = statusMap[statusLower] || { text: status, class: 'badge-secondary' };
     return <span className={`badge ${statusInfo.class}`}>{statusInfo.text}</span>;
   };
 
   const getTypeBadge = (type) => {
+    if (!type) return <span className="badge badge-secondary">N/A</span>;
+    
+    const typeLower = type.toLowerCase();
     const typeMap = {
+      'authorized': { text: 'Đại lý ủy quyền', class: 'badge-primary' },
+      'franchise': { text: 'Đại lý nhượng quyền', class: 'badge-info' },
+      'partner': { text: 'Đối tác', class: 'badge-success' },
       'main_dealer': { text: 'Đại lý chính', class: 'badge-primary' },
       'sub_dealer': { text: 'Đại lý phụ', class: 'badge-info' },
       'service_center': { text: 'Trung tâm dịch vụ', class: 'badge-warning' },
       'showroom': { text: 'Showroom', class: 'badge-success' }
     };
     
-    const typeInfo = typeMap[type] || { text: type, class: 'badge-secondary' };
+    const typeInfo = typeMap[typeLower] || { text: type, class: 'badge-secondary' };
     return <span className={`badge ${typeInfo.class}`}>{typeInfo.text}</span>;
   };
 
-  const handleView = (dealer) => {
-    setSelectedDealer(dealer);
-    setModalMode('view');
-    setShowDealerModal(true);
+  const handleView = async (dealer) => {
+    try {
+      // Load full dealer details
+      const response = await dealerAPI.getDealer(dealer.dealerId);
+      setSelectedDealer(response.data);
+      setModalMode('view');
+      setShowDealerModal(true);
+    } catch (error) {
+      console.error('Error loading dealer details:', error);
+      toast.error('Không thể tải chi tiết đại lý');
+    }
   };
 
-  const handleEdit = (dealer) => {
-    setSelectedDealer(dealer);
-    setModalMode('edit');
-    setShowDealerModal(true);
+  const handleEdit = async (dealer) => {
+    try {
+      // Load full dealer details
+      const response = await dealerAPI.getDealer(dealer.dealerId);
+      setSelectedDealer(response.data);
+      setModalMode('edit');
+      setShowDealerModal(true);
+    } catch (error) {
+      console.error('Error loading dealer details:', error);
+      toast.error('Không thể tải chi tiết đại lý');
+    }
   };
 
   const handleDelete = async (dealer) => {
@@ -123,67 +149,45 @@ const DealerManagement = () => {
     {
       key: 'dealerName',
       label: 'Tên đại lý',
-      render: (value) => <strong>{value || 'N/A'}</strong>
+      render: (item) => <strong>{item?.dealerName || 'N/A'}</strong>
     },
     {
       key: 'dealerCode',
       label: 'Mã đại lý',
-      render: (value) => <code>{value || 'N/A'}</code>
+      render: (item) => <code>{item?.dealerCode || 'N/A'}</code>
     },
     {
       key: 'dealerType',
       label: 'Loại',
-      render: (value) => getTypeBadge(value)
+      render: (item) => getTypeBadge(item?.dealerType)
     },
     {
       key: 'city',
       label: 'Thành phố',
-      render: (value) => value || 'N/A'
+      render: (item) => item?.city || 'N/A'
     },
     {
       key: 'province',
       label: 'Tỉnh',
-      render: (value) => value || 'N/A'
+      render: (item) => item?.province || 'N/A'
     },
     {
       key: 'phone',
       label: 'Điện thoại',
-      render: (value) => value || 'N/A'
+      render: (item) => item?.phone || 'N/A'
     },
     {
       key: 'email',
       label: 'Email',
-      render: (value) => value || 'N/A'
-    },
-    {
-      key: 'establishedDate',
-      label: 'Ngày thành lập',
-      render: (value) => formatDate(value)
+      render: (item) => item?.email || 'N/A'
     },
     {
       key: 'status',
       label: 'Trạng thái',
-      render: (value) => getStatusBadge(value)
+      render: (item) => getStatusBadge(item?.status)
     }
   ];
 
-  const actions = [
-    {
-      label: 'Xem',
-      className: 'btn-info',
-      onClick: handleView
-    },
-    {
-      label: 'Sửa',
-      className: 'btn-warning',
-      onClick: handleEdit
-    },
-    {
-      label: 'Xóa',
-      className: 'btn-danger',
-      onClick: handleDelete
-    }
-  ];
 
 
   if (loading) {
@@ -225,7 +229,9 @@ const DealerManagement = () => {
         <DataTable
           data={dealers}
           columns={columns}
-          actions={actions}
+          onView={handleView}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
           searchable={true}
           searchPlaceholder="Tìm kiếm đại lý..."
         />

@@ -8,17 +8,14 @@ import {
   Edit, 
   Trash2, 
   Eye,
-  Calendar,
-  TrendingUp,
-  Building2,
   CheckCircle,
   XCircle,
-  Clock,
-  BarChart3
+  Clock
 } from 'lucide-react';
 import { dealerTargetAPI } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import DataTable from '../components/common/DataTable';
+import '../styles/common.css';
 import './DealerTargetManagement.css';
 
 const DealerTargetManagement = () => {
@@ -30,6 +27,7 @@ const DealerTargetManagement = () => {
   const [yearFilter, setYearFilter] = useState('all');
   const [scopeFilter, setScopeFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [modalMode, setModalMode] = useState('create'); // create, edit, view
 
@@ -78,28 +76,6 @@ const DealerTargetManagement = () => {
         console.error('Error deleting dealer target:', error);
         toast.error('Lỗi khi xóa mục tiêu');
       }
-    }
-  };
-
-  const handleStatusUpdate = async (targetId, newStatus) => {
-    try {
-      await dealerTargetAPI.updateDealerTargetStatus(targetId, newStatus);
-      toast.success('Cập nhật trạng thái thành công');
-      loadData();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error('Lỗi khi cập nhật trạng thái');
-    }
-  };
-
-  const handleAchievementUpdate = async (targetId, achievement) => {
-    try {
-      await dealerTargetAPI.updateDealerTargetAchievement(targetId, achievement);
-      toast.success('Cập nhật thành tích thành công');
-      loadData();
-    } catch (error) {
-      console.error('Error updating achievement:', error);
-      toast.error('Lỗi khi cập nhật thành tích');
     }
   };
 

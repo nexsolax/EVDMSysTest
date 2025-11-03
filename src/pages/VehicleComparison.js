@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, 
-  Filter, 
   BarChart3, 
   Table, 
   Grid, 
   List, 
   X, 
   RefreshCw,
-  Plus,
-  Trash2,
   Star,
   Award,
   TrendingUp
@@ -19,6 +16,7 @@ import VehicleComparisonCard from '../components/VehicleComparisonCard';
 import ComparisonTable from '../components/ComparisonTable';
 import ComparisonChart from '../components/ComparisonChart';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './VehicleComparison.css';
 
 const VehicleComparison = () => {
@@ -43,6 +41,7 @@ const VehicleComparison = () => {
 
   useEffect(() => {
     filterVehicles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicles, searchTerm, filters]);
 
   const loadVehicles = async () => {
@@ -69,12 +68,12 @@ const VehicleComparison = () => {
         vehicle.model?.brand?.brandName === filters.brand;
 
       const matchesPrice = 
-        vehicle.basePrice >= filters.priceRange.min && 
-        vehicle.basePrice <= filters.priceRange.max;
+        (vehicle.priceBase || vehicle.basePrice || 0) >= filters.priceRange.min && 
+        (vehicle.priceBase || vehicle.basePrice || 0) <= filters.priceRange.max;
 
       const matchesRange = 
-        (vehicle.range || 0) >= filters.range.min && 
-        (vehicle.range || 0) <= filters.range.max;
+        (vehicle.rangeKm || vehicle.range || 0) >= filters.range.min && 
+        (vehicle.rangeKm || vehicle.range || 0) <= filters.range.max;
 
       const matchesPower = 
         (vehicle.powerKw || 0) >= filters.power.min && 
@@ -114,7 +113,7 @@ const VehicleComparison = () => {
       setLoading(true);
       const response = await publicVehicleComparisonAPI.detailedCompare({
         variantIds: selectedVehicles,
-        comparisonCriteria: ['price', 'range', 'power', 'batteryCapacity', 'chargingTime'],
+        comparisonCriteria: ['priceBase', 'rangeKm', 'powerKw', 'batteryCapacity', 'chargingTimeFast', 'chargingTimeSlow'],
         includeDetails: true,
         includePricing: true,
         includeAvailability: true

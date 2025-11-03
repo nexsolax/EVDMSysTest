@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Bell, Shield, Palette, Globe, Database } from 'lucide-react';
+import '../components/forms/Forms.css';
 import './Settings.css';
 
 const Settings = () => {

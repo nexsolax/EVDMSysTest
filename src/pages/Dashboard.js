@@ -3,10 +3,8 @@ import {
   Car, 
   Users, 
   ShoppingCart, 
-  TrendingUp, 
   Package,
   DollarSign,
-  Calendar,
   AlertCircle,
   FileText,
   UserPlus,
@@ -14,7 +12,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  reportAPI, 
   orderAPI, 
   customerAPI, 
   inventoryAPI 

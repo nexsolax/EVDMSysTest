@@ -6,6 +6,7 @@ import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import QuotationModal from '../components/modals/QuotationModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './QuotationManagement.css';
 
 const QuotationManagement = () => {

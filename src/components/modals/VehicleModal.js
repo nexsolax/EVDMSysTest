@@ -6,31 +6,30 @@ import './Modal.css';
 
 const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicleType = 'brand' }) => {
   const [formData, setFormData] = useState({
-    // Brand fields
+    // Brand fields (following guide field names)
     brandName: '',
-    brandCode: '',
     country: '',
+    foundedYear: '',
     description: '',
     isActive: true,
     
-    // Model fields
+    // Model fields (following guide field names)
     modelName: '',
-    modelCode: '',
     brandId: '',
-    year: new Date().getFullYear(),
-    bodyType: 'SEDAN',
+    modelYear: new Date().getFullYear(),
+    vehicleType: 'SEDAN',
     
-    // Variant fields
+    // Variant fields (following guide field names)
     variantName: '',
-    variantCode: '',
     modelId: '',
     engineType: 'ELECTRIC',
     batteryCapacity: 0,
-    range: 0,
-    chargingTime: 0,
-    maxSpeed: 0,
-    acceleration: 0,
-    price: 0,
+    rangeKm: 0,
+    chargingTimeFast: 0,
+    chargingTimeSlow: 0,
+    topSpeed: 0,
+    acceleration0100: 0,
+    priceBase: 0,
     
     // Color fields
     colorName: '',
@@ -52,25 +51,24 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
       if (mode === 'create') {
         setFormData({
           brandName: '',
-          brandCode: '',
           country: '',
+          foundedYear: '',
           description: '',
           isActive: true,
           modelName: '',
-          modelCode: '',
           brandId: '',
-          year: new Date().getFullYear(),
-          bodyType: 'SEDAN',
+          modelYear: new Date().getFullYear(),
+          vehicleType: 'SEDAN',
           variantName: '',
-          variantCode: '',
           modelId: '',
           engineType: 'ELECTRIC',
           batteryCapacity: 0,
-          range: 0,
-          chargingTime: 0,
-          maxSpeed: 0,
-          acceleration: 0,
-          price: 0,
+          rangeKm: 0,
+          chargingTimeFast: 0,
+          chargingTimeSlow: 0,
+          topSpeed: 0,
+          acceleration0100: 0,
+          priceBase: 0,
           colorName: '',
           colorCode: '',
           hexCode: '#000000',
@@ -79,25 +77,24 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
       } else if (vehicle) {
         setFormData({
           brandName: vehicle.brandName || '',
-          brandCode: vehicle.brandCode || '',
           country: vehicle.country || '',
+          foundedYear: vehicle.foundedYear || '',
           description: vehicle.description || '',
           isActive: vehicle.isActive !== undefined ? vehicle.isActive : true,
           modelName: vehicle.modelName || '',
-          modelCode: vehicle.modelCode || '',
           brandId: vehicle.brand?.brandId || vehicle.brandId || '',
-          year: vehicle.year || new Date().getFullYear(),
-          bodyType: vehicle.bodyType || 'SEDAN',
+          modelYear: vehicle.modelYear || vehicle.year || new Date().getFullYear(),
+          vehicleType: vehicle.vehicleType || vehicle.bodyType || 'SEDAN',
           variantName: vehicle.variantName || '',
-          variantCode: vehicle.variantCode || '',
           modelId: vehicle.model?.modelId || vehicle.modelId || '',
           engineType: vehicle.engineType || 'ELECTRIC',
           batteryCapacity: vehicle.batteryCapacity || 0,
-          range: vehicle.range || 0,
-          chargingTime: vehicle.chargingTime || 0,
-          maxSpeed: vehicle.maxSpeed || 0,
-          acceleration: vehicle.acceleration || 0,
-          price: vehicle.price || 0,
+          rangeKm: vehicle.rangeKm || vehicle.range || 0,
+          chargingTimeFast: vehicle.chargingTimeFast || 0,
+          chargingTimeSlow: vehicle.chargingTimeSlow || 0,
+          topSpeed: vehicle.topSpeed || vehicle.maxSpeed || 0,
+          acceleration0100: vehicle.acceleration0100 || vehicle.acceleration || 0,
+          priceBase: vehicle.priceBase || vehicle.price || 0,
           colorName: vehicle.colorName || '',
           colorCode: vehicle.colorCode || '',
           hexCode: vehicle.hexCode || '#000000',
@@ -143,17 +140,13 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
         toast.error('Tên thương hiệu là bắt buộc');
         return;
       }
-      if (!formData.brandCode.trim()) {
-        toast.error('Mã thương hiệu là bắt buộc');
-        return;
-      }
     } else if (vehicleType === 'model') {
       if (!formData.modelName.trim()) {
         toast.error('Tên dòng xe là bắt buộc');
         return;
       }
-      if (!formData.modelCode.trim()) {
-        toast.error('Mã dòng xe là bắt buộc');
+      if (!formData.modelYear) {
+        toast.error('Năm sản xuất là bắt buộc');
         return;
       }
       if (!formData.brandId) {
@@ -165,15 +158,11 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
         toast.error('Tên phiên bản là bắt buộc');
         return;
       }
-      if (!formData.variantCode.trim()) {
-        toast.error('Mã phiên bản là bắt buộc');
-        return;
-      }
       if (!formData.modelId) {
         toast.error('Vui lòng chọn dòng xe');
         return;
       }
-      if (formData.price <= 0) {
+      if (formData.priceBase <= 0) {
         toast.error('Giá xe phải lớn hơn 0');
         return;
       }
@@ -196,33 +185,32 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
       if (vehicleType === 'brand') {
         submitData = {
           brandName: formData.brandName.trim(),
-          brandCode: formData.brandCode.trim(),
-          country: formData.country.trim(),
-          description: formData.description.trim(),
-          isActive: formData.isActive
+          country: formData.country?.trim() || null,
+          foundedYear: formData.foundedYear ? parseInt(formData.foundedYear) : null,
+          description: formData.description?.trim() || null,
+          isActive: formData.isActive !== undefined ? formData.isActive : true
         };
       } else if (vehicleType === 'model') {
         submitData = {
           modelName: formData.modelName.trim(),
-          modelCode: formData.modelCode.trim(),
           brandId: formData.brandId,
-          year: parseInt(formData.year),
-          bodyType: formData.bodyType,
-          isActive: formData.isActive
+          modelYear: parseInt(formData.modelYear),
+          vehicleType: formData.vehicleType || null,
+          isActive: formData.isActive !== undefined ? formData.isActive : true
         };
       } else if (vehicleType === 'variant') {
         submitData = {
           variantName: formData.variantName.trim(),
-          variantCode: formData.variantCode.trim(),
           modelId: formData.modelId,
-          engineType: formData.engineType,
-          batteryCapacity: parseFloat(formData.batteryCapacity),
-          range: parseInt(formData.range),
-          chargingTime: parseFloat(formData.chargingTime),
-          maxSpeed: parseInt(formData.maxSpeed),
-          acceleration: parseFloat(formData.acceleration),
-          price: parseFloat(formData.price),
-          isActive: formData.isActive
+          batteryCapacity: formData.batteryCapacity ? parseFloat(formData.batteryCapacity) : null,
+          rangeKm: formData.rangeKm ? parseInt(formData.rangeKm) : null,
+          powerKw: formData.powerKw ? parseFloat(formData.powerKw) : null,
+          acceleration0100: formData.acceleration0100 ? parseFloat(formData.acceleration0100) : null,
+          topSpeed: formData.topSpeed ? parseInt(formData.topSpeed) : null,
+          chargingTimeFast: formData.chargingTimeFast ? parseInt(formData.chargingTimeFast) : null,
+          chargingTimeSlow: formData.chargingTimeSlow ? parseInt(formData.chargingTimeSlow) : null,
+          priceBase: parseFloat(formData.priceBase),
+          isActive: formData.isActive !== undefined ? formData.isActive : true
         };
       } else if (vehicleType === 'color') {
         submitData = {
@@ -303,20 +291,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="brandCode">Mã thương hiệu *</label>
-                  <input
-                    type="text"
-                    id="brandCode"
-                    name="brandCode"
-                    value={formData.brandCode}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-input"
-                    placeholder="Nhập mã thương hiệu"
-                  />
-                </div>
-
-                <div className="form-group">
                   <label htmlFor="country">Quốc gia</label>
                   <input
                     type="text"
@@ -327,6 +301,22 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                     disabled={mode === 'view'}
                     className="form-input"
                     placeholder="Nhập quốc gia"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="foundedYear">Năm thành lập</label>
+                  <input
+                    type="number"
+                    id="foundedYear"
+                    name="foundedYear"
+                    value={formData.foundedYear}
+                    onChange={handleInputChange}
+                    disabled={mode === 'view'}
+                    className="form-input"
+                    min="1800"
+                    max={new Date().getFullYear()}
+                    placeholder="Ví dụ: 2003"
                   />
                 </div>
               </>
@@ -345,20 +335,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                     disabled={mode === 'view'}
                     className="form-input"
                     placeholder="Nhập tên dòng xe"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="modelCode">Mã dòng xe *</label>
-                  <input
-                    type="text"
-                    id="modelCode"
-                    name="modelCode"
-                    value={formData.modelCode}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-input"
-                    placeholder="Nhập mã dòng xe"
                   />
                 </div>
 
@@ -382,12 +358,12 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="year">Năm sản xuất</label>
+                  <label htmlFor="modelYear">Năm sản xuất *</label>
                   <input
                     type="number"
-                    id="year"
-                    name="year"
-                    value={formData.year}
+                    id="modelYear"
+                    name="modelYear"
+                    value={formData.modelYear}
                     onChange={handleInputChange}
                     disabled={mode === 'view'}
                     className="form-input"
@@ -397,22 +373,22 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="bodyType">Loại thân xe</label>
+                  <label htmlFor="vehicleType">Loại xe</label>
                   <select
-                    id="bodyType"
-                    name="bodyType"
-                    value={formData.bodyType}
+                    id="vehicleType"
+                    name="vehicleType"
+                    value={formData.vehicleType}
                     onChange={handleInputChange}
                     disabled={mode === 'view'}
                     className="form-select"
                   >
+                    <option value="">-- Chọn loại xe --</option>
                     <option value="SEDAN">Sedan</option>
                     <option value="SUV">SUV</option>
                     <option value="HATCHBACK">Hatchback</option>
                     <option value="COUPE">Coupe</option>
-                    <option value="CONVERTIBLE">Convertible</option>
-                    <option value="WAGON">Wagon</option>
-                    <option value="PICKUP">Pickup</option>
+                    <option value="TRUCK">Truck</option>
+                    <option value="MPV">MPV</option>
                   </select>
                 </div>
               </>
@@ -431,20 +407,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                     disabled={mode === 'view'}
                     className="form-input"
                     placeholder="Nhập tên phiên bản"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="variantCode">Mã phiên bản *</label>
-                  <input
-                    type="text"
-                    id="variantCode"
-                    name="variantCode"
-                    value={formData.variantCode}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-input"
-                    placeholder="Nhập mã phiên bản"
                   />
                 </div>
 
@@ -478,9 +440,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                     className="form-select"
                   >
                     <option value="ELECTRIC">Điện</option>
-                    <option value="HYBRID">Hybrid</option>
-                    <option value="PETROL">Xăng</option>
-                    <option value="DIESEL">Diesel</option>
                   </select>
                 </div>
 
@@ -500,12 +459,12 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="range">Tầm hoạt động (km)</label>
+                  <label htmlFor="rangeKm">Tầm hoạt động (km)</label>
                   <input
                     type="number"
-                    id="range"
-                    name="range"
-                    value={formData.range}
+                    id="rangeKm"
+                    name="rangeKm"
+                    value={formData.rangeKm}
                     onChange={handleInputChange}
                     disabled={mode === 'view'}
                     className="form-input"
@@ -514,41 +473,12 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="chargingTime">Thời gian sạc (giờ)</label>
+                  <label htmlFor="powerKw">Công suất động cơ (kW)</label>
                   <input
                     type="number"
-                    id="chargingTime"
-                    name="chargingTime"
-                    value={formData.chargingTime}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-input"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="maxSpeed">Tốc độ tối đa (km/h)</label>
-                  <input
-                    type="number"
-                    id="maxSpeed"
-                    name="maxSpeed"
-                    value={formData.maxSpeed}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-input"
-                    min="0"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="acceleration">Gia tốc 0-100km/h (giây)</label>
-                  <input
-                    type="number"
-                    id="acceleration"
-                    name="acceleration"
-                    value={formData.acceleration}
+                    id="powerKw"
+                    name="powerKw"
+                    value={formData.powerKw || ''}
                     onChange={handleInputChange}
                     disabled={mode === 'view'}
                     className="form-input"
@@ -558,12 +488,69 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="price">Giá (VNĐ) *</label>
+                  <label htmlFor="chargingTimeFast">Thời gian sạc nhanh (phút)</label>
                   <input
                     type="number"
-                    id="price"
-                    name="price"
-                    value={formData.price}
+                    id="chargingTimeFast"
+                    name="chargingTimeFast"
+                    value={formData.chargingTimeFast}
+                    onChange={handleInputChange}
+                    disabled={mode === 'view'}
+                    className="form-input"
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="chargingTimeSlow">Thời gian sạc chậm (phút)</label>
+                  <input
+                    type="number"
+                    id="chargingTimeSlow"
+                    name="chargingTimeSlow"
+                    value={formData.chargingTimeSlow}
+                    onChange={handleInputChange}
+                    disabled={mode === 'view'}
+                    className="form-input"
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="topSpeed">Tốc độ tối đa (km/h)</label>
+                  <input
+                    type="number"
+                    id="topSpeed"
+                    name="topSpeed"
+                    value={formData.topSpeed}
+                    onChange={handleInputChange}
+                    disabled={mode === 'view'}
+                    className="form-input"
+                    min="0"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="acceleration0100">Gia tốc 0-100km/h (giây)</label>
+                  <input
+                    type="number"
+                    id="acceleration0100"
+                    name="acceleration0100"
+                    value={formData.acceleration0100}
+                    onChange={handleInputChange}
+                    disabled={mode === 'view'}
+                    className="form-input"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="priceBase">Giá cơ bản (VNĐ) *</label>
+                  <input
+                    type="number"
+                    id="priceBase"
+                    name="priceBase"
+                    value={formData.priceBase}
                     onChange={handleInputChange}
                     disabled={mode === 'view'}
                     className="form-input"

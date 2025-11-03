@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, DollarSign, Calendar } from 'lucide-react';
-import { pricingPolicyAPI, dealerAPI, vehicleAPI } from '../../services/api';
+import { dealerAPI, vehicleAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Modal.css';
 

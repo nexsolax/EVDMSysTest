@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { promotionAPI } from '../services/api';
+import '../styles/common.css';
+import '../styles/filters.css';
 import './PromotionManagement.css';
 
 const PromotionManagement = () => {
@@ -12,6 +14,7 @@ const PromotionManagement = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
 
   const loadData = async () => {

@@ -1,31 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Car, Calendar } from 'lucide-react';
+import { X, Car, Calendar } from 'lucide-react';
 import { vehicleAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import VehicleBrandForm from '../forms/VehicleBrandForm';
 import './Modal.css';
 
 const VehicleBrandModal = ({ brand, isOpen, onClose, onSave, mode = 'view' }) => {
-  const [formData, setFormData] = useState({
-    brandName: '',
-    country: '',
-    foundedYear: '',
-    description: '',
-    isActive: true
-  });
   const [loading, setLoading] = useState(false);
+  const [brandData, setBrandData] = useState(brand);
 
   useEffect(() => {
-    if (isOpen && brand) {
-      if (mode === 'edit') {
-        loadBrandDetails();
-      } else {
-        setFormData({
-          brandName: brand.brandName || '',
-          country: brand.country || '',
-          foundedYear: brand.foundedYear || '',
-          description: brand.description || '',
-          isActive: brand.isActive || false
-        });
+    if (isOpen) {
+      if (mode === 'create') {
+        setBrandData(null);
+      } else if (brand) {
+        // Đối với view mode, luôn load từ API để đảm bảo có đầy đủ thông tin
+        if (mode === 'view') {
+          console.log('View mode: loading full details from API to ensure all fields are present');
+          loadBrandDetails();
+        } else if (mode === 'edit') {
+          // Edit mode: chỉ load nếu thiếu dữ liệu cơ bản
+          const hasRequiredFields = brand.brandName;
+          if (hasRequiredFields) {
+            // Data đã có thông tin cơ bản, sử dụng luôn không cần load lại
+            console.log('Using existing brand data for edit, skipping API call');
+            setBrandData(brand);
+          } else {
+            // Thiếu data cơ bản, cần load từ API
+            console.log('Brand data incomplete, loading from API');
+            loadBrandDetails();
+          }
+        }
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -35,40 +40,46 @@ const VehicleBrandModal = ({ brand, isOpen, onClose, onSave, mode = 'view' }) =>
     try {
       setLoading(true);
       const response = await vehicleAPI.getBrand(brand.brandId);
-      const brandData = response.data;
-      setFormData({
-        brandName: brandData.brandName || '',
-        country: brandData.country || '',
-        foundedYear: brandData.foundedYear || '',
-        description: brandData.description || '',
-        isActive: brandData.isActive || false
-      });
+      console.log('API response for brand:', response.data);
+      setBrandData(response.data);
     } catch (error) {
       console.error('Error loading brand details:', error);
-      toast.error('Không thể tải thông tin thương hiệu');
+      console.warn('API failed, using existing brand data:', brand);
+      // Nếu API lỗi nhưng có data từ table, sử dụng data đó
+      // Chỉ show warning nếu đang ở view mode, không show error vì có thể do server tạm thời
+      if (mode === 'view') {
+        console.warn('Using existing brand data for view mode');
+        setBrandData(brand);
+        // Không show toast error trong view mode để tránh làm phiền user
+        // Chỉ log để debug
+      } else {
+        setBrandData(brand);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (formData) => {
     if (mode === 'view') return;
 
     try {
       setLoading(true);
-      await onSave(brand.brandId, formData);
+      console.log('Submitting brand form data:', formData);
+      
+      if (mode === 'create') {
+        await onSave(formData);
+      } else {
+        await onSave(brand?.brandId, formData);
+      }
+      
+      // Sau khi lưu thành công, chỉ đóng modal
+      // Data sẽ được reload trong bảng qua loadData() trong VehicleManagement
       onClose();
     } catch (error) {
       console.error('Error saving brand:', error);
+      console.error('Error response:', error.response);
+      toast.error(error.response?.data?.message || 'Không thể lưu thương hiệu');
     } finally {
       setLoading(false);
     }
@@ -80,110 +91,57 @@ const VehicleBrandModal = ({ brand, isOpen, onClose, onSave, mode = 'view' }) =>
     <div className="modal-overlay">
       <div className="modal-container">
         <div className="modal-header">
-          <div className="modal-title">
-            <Car size={24} />
-            <h2>{mode === 'view' ? 'Xem chi tiết thương hiệu' : 'Chỉnh sửa thương hiệu'}</h2>
+          <div className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {/* Brand Logo in header */}
+            {brandData && (brandData.brandLogoUrl || brandData.brandLogoPath) ? (
+              <img
+                src={brandData.brandLogoUrl || (brandData.brandLogoPath?.startsWith('http') ? brandData.brandLogoPath : `/${brandData.brandLogoPath}`)}
+                alt={brandData.brandName || 'Brand Logo'}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  objectFit: 'contain',
+                  borderRadius: '4px',
+                  border: '1px solid #e5e7eb'
+                }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  // Show Car icon if image fails
+                  const carIcon = e.target.nextSibling;
+                  if (carIcon) carIcon.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            {(!brandData || !brandData.brandLogoUrl && !brandData.brandLogoPath) && (
+              <Car size={24} />
+            )}
+            <h2>
+              {mode === 'view' ? 'Xem chi tiết thương hiệu' : 
+               mode === 'create' ? 'Thêm thương hiệu mới' : 
+               'Chỉnh sửa thương hiệu'}
+            </h2>
           </div>
           <button className="modal-close" onClick={onClose}>
             <X size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-grid">
-            <div className="form-group">
-              <label htmlFor="brandName">Tên thương hiệu</label>
-              <input
-                type="text"
-                id="brandName"
-                name="brandName"
-                value={formData.brandName}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="country">Quốc gia</label>
-              <input
-                type="text"
-                id="country"
-                name="country"
-                value={formData.country}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="foundedYear">Năm thành lập</label>
-              <input
-                type="number"
-                id="foundedYear"
-                name="foundedYear"
-                value={formData.foundedYear}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                min="1800"
-                max={new Date().getFullYear()}
-              />
-            </div>
-
-            <div className="form-group full-width">
-              <label htmlFor="description">Mô tả</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                rows={4}
-                placeholder="Mô tả về thương hiệu..."
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleInputChange}
-                  disabled={mode === 'view'}
-                  className="form-checkbox"
-                />
-                <span>Đang hoạt động</span>
-              </label>
+        {mode === 'view' && brandData?.createdAt && (
+          <div className="modal-info">
+            <div className="info-item">
+              <Calendar size={16} />
+              <span>Ngày tạo: {new Date(brandData.createdAt).toLocaleDateString('vi-VN')}</span>
             </div>
           </div>
+        )}
 
-          {mode === 'view' && (
-            <div className="modal-info">
-              <div className="info-item">
-                <Calendar size={16} />
-                <span>Ngày tạo: {brand.createdAt ? new Date(brand.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="modal-actions">
-            <button type="button" className="btn btn-outline" onClick={onClose}>
-              {mode === 'view' ? 'Đóng' : 'Hủy'}
-            </button>
-            {mode === 'edit' && (
-              <button type="submit" className="btn btn-primary" disabled={loading}>
-                <Save size={20} />
-                {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
-              </button>
-            )}
-          </div>
-        </form>
+        <VehicleBrandForm
+          brand={brandData}
+          mode={mode}
+          onSubmit={handleSubmit}
+          onCancel={onClose}
+          loading={loading}
+        />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, AlertCircle, CheckCircle, Car, Zap, Palette, Package, Image as ImageIcon, ChevronDown, Plus, Building } from 'lucide-react';
-import { vehicleAPI, imageAPI, warehouseAPI, inventoryAPI } from '../../services/api';
+import { X, AlertCircle, CheckCircle, Car, Zap, Package, Building } from 'lucide-react';
+import { vehicleAPI, inventoryAPI } from '../../services/api';
 import './Modal.css';
 
 const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
@@ -8,7 +8,6 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [creationMode, setCreationMode] = useState('existing'); // Only 'existing' mode
   
   // Data for dropdowns
   const [brands, setBrands] = useState([]);
@@ -16,6 +15,7 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
   const [colors, setColors] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [warehouseLocations, setWarehouseLocations] = useState([]);
+  const [apiFieldsInfo, setApiFieldsInfo] = useState(null);
   
   // Form data
   const [formData, setFormData] = useState({
@@ -58,20 +58,23 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
       
       console.log('Loading brands, colors, and warehouses...');
       
-      // Use existing API endpoints that work
-      const [brandsRes, colorsRes, warehousesRes] = await Promise.all([
-        vehicleAPI.getBrands(),
-        vehicleAPI.getColors(),
-        warehouseAPI.getWarehouses()
+      // Use new enhanced API endpoints
+      const [brandsRes, colorsRes, warehousesRes, fieldsInfoRes] = await Promise.all([
+        vehicleAPI.getCreateFromExistingBrands(),
+        vehicleAPI.getCreateFromExistingColors(),
+        vehicleAPI.getCreateFromExistingWarehouses(),
+        vehicleAPI.getCreateFromExistingFields()
       ]);
       
       console.log('Brands response:', brandsRes.data);
       console.log('Colors response:', colorsRes.data);
       console.log('Warehouses response:', warehousesRes.data);
+      console.log('Fields info response:', fieldsInfoRes.data);
       
       setBrands(brandsRes.data || []);
       setColors(colorsRes.data || []);
       setWarehouses(warehousesRes.data || []);
+      setApiFieldsInfo(fieldsInfoRes.data);
     } catch (error) {
       console.error('Error loading data:', error);
       setError('Không thể tải dữ liệu. Vui lòng kiểm tra kết nối và thử lại.');
@@ -89,41 +92,11 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
     try {
       console.log('Loading models for brand ID:', brandId);
 
-      // Try multiple API endpoints
-      let models = [];
-
-      try {
-        // Try public API first (most reliable)
-        const response = await fetch(`/api/public/vehicle-models/brand/${brandId}`);
-        if (response.ok) {
-          models = await response.json();
-          console.log('Public API response:', models);
-        }
-      } catch (publicError) {
-        console.warn('Public API failed, trying authenticated API:', publicError);
-
-        try {
-          // Try authenticated API
-          const response = await vehicleAPI.getModels();
-          const allModels = response.data || [];
-          models = allModels.filter(model => model.brandId === parseInt(brandId));
-          console.log('Authenticated API response:', models);
-        } catch (authError) {
-          console.warn('Authenticated API failed, trying direct API:', authError);
-
-          try {
-            // Try direct API call
-            const response = await fetch(`/api/vehicles/models/brand/${brandId}`);
-            if (response.ok) {
-              models = await response.json();
-              console.log('Direct API response:', models);
-            }
-          } catch (directError) {
-            console.error('All API endpoints failed:', directError);
-          }
-        }
-      }
-
+      // Use new enhanced API endpoint
+      const response = await vehicleAPI.getCreateFromExistingModelsByBrand(brandId);
+      const models = response.data || [];
+      
+      console.log('Models response:', models);
       setModels(models);
     } catch (error) {
       console.error('Error loading models by brand:', error);
@@ -140,29 +113,24 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
     try {
       console.log('Loading locations for warehouse ID:', warehouseId);
       
-      // Try multiple approaches to get warehouse locations
+      // Use new enhanced inventory API to get warehouse locations
       let locations = [];
       
       try {
-        // Try to get warehouse info first
-        const warehouseResponse = await warehouseAPI.getWarehouse(warehouseId);
-        const warehouse = warehouseResponse.data;
-        console.log('Warehouse info:', warehouse);
-        
         // Try to get existing inventory for this warehouse
-        const inventoryResponse = await inventoryAPI.getInventory();
+        const inventoryResponse = await inventoryAPI.getInventoryByWarehouse(warehouseId);
         const inventory = inventoryResponse.data || [];
         
-        // Filter by warehouse and extract unique locations
-        const warehouseInventory = inventory.filter(item => item.warehouseId === warehouseId);
-        const uniqueLocations = [...new Set(warehouseInventory.map(item => item.warehouseLocation).filter(loc => loc))];
+        // Extract unique locations from existing inventory
+        const uniqueLocations = [...new Set(inventory.map(item => item.warehouseLocation).filter(loc => loc))];
         
         if (uniqueLocations.length > 0) {
           locations = uniqueLocations.map(location => ({ locationId: location, locationName: location }));
           console.log('Found existing locations from inventory:', locations);
         } else {
-          // Generate default locations based on warehouse info
-          const warehouseCode = warehouse?.warehouseCode || 'MAIN';
+          // Generate default locations
+          const warehouse = warehouses.find(w => w.warehouseId === warehouseId || w.id === warehouseId);
+          const warehouseCode = warehouse?.warehouseCode || warehouse?.warehouseName?.substring(0, 3).toUpperCase() || 'MAIN';
           locations = [
             { locationId: `${warehouseCode}-A-01`, locationName: `${warehouseCode}-A-01` },
             { locationId: `${warehouseCode}-A-02`, locationName: `${warehouseCode}-A-02` },
@@ -173,17 +141,19 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
           ];
           console.log('Generated default locations:', locations);
         }
-      } catch (warehouseError) {
-        console.warn('Warehouse API failed, using default locations:', warehouseError);
+      } catch (inventoryError) {
+        console.warn('Inventory API failed, using default locations:', inventoryError);
         
         // Fallback: generate some default locations
+        const warehouse = warehouses.find(w => w.warehouseId === warehouseId || w.id === warehouseId);
+        const warehouseCode = warehouse?.warehouseCode || 'MAIN';
         locations = [
-          { locationId: 'A-01-01', locationName: 'A-01-01' },
-          { locationId: 'A-01-02', locationName: 'A-01-02' },
-          { locationId: 'A-01-03', locationName: 'A-01-03' },
-          { locationId: 'B-01-01', locationName: 'B-01-01' },
-          { locationId: 'B-01-02', locationName: 'B-01-02' },
-          { locationId: 'C-01-01', locationName: 'C-01-01' }
+          { locationId: `${warehouseCode}-A-01`, locationName: `${warehouseCode}-A-01` },
+          { locationId: `${warehouseCode}-A-02`, locationName: `${warehouseCode}-A-02` },
+          { locationId: `${warehouseCode}-A-03`, locationName: `${warehouseCode}-A-03` },
+          { locationId: `${warehouseCode}-B-01`, locationName: `${warehouseCode}-B-01` },
+          { locationId: `${warehouseCode}-B-02`, locationName: `${warehouseCode}-B-02` },
+          { locationId: `${warehouseCode}-C-01`, locationName: `${warehouseCode}-C-01` }
         ];
         console.log('Using fallback locations:', locations);
       }
@@ -399,19 +369,46 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
         }
       };
 
+      // Build payload to validate against schema naming (batteryKwh, stockStatus)
+      const payloadForValidation = {
+        ...submitData,
+        variant: {
+          variantName: submitData.variant.variantName,
+          priceBase: submitData.variant.priceBase ?? undefined,
+          batteryKwh: submitData.variant.batteryCapacity ?? undefined,
+          rangeKm: submitData.variant.rangeKm ?? undefined
+        },
+        inventory: {
+          vin: submitData.inventory.vin,
+          warehouseLocation: submitData.inventory.warehouseLocation || undefined,
+          stockStatus: submitData.inventory.status || undefined,
+          sellingPrice: submitData.inventory.sellingPrice ?? undefined,
+          notes: submitData.inventory.notes || undefined
+        }
+      };
+
+      // Validation removed - backend will validate
+
       console.log('Submitting data:', submitData);
+      console.log('API endpoint:', '/vehicles/create-from-existing-json');
+      
       const response = await vehicleAPI.createVehicleFromExistingJson(submitData);
       
-      console.log('API Response:', response.data);
+      console.log('API Response:', response);
+      console.log('Response data:', response.data);
+      console.log('Response status:', response.status);
       
       if (response.data && response.data.success) {
         setSuccess('Tạo xe thành công!');
+        console.log('Vehicle created successfully:', response.data);
         setTimeout(() => {
           onSave();
           onClose();
         }, 1500);
       } else {
-        setError(response.data?.message || 'Có lỗi xảy ra khi tạo xe');
+        const errorMessage = response.data?.message || response.data?.error || 'Có lỗi xảy ra khi tạo xe';
+        console.error('API returned error:', errorMessage);
+        setError(errorMessage);
       }
       
     } catch (error) {
@@ -560,6 +557,12 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
               <AlertCircle className="field-info-icon" />
               <span>Tối đa 10MB/file, hỗ trợ: JPG, PNG, GIF, WebP</span>
             </div>
+            {apiFieldsInfo && (
+              <div className="field-info-item">
+                <Building className="field-info-icon" />
+                <span>API: {apiFieldsInfo.endpoint}</span>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -587,14 +590,20 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
                     label: 'Thương hiệu', 
                     type: 'select', 
                     required: true, 
-                    options: (brands || []).filter(b => b).map(b => ({ value: b.brandId || b.id, label: b.brandName || b.name }))
+                    options: (brands || []).filter(b => b).map(b => ({ 
+                      value: b.brandId, 
+                      label: `${b.brandName}${b.country ? ` (${b.country})` : ''}` 
+                    }))
                   },
                   { 
                     name: 'existingModelId', 
                     label: 'Dòng xe', 
                     type: 'select', 
                     required: true, 
-                    options: (models || []).filter(m => m).map(m => ({ value: m.modelId || m.id, label: m.modelName || m.name })),
+                    options: (models || []).filter(m => m).map(m => ({ 
+                      value: m.modelId, 
+                      label: `${m.modelName}${m.modelYear ? ` (${m.modelYear})` : ''}` 
+                    })),
                     disabled: !formData.existingBrandId
                   },
                   { 
@@ -602,14 +611,20 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
                     label: 'Màu sắc', 
                     type: 'select', 
                     required: true, 
-                    options: (colors || []).filter(c => c).map(c => ({ value: c.colorId || c.id, label: c.colorName || c.name }))
+                    options: (colors || []).filter(c => c).map(c => ({ 
+                      value: c.colorId, 
+                      label: `${c.colorName}${c.colorCode ? ` (${c.colorCode})` : ''}` 
+                    }))
                   },
                   { 
                     name: 'existingWarehouseId', 
                     label: 'Kho chứa', 
                     type: 'select', 
                     required: true, 
-                    options: (warehouses || []).filter(w => w).map(w => ({ value: w.warehouseId || w.id, label: w.warehouseName || w.name }))
+                    options: (warehouses || []).filter(w => w).map(w => ({ 
+                      value: w.warehouseId, 
+                      label: `${w.warehouseName}${w.location ? ` - ${w.location}` : ''}` 
+                    }))
                   }
                 ]
               )}

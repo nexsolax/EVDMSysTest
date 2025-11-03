@@ -42,57 +42,54 @@ const PublicSalesPage = () => {
       setVehicles([
         {
           inventoryId: '1',
-          variantName: 'Tesla Model 3 Standard Range',
-          price: 1200000000,
-          isActive: true,
-          brand: { brandName: 'Tesla' },
-          model: { modelName: 'Model 3' },
           variant: {
+            variantName: 'Tesla Model 3 Standard Range',
+            priceBase: 1200000000,
             batteryCapacity: 60,
-            range: 400,
+            rangeKm: 400,
+            powerKw: 200,
             variantImageUrl: null
           },
-          specifications: {
-            power: "200",
-            range: "400",
-            warranty: "4"
-          }
+          model: { 
+            modelName: 'Model 3',
+            brand: { brandName: 'Tesla' }
+          },
+          sellingPrice: 1200000000,
+          status: 'available'
         },
         {
           inventoryId: '2',
-          variantName: 'BYD Atto 3 Standard',
-          price: 800000000,
-          isActive: true,
-          brand: { brandName: 'BYD' },
-          model: { modelName: 'Atto 3' },
           variant: {
+            variantName: 'BYD Atto 3 Standard',
+            priceBase: 800000000,
             batteryCapacity: 50.1,
-            range: 480,
+            rangeKm: 480,
+            powerKw: 150,
             variantImageUrl: null
           },
-          specifications: {
-            power: "150",
-            range: "480",
-            warranty: "6"
-          }
+          model: { 
+            modelName: 'Atto 3',
+            brand: { brandName: 'BYD' }
+          },
+          sellingPrice: 800000000,
+          status: 'available'
         },
         {
           inventoryId: '3',
-          variantName: 'BMW iX xDrive50',
-          price: 2500000000,
-          isActive: true,
-          brand: { brandName: 'BMW' },
-          model: { modelName: 'iX' },
           variant: {
+            variantName: 'BMW iX xDrive50',
+            priceBase: 2500000000,
             batteryCapacity: 111.5,
-            range: 630,
+            rangeKm: 630,
+            powerKw: 385,
             variantImageUrl: null
           },
-          specifications: {
-            power: "385",
-            range: "630",
-            warranty: "8"
-          }
+          model: { 
+            modelName: 'iX',
+            brand: { brandName: 'BMW' }
+          },
+          sellingPrice: 2500000000,
+          status: 'available'
         }
       ]);
       setBrands([

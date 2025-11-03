@@ -1,4 +1,4 @@
-/* Dashboard Styles */
+/* Dashboard Styles - Unique styles for dashboard, no common styles needed */
 .dashboard {
   max-width: 1200px;
   margin: 0 auto;
@@ -21,6 +21,7 @@
   margin: 0;
 }
 
+/* Dashboard specific styles */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

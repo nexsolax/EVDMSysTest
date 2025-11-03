@@ -1,0 +1,116 @@
+/* Forms CSS - Common styles for all form components */
+
+/* Form styles are shared with Modal.css but forms may need additional styling */
+/* Import Modal.css in form components to use modal-form, form-grid, etc. */
+
+/* Error messages */
+.error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Full width form group */
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* Textarea specific styles */
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Number input specific styles */
+input[type="number"].form-input {
+  -moz-appearance: textfield;
+}
+
+input[type="number"].form-input::-webkit-outer-spin-button,
+input[type="number"].form-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Required field indicator */
+.form-group label:has(+ *[required])::after,
+.form-group label:has(~ *[required])::after {
+  content: " *";
+  color: #ef4444;
+}
+
+/* Form validation states */
+.form-input:invalid:not(:focus):not(:placeholder-shown),
+.form-select:invalid:not(:focus):not(:placeholder-shown) {
+  border-color: #ef4444;
+}
+
+.form-input:valid:not(:focus):not(:placeholder-shown),
+.form-select:valid:not(:focus):not(:placeholder-shown) {
+  border-color: #10b981;
+}
+
+/* Loading state */
+.form-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Disabled state */
+.form-input:disabled,
+.form-select:disabled,
+.form-checkbox:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* File Input */
+input[type="file"].form-input {
+  padding: 8px;
+  cursor: pointer;
+}
+
+input[type="file"].form-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Logo Preview */
+.logo-preview-container {
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+}
+
+.logo-preview {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.logo-preview-error {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+}
+
+.logo-preview-error p {
+  margin: 0 0 8px 0;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+.logo-preview-error small {
+  color: #9ca3af;
+  font-size: 12px;
+}
+

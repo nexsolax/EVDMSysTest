@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Car, 
@@ -23,10 +23,11 @@ import {
   Target,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import './Sidebar.css';
+import '../../styles/layout.css';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { user, logout, getRoleDisplayName } = useAuth();
+  const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
@@ -42,13 +43,13 @@ const Sidebar = ({ isOpen, onClose }) => {
     {
       path: '/admin/vehicle-management',
       icon: Car,
-      label: 'Quản lý xe',
+      label: 'Danh sách xe',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
       path: '/admin/vehicles',
       icon: Car,
-      label: 'Quản lý xe (cũ)',
+      label: 'Quản lý xe',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff'],
       submenu: [
         { path: '/admin/vehicles/brands', label: 'Thương hiệu' },
@@ -201,37 +202,41 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         <nav className="sidebar-nav">
-          {filteredMenuItems.map((item) => (
-            <div key={item.path} className="nav-item">
-              <NavLink
-                to={item.path}
-                className={({ isActive }) => 
-                  `nav-link ${isActive ? 'active' : ''}`
-                }
-                onClick={onClose}
-              >
-                <item.icon className="nav-icon" />
-                <span className="nav-label">{item.label}</span>
-              </NavLink>
-              
-              {item.submenu && (
-                <div className="submenu">
-                  {item.submenu.map((subItem) => (
-                    <NavLink
-                      key={subItem.path}
-                      to={subItem.path}
-                      className={({ isActive }) => 
-                        `submenu-link ${isActive ? 'active' : ''}`
-                      }
-                      onClick={onClose}
-                    >
-                      {subItem.label}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          {filteredMenuItems.map((item) => {
+            // Check if parent item or any submenu item is active
+            const isParentActive = location.pathname === item.path || 
+              (item.submenu && item.submenu.some(subItem => location.pathname === subItem.path));
+            
+            return (
+              <div key={item.path} className="nav-item">
+                <NavLink
+                  to={item.path}
+                  className={`nav-link ${isParentActive ? 'active' : ''}`}
+                  onClick={onClose}
+                >
+                  <item.icon className="nav-icon" />
+                  <span className="nav-label">{item.label}</span>
+                </NavLink>
+                
+                {item.submenu && (
+                  <div className="submenu">
+                    {item.submenu.map((subItem) => (
+                      <NavLink
+                        key={subItem.path}
+                        to={subItem.path}
+                        className={({ isActive }) => 
+                          `submenu-link ${isActive ? 'active' : ''}`
+                        }
+                        onClick={onClose}
+                      >
+                        {subItem.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
@@ -255,3 +260,4 @@ const Sidebar = ({ isOpen, onClose }) => {
 };
 
 export default Sidebar;
+

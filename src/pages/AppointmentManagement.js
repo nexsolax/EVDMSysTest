@@ -3,6 +3,8 @@ import { toast } from 'react-toastify';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { appointmentAPI, customerAPI, userAPI, vehicleAPI } from '../services/api';
+import '../styles/common.css';
+import '../styles/filters.css';
 import './AppointmentManagement.css';
 
 const AppointmentManagement = () => {
@@ -16,6 +18,7 @@ const AppointmentManagement = () => {
   useEffect(() => {
     loadData();
     loadReferenceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
 
   const loadData = async () => {

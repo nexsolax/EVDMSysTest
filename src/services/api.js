@@ -65,39 +65,70 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
-// Vehicle API (Authenticated)
+// Product Management API (following guide: /api/products)
+export const productAPI = {
+  // Brands - following guide endpoint pattern
+  createBrand: (data) => api.post('/products/brands', data),
+  updateBrand: (id, data) => api.put(`/products/brands/${id}`, data),
+  deleteBrand: (id) => api.delete(`/products/brands/${id}`),
+  
+  // Models - following guide endpoint pattern
+  createModel: (data) => api.post('/products/models', data),
+  updateModel: (id, data) => api.put(`/products/models/${id}`, data),
+  deleteModel: (id) => api.delete(`/products/models/${id}`),
+  
+  // Variants - following guide endpoint pattern
+  createVariant: (data) => api.post('/products/variants', data),
+  updateVariant: (id, data) => api.put(`/products/variants/${id}`, data),
+  deleteVariant: (id) => api.delete(`/products/variants/${id}`),
+  
+  // Colors - following guide endpoint pattern
+  createColor: (data) => api.post('/products/colors', data),
+  updateColor: (id, data) => api.put(`/products/colors/${id}`, data),
+  deleteColor: (id) => api.delete(`/products/colors/${id}`),
+};
+
+// Vehicle API (Authenticated) - Read operations
 export const vehicleAPI = {
   // Brands
   getBrands: () => api.get('/vehicles/brands'),
   getActiveBrands: () => api.get('/vehicles/brands/active'),
   getBrand: (id) => api.get(`/vehicles/brands/${id}`),
-  createBrand: (data) => api.post('/vehicles/brands', data),
-  updateBrand: (id, data) => api.put(`/vehicles/brands/${id}`, data),
-  deleteBrand: (id) => api.delete(`/vehicles/brands/${id}`),
+  getBrandByName: (name) => api.get(`/vehicles/brands/name/${name}`),
+  getBrandsByCountry: (country) => api.get(`/vehicles/brands/country/${country}`),
+  searchBrands: (name) => api.get(`/vehicles/brands/search?name=${name}`),
+  // Write operations moved to productAPI above
 
   // Models
   getModels: () => api.get('/vehicles/models'),
   getActiveModels: () => api.get('/vehicles/models/active'),
   getModel: (id) => api.get(`/vehicles/models/${id}`),
-  createModel: (data) => api.post('/vehicles/models', data),
-  updateModel: (id, data) => api.put(`/vehicles/models/${id}`, data),
-  deleteModel: (id) => api.delete(`/vehicles/models/${id}`),
+  getModelsByBrand: (brandId) => api.get(`/vehicles/models/brand/${brandId}`),
+  getActiveModelsByBrand: (brandId) => api.get(`/vehicles/models/brand/${brandId}/active`),
+  searchModels: (name) => api.get(`/vehicles/models/search?name=${name}`),
+  getModelsByType: (type) => api.get(`/vehicles/models/type/${type}`),
+  getModelsByYear: (year) => api.get(`/vehicles/models/year/${year}`),
+  // Write operations moved to productAPI above
 
   // Variants
   getVariants: () => api.get('/vehicles/variants'),
   getActiveVariants: () => api.get('/vehicles/variants/active'),
   getVariant: (id) => api.get(`/vehicles/variants/${id}`),
-  createVariant: (data) => api.post('/vehicles/variants', data),
-  updateVariant: (id, data) => api.put(`/vehicles/variants/${id}`, data),
-  deleteVariant: (id) => api.delete(`/vehicles/variants/${id}`),
+  getVariantsByModel: (modelId) => api.get(`/vehicles/variants/model/${modelId}`),
+  getActiveVariantsByModel: (modelId) => api.get(`/vehicles/variants/model/${modelId}/active`),
+  searchVariants: (name) => api.get(`/vehicles/variants/search?name=${name}`),
+  getVariantsByPriceRange: (minPrice, maxPrice) => api.get(`/vehicles/variants/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
+  getVariantsByMinRange: (minRange) => api.get(`/vehicles/variants/min-range/${minRange}`),
+  // Write operations moved to productAPI above
 
   // Colors
   getColors: () => api.get('/vehicles/colors'),
   getActiveColors: () => api.get('/vehicles/colors/active'),
   getColor: (id) => api.get(`/vehicles/colors/${id}`),
-  createColor: (data) => api.post('/vehicles/colors', data),
-  updateColor: (id, data) => api.put(`/vehicles/colors/${id}`, data),
-  deleteColor: (id) => api.delete(`/vehicles/colors/${id}`),
+  getColorByName: (name) => api.get(`/vehicles/colors/name/${name}`),
+  getColorByCode: (code) => api.get(`/vehicles/colors/code/${code}`),
+  searchColors: (name) => api.get(`/vehicles/colors/search?name=${name}`),
+  // Write operations moved to productAPI above
 
   // Vehicle Comparison
   getAvailableVehicles: () => api.get('/vehicles/compare/available'),
@@ -114,7 +145,7 @@ export const vehicleAPI = {
   }),
 
   // Create Vehicle From Existing Data (Tạo xe từ dữ liệu có sẵn)
-  createVehicleFromExisting: (data) => api.post('/vehicle-creation-from-existing/create', data, {
+  createVehicleFromExisting: (data) => api.post('/vehicles/create-from-existing', data, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -126,10 +157,12 @@ export const vehicleAPI = {
       'Content-Type': 'application/json',
     },
   }),
-  getCreateFromExistingBrands: () => api.get('/vehicle-creation-from-existing/brands'),
-  getCreateFromExistingModelsByBrand: (brandId) => api.get(`/vehicle-creation-from-existing/models/${brandId}`),
-  getCreateFromExistingColors: () => api.get('/vehicle-creation-from-existing/colors'),
-  getCreateFromExistingWarehouses: () => api.get('/vehicle-creation-from-existing/warehouses'),
+  getCreateFromExistingBrands: () => api.get('/vehicles/create-from-existing/brands'),
+  getCreateFromExistingModels: () => api.get('/vehicles/create-from-existing/models'),
+  getCreateFromExistingModelsByBrand: (brandId) => api.get(`/vehicles/create-from-existing/models/brand/${brandId}`),
+  getCreateFromExistingColors: () => api.get('/vehicles/create-from-existing/colors'),
+  getCreateFromExistingWarehouses: () => api.get('/vehicles/create-from-existing/warehouses'),
+  getCreateFromExistingFields: () => api.get('/vehicles/create-from-existing/fields'),
 };
 
 // Customer API
@@ -137,12 +170,12 @@ export const customerAPI = {
   getCustomers: () => api.get('/customers'),
   getCustomer: (id) => api.get(`/customers/${id}`),
   getCustomerByEmail: (email) => api.get(`/customers/email/${email}`),
+  getCustomerByPhone: (phone) => api.get(`/customers/phone/${phone}`),
   searchCustomers: (name) => api.get(`/customers/search?name=${name}`),
-  searchCustomersByEmail: (email) => api.get(`/customers/search?email=${email}`),
+  getCustomersByCity: (city) => api.get(`/customers/city/${city}`),
+  getCustomersByProvince: (province) => api.get(`/customers/province/${province}`),
   createCustomer: (data) => api.post('/customers', data),
   updateCustomer: (id, data) => api.put(`/customers/${id}`, data),
-  activateCustomer: (id) => api.put(`/customers/${id}/activate`),
-  deactivateCustomer: (id) => api.put(`/customers/${id}/deactivate`),
   deleteCustomer: (id) => api.delete(`/customers/${id}`),
 };
 
@@ -162,17 +195,28 @@ export const warehouseAPI = {
 // Vehicle Inventory API (Authenticated)
 export const inventoryAPI = {
   getInventory: () => api.get('/vehicle-inventory'),
-  getAllInventory: () => api.get('/vehicle-inventory/all'), // New endpoint for all statuses
   getInventoryById: (id) => api.get(`/vehicle-inventory/${id}`),
-  getAvailableInventory: () => api.get('/vehicle-inventory/available'),
-  getInventoryByBrand: (brandId) => api.get(`/vehicle-inventory/brand/${brandId}`),
-  getInventoryByModel: (modelId) => api.get(`/vehicle-inventory/model/${modelId}`),
+  getInventoryByVin: (vin) => api.get(`/vehicle-inventory/vin/${vin}`),
+  getAllStatuses: () => api.get('/vehicle-inventory/statuses'),
+  getStatusSummary: () => api.get('/vehicle-inventory/status-summary'),
+  normalizeAllStatuses: () => api.post('/vehicle-inventory/normalize-statuses'),
+  getStatusOptions: () => api.get('/vehicle-inventory/status-options'),
+  validateStatus: (status) => api.post(`/vehicle-inventory/validate-status?status=${status}`),
   getInventoryByVariant: (variantId) => api.get(`/vehicle-inventory/variant/${variantId}`),
   getInventoryByColor: (colorId) => api.get(`/vehicle-inventory/color/${colorId}`),
+  getInventoryByWarehouse: (warehouseId) => api.get(`/vehicle-inventory/warehouse/${warehouseId}`),
+  getInventoryByWarehouseLocation: (location) => api.get(`/vehicle-inventory/warehouse-location/${location}`),
   getInventoryByPriceRange: (minPrice, maxPrice) => 
     api.get(`/vehicle-inventory/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
+  getInventoryByManufacturingDateRange: (startDate, endDate) => 
+    api.get(`/vehicle-inventory/manufacturing-date-range?startDate=${startDate}&endDate=${endDate}`),
+  getInventoryByArrivalDateRange: (startDate, endDate) => 
+    api.get(`/vehicle-inventory/arrival-date-range?startDate=${startDate}&endDate=${endDate}`),
+  searchByVin: (vin) => api.get(`/vehicle-inventory/search/vin?vin=${vin}`),
+  searchByChassisNumber: (chassisNumber) => api.get(`/vehicle-inventory/search/chassis?chassisNumber=${chassisNumber}`),
   createInventory: (data) => api.post('/vehicle-inventory', data),
   updateInventory: (id, data) => api.put(`/vehicle-inventory/${id}`, data),
+  updateInventoryStatus: (id, status) => api.put(`/vehicle-inventory/${id}/status?status=${status}`),
   deleteInventory: (id) => api.delete(`/vehicle-inventory/${id}`),
 };
 
@@ -195,14 +239,17 @@ export const quotationAPI = {
 export const orderAPI = {
   getOrders: () => api.get('/orders'),
   getOrder: (id) => api.get(`/orders/${id}`),
+  getOrderByOrderNumber: (orderNumber) => api.get(`/orders/order-number/${orderNumber}`),
   getOrdersByCustomer: (customerId) => api.get(`/orders/customer/${customerId}`),
   getOrdersByStatus: (status) => api.get(`/orders/status/${status}`),
+  getOrdersByDateRange: (startDate, endDate) => 
+    api.get(`/orders/date-range?startDate=${startDate}&endDate=${endDate}`),
+  getOrdersByCustomerAndStatus: (customerId, status) => 
+    api.get(`/orders/customer/${customerId}/status/${status}`),
   createOrder: (data) => api.post('/orders', data),
+  createOrderLegacy: (data) => api.post('/orders/legacy', data),
   updateOrder: (id, data) => api.put(`/orders/${id}`, data),
   updateOrderStatus: (id, status) => api.put(`/orders/${id}/status?status=${status}`),
-  convertToContract: (id) => api.post(`/orders/${id}/convert-to-contract`),
-  cancelOrder: (id) => api.post(`/orders/${id}/cancel`),
-  exportOrderPDF: (id) => api.get(`/orders/${id}/pdf`),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
 };
 
@@ -437,6 +484,7 @@ export const feedbackAPI = {
 };
 
 // Public API services (no authentication required)
+// Following DATA_FLOW_AND_API_GUIDE.md endpoints
 export const publicVehicleAPI = {
   // Vehicle Brands
   getBrands: () => publicApi.get('/vehicle-brands'),
@@ -445,6 +493,7 @@ export const publicVehicleAPI = {
   // Vehicle Models
   getModels: () => publicApi.get('/vehicle-models'),
   getModelById: (id) => publicApi.get(`/vehicle-models/${id}`),
+  getModelsByBrand: (brandId) => publicApi.get(`/vehicle-models/brand/${brandId}`),
   
   // Vehicle Variants
   getVariants: () => publicApi.get('/vehicle-variants'),
@@ -458,13 +507,7 @@ export const publicVehicleAPI = {
 export const publicInventoryAPI = {
   getInventory: () => publicApi.get('/vehicle-inventory'),
   getInventoryById: (id) => publicApi.get(`/vehicle-inventory/${id}`),
-  getInventoryByBrand: (brandId) => publicApi.get(`/vehicle-inventory/brand/${brandId}`),
-  getInventoryByModel: (modelId) => publicApi.get(`/vehicle-inventory/model/${modelId}`),
-  getInventoryByVariant: (variantId) => publicApi.get(`/vehicle-inventory/variant/${variantId}`),
-  getInventoryByColor: (colorId) => publicApi.get(`/vehicle-inventory/color/${colorId}`),
-  getInventoryByPriceRange: (minPrice, maxPrice) => 
-    publicApi.get(`/vehicle-inventory/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
-  getAvailableInventory: () => publicApi.get('/vehicle-inventory/available'),
+  getInventoryByStatus: (status) => publicApi.get(`/vehicle-inventory/status/${status}`),
 };
 
 export const publicPromotionAPI = {
@@ -472,29 +515,16 @@ export const publicPromotionAPI = {
   getPromotionById: (id) => publicApi.get(`/promotions/${id}`),
 };
 
-export const publicQuotationAPI = {
-  getQuotations: () => publicApi.get('/quotations'),
-  getQuotationById: (id) => publicApi.get(`/quotations/${id}`),
-  createQuotation: (data) => publicApi.post('/quotations', data),
+// Public Vehicle Comparison API (following guide endpoints)
+export const publicVehicleComparisonAPI = {
+  quickCompare: (variantIds) => publicApi.get(`/vehicle-compare/quick?ids=${variantIds.join(',')}`),
+  detailedCompare: (data) => publicApi.post('/vehicle-compare', data),
+  getAvailableForCompare: () => publicApi.get('/vehicle-compare/available'),
+  compareTwoVehicles: (id1, id2) => publicApi.post(`/vehicle-compare/${id1}/vs/${id2}`),
+  getComparisonCriteria: () => publicApi.get('/vehicle-compare/criteria'),
 };
 
-export const publicOrderAPI = {
-  createOrder: (data) => publicApi.post('/orders', data),
-  getOrderById: (id) => publicApi.get(`/orders/${id}`),
-  getOrderByNumber: (orderNumber) => publicApi.get(`/orders/order-number/${orderNumber}`),
-  cancelOrder: (id, reason) => publicApi.put(`/orders/${id}/cancel?reason=${encodeURIComponent(reason)}`),
-  getOrderStatus: (id) => publicApi.get(`/orders/${id}/status`),
-  trackOrder: (orderNumber) => publicApi.get(`/orders/track/${orderNumber}`),
-};
-
-export const publicPaymentAPI = {
-  createDeposit: (data) => publicApi.post('/payments/deposit', data),
-  createFullPayment: (data) => publicApi.post('/payments/full-payment', data),
-  getPaymentStatus: (id) => publicApi.get(`/payments/${id}/status`),
-  getPaymentsByOrder: (orderId) => publicApi.get(`/payments/order/${orderId}`),
-  getPaymentMethods: () => publicApi.get('/payments/methods'),
-};
-
+// Public Appointment API (following guide: /api/public/appointments)
 export const publicAppointmentAPI = {
   createAppointment: (data) => publicApi.post('/appointments', data),
   getAppointmentById: (id) => publicApi.get(`/appointments/${id}`),
@@ -504,6 +534,7 @@ export const publicAppointmentAPI = {
   getAppointmentTypes: () => publicApi.get('/appointments/types'),
 };
 
+// Public Feedback API (following guide: /api/public/feedbacks)
 export const publicFeedbackAPI = {
   submitFeedback: (data) => publicApi.post('/feedbacks', data),
   getFeedbackById: (id) => publicApi.get(`/feedbacks/${id}`),
@@ -511,17 +542,51 @@ export const publicFeedbackAPI = {
   getFeedbacksByRating: (rating) => publicApi.get(`/feedbacks/rating/${rating}`),
 };
 
-export const publicVehicleComparisonAPI = {
-  quickCompare: (variantIds) => publicApi.get(`/vehicle-compare/quick?variantIds=${variantIds.join(',')}`),
-  detailedCompare: (data) => publicApi.post('/vehicle-compare', data),
-  getAvailableForCompare: () => publicApi.get('/vehicle-compare/available'),
-  compareTwoVehicles: (id1, id2) => publicApi.post(`/vehicle-compare/${id1}/vs/${id2}`),
-  getComparisonCriteria: () => publicApi.get('/vehicle-compare/criteria'),
+// Public Customer API (following guide: /api/public/customers)
+export const publicCustomerAPI = {
+  createCustomer: (data) => publicApi.post('/customers', data),
+  getCustomer: (id) => publicApi.get(`/customers/${id}`),
+  getCustomerByEmail: (email) => publicApi.get(`/customers/email/${email}`),
+  getCustomerByPhone: (phone) => publicApi.get(`/customers/phone/${phone}`),
 };
 
+// Public Order API (following guide: /api/public/orders)
+export const publicOrderAPI = {
+  createOrder: (data) => publicApi.post('/orders', data),
+  getOrder: (id) => publicApi.get(`/orders/${id}`),
+  getOrderByOrderNumber: (orderNumber) => publicApi.get(`/orders/order-number/${orderNumber}`),
+};
+
+// Public Payment API (following guide: /api/public/payments)
+export const publicPaymentAPI = {
+  createPayment: (data) => publicApi.post('/payments', data),
+  getPayment: (id) => publicApi.get(`/payments/${id}`),
+  getPaymentsByOrder: (orderId) => publicApi.get(`/payments/order/${orderId}`),
+};
+
+// Public Contract API (following guide: /api/public/contracts)
 export const publicContractAPI = {
-  getContractTemplate: () => publicApi.get('/contracts/template'),
-  generateContract: (data) => publicApi.post('/contracts/generate', data),
+  getContractsByOrder: (orderId) => publicApi.get(`/contracts/order/${orderId}`),
+  getContract: (contractId) => publicApi.get(`/contracts/${contractId}`),
+  downloadContract: (contractId) => publicApi.get(`/contracts/${contractId}/download`),
+  getContractStatus: (contractId) => publicApi.get(`/contracts/${contractId}/status`),
+  signContract: (contractId, customerSignature, signatureMethod = 'electronic') => 
+    publicApi.post(`/contracts/${contractId}/sign?customerSignature=${encodeURIComponent(customerSignature)}&signatureMethod=${encodeURIComponent(signatureMethod)}`),
+  rejectContract: (contractId, reason) => 
+    publicApi.post(`/contracts/${contractId}/reject?reason=${encodeURIComponent(reason)}`),
+};
+
+// Public Delivery Tracking API (following guide: /api/public/deliveries)
+export const publicDeliveryAPI = {
+  getDeliveriesByOrder: (orderId) => publicApi.get(`/deliveries/order/${orderId}`),
+  getDeliveriesByOrderNumber: (orderNumber) => publicApi.get(`/deliveries/order-number/${orderNumber}`),
+  getDeliveriesByDate: (date) => publicApi.get(`/deliveries/date?date=${date}`),
+};
+
+export const publicQuotationAPI = {
+  getQuotations: () => publicApi.get('/quotations'),
+  getQuotationById: (id) => publicApi.get(`/quotations/${id}`),
+  createQuotation: (data) => publicApi.post('/quotations', data),
 };
 
 // Notification API
@@ -537,31 +602,121 @@ export const notificationAPI = {
 
 // Image Management APIs
 export const imageAPI = {
-  // READ APIs
-  getImageList: (page = 0, size = 20, sortBy = 'uploadDate', sortDir = 'desc') => 
-    api.get(`/images/list?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}`),
+  // UPLOAD APIs
+  uploadImage: (file, category) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+    return api.post('/images/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   
-  getImagesByCategory: (category, page = 0, size = 20) => 
+  uploadMultipleImages: (files, category) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    formData.append('category', category);
+    return api.post('/images/upload-multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  uploadVehicleBrandImage: (file, brandId = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (brandId) formData.append('brandId', brandId);
+    return api.post('/images/upload/vehicle-brand', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  uploadModelImage: (file, modelId = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (modelId) formData.append('modelId', modelId);
+    return api.post('/images/upload/vehicle-model', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  uploadVariantImage: (file, variantId = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (variantId) formData.append('variantId', variantId);
+    return api.post('/images/upload/vehicle-variant', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  uploadInventoryImages: (files, imageType, inventoryId = null) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    formData.append('imageType', imageType);
+    if (inventoryId) formData.append('inventoryId', inventoryId);
+    return api.post('/images/upload/vehicle-inventory', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  uploadColorSwatch: (file, colorId = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (colorId) formData.append('colorId', colorId);
+    return api.post('/images/upload/color-swatch', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  
+  // READ APIs
+  listImages: (category = null, page = 0, size = 20) => {
+    let url = `/images/list?page=${page}&size=${size}`;
+    if (category) url += `&category=${category}`;
+    return api.get(url);
+  },
+  
+  listImagesByCategory: (category, page = 0, size = 20) => 
     api.get(`/images/list/${category}?page=${page}&size=${size}`),
   
   getImageInfo: (category, filename) => 
     api.get(`/images/info/${category}/${filename}`),
   
-  searchImages: (query, category = null, page = 0, size = 20) => {
-    let url = `/images/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`;
+  searchImages: (filename = null, category = null, page = 0, size = 20) => {
+    let url = `/images/search?page=${page}&size=${size}`;
+    if (filename) url += `&filename=${encodeURIComponent(filename)}`;
     if (category) url += `&category=${category}`;
     return api.get(url);
   },
   
   getImageStats: () => api.get('/images/stats'),
   
-  getCategoryStats: (category) => api.get(`/images/stats/${category}`),
+  getImageStatsByCategory: (category) => api.get(`/images/stats/${category}`),
   
-  getImageConfig: () => api.get('/images/info'),
+  getUploadInfo: () => api.get('/images/info'),
   
   // UPDATE APIs
-  updateImage: (category, filename, data) => 
-    api.put(`/images/update/${category}/${filename}`, data),
+  updateImage: (category, filename, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.put(`/images/update/${category}/${filename}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
   
   renameImage: (category, oldFilename, newFilename) => 
     api.put(`/images/rename/${category}/${oldFilename}`, { newFilename }),
@@ -573,48 +728,15 @@ export const imageAPI = {
   deleteImage: (category, filename) => 
     api.delete(`/images/delete/${category}/${filename}`),
   
-  deleteCategory: (category) => 
+  deleteImageCategory: (category) => 
     api.delete(`/images/delete-category/${category}`),
   
   // BULK OPERATIONS
-  bulkDeleteImages: (imageIds) => 
-    api.post('/images/bulk-delete', { imageIds }),
+  bulkDeleteImages: (images) => 
+    api.post('/images/bulk-delete', { images }),
   
-  bulkMoveImages: (imageIds, newCategory) => 
-    api.post('/images/bulk-move', { imageIds, newCategory }),
-  
-  // UPLOAD APIs for Vehicle Creation
-  uploadVehicleBrandImage: (formData) => 
-    api.post('/images/upload-vehicle-brand', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-  
-  uploadModelImage: (formData) => 
-    api.post('/images/upload-model-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-  
-  uploadVariantImage: (formData) => 
-    api.post('/images/upload-variant-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-  
-  uploadInventoryImages: (formData) => 
-    api.post('/images/upload-inventory-images', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
-  
-  // UPLOAD
-  uploadImage: (formData, config) => 
-    api.post('/images/upload', formData, config),
+  bulkMoveImages: (images, newCategory) => 
+    api.post('/images/bulk-move', { images, newCategory }),
 };
 
 export default api;

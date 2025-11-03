@@ -1,3 +1,6 @@
+/* Import component styles */
+@import './components/InventoryStatusManager.css';
+
 /* Reset and Base Styles */
 * {
   margin: 0;

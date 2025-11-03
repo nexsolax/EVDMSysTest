@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Building2, Calendar } from 'lucide-react';
+import { X, Save, Building2, Calendar, Mail, Phone, MapPin, Hash, DollarSign } from 'lucide-react';
 import { dealerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Modal.css';
@@ -8,17 +8,17 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
   const [formData, setFormData] = useState({
     dealerName: '',
     dealerCode: '',
-    dealerType: '',
+    dealerType: 'authorized',
+    email: '',
+    phone: '',
     address: '',
     city: '',
     province: '',
     postalCode: '',
-    phone: '',
-    email: '',
-    website: '',
-    establishedDate: '',
-    status: 'active',
-    description: ''
+    licenseNumber: '',
+    taxCode: '',
+    commissionRate: 0,
+    status: 'ACTIVE'
   });
   const [loading, setLoading] = useState(false);
 
@@ -28,37 +28,72 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
         setFormData({
           dealerName: '',
           dealerCode: '',
-          dealerType: 'AUTHORIZED',
+          dealerType: 'authorized',
+          email: '',
+          phone: '',
           address: '',
           city: '',
           province: '',
           postalCode: '',
-          phone: '',
-          email: '',
-          website: '',
-          establishedDate: '',
-          status: 'active',
-          description: ''
+          licenseNumber: '',
+          taxCode: '',
+          commissionRate: 0,
+          status: 'ACTIVE'
         });
       } else if (dealer) {
-        setFormData({
-          dealerName: dealer.dealerName || '',
-          dealerCode: dealer.dealerCode || '',
-          dealerType: dealer.dealerType || 'AUTHORIZED',
-          address: dealer.address || '',
-          city: dealer.city || '',
-          province: dealer.province || '',
-          postalCode: dealer.postalCode || '',
-          phone: dealer.phone || '',
-          email: dealer.email || '',
-          website: dealer.website || '',
-          establishedDate: dealer.establishedDate ? dealer.establishedDate.split('T')[0] : '',
-          status: dealer.status || 'active',
-          description: dealer.description || ''
-        });
+        if (mode === 'edit' && dealer.dealerId) {
+          // Load full details for edit mode
+          loadDealerDetails();
+        } else {
+          // Use provided dealer data for view mode
+          setFormData({
+            dealerName: dealer.dealerName || '',
+            dealerCode: dealer.dealerCode || '',
+            dealerType: dealer.dealerType || 'authorized',
+            email: dealer.email || '',
+            phone: dealer.phone || '',
+            address: dealer.address || '',
+            city: dealer.city || '',
+            province: dealer.province || '',
+            postalCode: dealer.postalCode || '',
+            licenseNumber: dealer.licenseNumber || '',
+            taxCode: dealer.taxCode || '',
+            commissionRate: dealer.commissionRate || 0,
+            status: dealer.status || 'ACTIVE'
+          });
+        }
       }
     }
   }, [isOpen, dealer, mode]);
+
+  const loadDealerDetails = async () => {
+    if (!dealer?.dealerId) return;
+    try {
+      setLoading(true);
+      const response = await dealerAPI.getDealer(dealer.dealerId);
+      const dealerData = response.data;
+      setFormData({
+        dealerName: dealerData.dealerName || '',
+        dealerCode: dealerData.dealerCode || '',
+        dealerType: dealerData.dealerType || 'authorized',
+        email: dealerData.email || '',
+        phone: dealerData.phone || '',
+        address: dealerData.address || '',
+        city: dealerData.city || '',
+        province: dealerData.province || '',
+        postalCode: dealerData.postalCode || '',
+        licenseNumber: dealerData.licenseNumber || '',
+        taxCode: dealerData.taxCode || '',
+        commissionRate: dealerData.commissionRate || 0,
+        status: dealerData.status || 'ACTIVE'
+      });
+    } catch (error) {
+      console.error('Error loading dealer details:', error);
+      toast.error('Không thể tải chi tiết đại lý');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -90,19 +125,19 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
       setLoading(true);
       
       const submitData = {
-        dealerName: formData.dealerName.trim(),
         dealerCode: formData.dealerCode.trim(),
-        dealerType: formData.dealerType,
-        address: formData.address.trim(),
-        city: formData.city.trim(),
-        province: formData.province.trim(),
-        postalCode: formData.postalCode.trim(),
-        phone: formData.phone.trim(),
+        dealerName: formData.dealerName.trim(),
         email: formData.email.trim(),
-        website: formData.website.trim(),
-        establishedDate: formData.establishedDate || null,
-        status: formData.status,
-        description: formData.description.trim()
+        phone: formData.phone.trim() || null,
+        address: formData.address.trim() || null,
+        city: formData.city.trim() || null,
+        province: formData.province.trim() || null,
+        postalCode: formData.postalCode.trim() || null,
+        dealerType: formData.dealerType || 'authorized',
+        licenseNumber: formData.licenseNumber.trim() || null,
+        taxCode: formData.taxCode.trim() || null,
+        commissionRate: formData.commissionRate ? parseFloat(formData.commissionRate) : null,
+        status: formData.status || 'ACTIVE'
       };
 
       console.log('Sending dealer data:', submitData);
@@ -191,9 +226,9 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
                 disabled={mode === 'view'}
                 className="form-select"
               >
-                <option value="AUTHORIZED">Đại lý ủy quyền</option>
-                <option value="FRANCHISE">Đại lý nhượng quyền</option>
-                <option value="PARTNER">Đối tác</option>
+                <option value="authorized">Đại lý ủy quyền</option>
+                <option value="franchise">Đại lý nhượng quyền</option>
+                <option value="partner">Đối tác</option>
               </select>
             </div>
 
@@ -225,19 +260,6 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="website">Website</label>
-              <input
-                type="url"
-                id="website"
-                name="website"
-                value={formData.website}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                placeholder="https://example.com"
-              />
-            </div>
 
             <div className="form-group">
               <label htmlFor="address">Địa chỉ</label>
@@ -295,16 +317,49 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
               />
             </div>
 
+
             <div className="form-group">
-              <label htmlFor="establishedDate">Ngày thành lập</label>
+              <label htmlFor="licenseNumber">Mã giấy phép</label>
               <input
-                type="date"
-                id="establishedDate"
-                name="establishedDate"
-                value={formData.establishedDate}
+                type="text"
+                id="licenseNumber"
+                name="licenseNumber"
+                value={formData.licenseNumber}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
+                placeholder="Nhập mã giấy phép"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="taxCode">Mã số thuế</label>
+              <input
+                type="text"
+                id="taxCode"
+                name="taxCode"
+                value={formData.taxCode}
+                onChange={handleInputChange}
+                disabled={mode === 'view'}
+                className="form-input"
+                placeholder="Nhập mã số thuế"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="commissionRate">Tỷ lệ hoa hồng (%)</label>
+              <input
+                type="number"
+                id="commissionRate"
+                name="commissionRate"
+                value={formData.commissionRate}
+                onChange={handleInputChange}
+                disabled={mode === 'view'}
+                className="form-input"
+                placeholder="Nhập tỷ lệ hoa hồng"
+                min="0"
+                max="100"
+                step="0.1"
               />
             </div>
 
@@ -318,34 +373,65 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
                 disabled={mode === 'view'}
                 className="form-select"
               >
-                <option value="active">Hoạt động</option>
-                <option value="inactive">Không hoạt động</option>
-                <option value="suspended">Tạm dừng</option>
-                <option value="terminated">Chấm dứt</option>
+                <option value="ACTIVE">Hoạt động</option>
+                <option value="INACTIVE">Không hoạt động</option>
+                <option value="SUSPENDED">Tạm dừng</option>
+                <option value="TERMINATED">Chấm dứt</option>
               </select>
             </div>
 
-            <div className="form-group full-width">
-              <label htmlFor="description">Mô tả</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-textarea"
-                placeholder="Nhập mô tả về đại lý"
-                rows="3"
-              />
-            </div>
           </div>
 
           {mode === 'view' && dealer && (
             <div className="modal-info">
               <div className="info-item">
-                <Calendar size={16} />
-                <span>Ngày tạo: {dealer.createdAt ? new Date(dealer.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                <Building2 size={16} />
+                <span><strong>Mã đại lý:</strong> {dealer.dealerCode || 'N/A'}</span>
               </div>
+              <div className="info-item">
+                <Mail size={16} />
+                <span><strong>Email:</strong> {dealer.email || 'N/A'}</span>
+              </div>
+              {dealer.phone && (
+                <div className="info-item">
+                  <Phone size={16} />
+                  <span><strong>Điện thoại:</strong> {dealer.phone}</span>
+                </div>
+              )}
+              {dealer.address && (
+                <div className="info-item">
+                  <MapPin size={16} />
+                  <span><strong>Địa chỉ:</strong> {dealer.address} {dealer.city ? `, ${dealer.city}` : ''} {dealer.province ? `, ${dealer.province}` : ''}</span>
+                </div>
+              )}
+              {dealer.licenseNumber && (
+                <div className="info-item">
+                  <Hash size={16} />
+                  <span><strong>Mã giấy phép:</strong> {dealer.licenseNumber}</span>
+                </div>
+              )}
+              {dealer.taxCode && (
+                <div className="info-item">
+                  <Hash size={16} />
+                  <span><strong>Mã số thuế:</strong> {dealer.taxCode}</span>
+                </div>
+              )}
+              {dealer.commissionRate && (
+                <div className="info-item">
+                  <DollarSign size={16} />
+                  <span><strong>Tỷ lệ hoa hồng:</strong> {dealer.commissionRate}%</span>
+                </div>
+              )}
+              <div className="info-item">
+                <Calendar size={16} />
+                <span><strong>Ngày tạo:</strong> {dealer.createdAt ? new Date(dealer.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+              </div>
+              {dealer.updatedAt && (
+                <div className="info-item">
+                  <Calendar size={16} />
+                  <span><strong>Ngày cập nhật:</strong> {new Date(dealer.updatedAt).toLocaleDateString('vi-VN')}</span>
+                </div>
+              )}
             </div>
           )}
 

@@ -6,6 +6,7 @@ import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import OrderModal from '../components/modals/OrderModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './OrderManagement.css';
 
 const OrderManagement = () => {
@@ -167,9 +168,10 @@ const OrderManagement = () => {
           <Package size={16} />
           <div>
             <div className="vehicle-name">
-              {order.vehicle?.variant?.model?.brand?.name} {order.vehicle?.variant?.model?.name}
+              {order.inventory?.variant?.model?.brand?.brandName} {order.inventory?.variant?.model?.modelName}
             </div>
-            <div className="vehicle-variant">{order.vehicle?.variant?.name}</div>
+            <div className="vehicle-variant">{order.inventory?.variant?.variantName}</div>
+            {order.inventory?.vin && <div className="vehicle-vin">VIN: {order.inventory.vin}</div>}
           </div>
         </div>
       )

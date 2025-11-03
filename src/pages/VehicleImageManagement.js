@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, RefreshCw, Eye, Trash2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, RefreshCw, Eye } from 'lucide-react';
 import { publicAPI } from '../services/api';
 import ImageUploadModal from '../components/ImageUploadModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './VehicleImageManagement.css';
 
 const VehicleImageManagement = () => {
@@ -130,7 +131,9 @@ const VehicleImageManagement = () => {
                 <h3 className="vehicle-name">{vehicle.variantName}</h3>
                 <p className="vehicle-brand">{vehicle.brand?.brandName} {vehicle.model?.modelName}</p>
                 <p className="vehicle-price">
-                  {vehicle.price ? `${vehicle.price.toLocaleString()} VNĐ` : 'Liên hệ'}
+                  {(vehicle.variant?.priceBase || vehicle.priceBase || vehicle.price) 
+                    ? `${(vehicle.variant?.priceBase || vehicle.priceBase || vehicle.price).toLocaleString('vi-VN')} VNĐ` 
+                    : 'Liên hệ'}
                 </p>
               </div>
 

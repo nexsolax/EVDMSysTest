@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { User, Plus, Search, Filter, Edit, Trash2, Eye, MoreVertical } from 'lucide-react';
+import { User, Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { userAPI } from '../services/api';
 import { getRoleBadge, getActiveBadge } from '../utils/statusBadges';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import UserModal from '../components/modals/UserModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './UserManagement.css';
 
 const UserManagement = () => {
@@ -168,10 +169,6 @@ const UserManagement = () => {
       toast.error('Mật khẩu phải có ít nhất 6 ký tự');
     }
   };
-
-  const getRoleBadgeClass = (roleName) => getRoleBadge(roleName).class;
-
-  const getRoleDisplayName = (roleName) => getRoleBadge(roleName).text;
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';

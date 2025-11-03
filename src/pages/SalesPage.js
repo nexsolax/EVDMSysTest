@@ -3,18 +3,14 @@ import { toast } from 'react-toastify';
 import { 
   Car, 
   User, 
-  CreditCard, 
   FileText, 
   CheckCircle,
   ArrowRight,
   ArrowLeft,
   Search,
-  Plus,
-  Calculator,
-  DollarSign
+  Plus
 } from 'lucide-react';
 import { 
-  vehicleAPI, 
   customerAPI, 
   orderAPI, 
   inventoryAPI,
@@ -22,10 +18,11 @@ import {
 } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useAuth } from '../contexts/AuthContext';
+import '../styles/common.css';
 import './SalesPage.css';
 
 const SalesPage = () => {
-  const { user, hasRole, hasAnyRole } = useAuth();
+  const { user, hasAnyRole } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   

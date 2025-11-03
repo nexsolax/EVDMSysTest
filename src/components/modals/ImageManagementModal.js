@@ -1,310 +1,329 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Search, Filter, Eye, Edit, Trash2, Move, Download } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Search, Filter, Trash2, Move, Edit, Eye, Download } from 'lucide-react';
 import { imageAPI } from '../../services/api';
 import './Modal.css';
 
-const ImageManagementModal = ({ isOpen, onClose, mode, image, onSave }) => {
-  const [images, setImages] = useState([]);
+const ImageManagementModal = ({ isOpen, onClose, onImageSelect }) => {
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedImages, setSelectedImages] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [images, setImages] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [uploadInfo, setUploadInfo] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
       loadImages();
-      loadCategories();
+      loadUploadInfo();
     }
-  }, [isOpen, currentPage, searchTerm, selectedCategory]);
+  }, [isOpen, selectedCategory, currentPage]);
 
   const loadImages = async () => {
     try {
       setLoading(true);
-      const response = await imageAPI.getImageList(currentPage, 20);
-      setImages(response.data?.content || []);
-      setTotalPages(response.data?.totalPages || 0);
+      setError('');
+      
+      const response = await imageAPI.listImages(selectedCategory, currentPage, 20);
+      const data = response.data;
+      
+      setImages(data.images || []);
+      setTotalPages(data.totalPages || 0);
+      setCategories(data.categories || []);
     } catch (error) {
       console.error('Error loading images:', error);
+      setError('Không thể tải danh sách hình ảnh');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadCategories = async () => {
+  const loadUploadInfo = async () => {
     try {
-      const response = await imageAPI.getImageStats();
-      setCategories(response.data?.categoryStats || []);
+      const response = await imageAPI.getUploadInfo();
+      setUploadInfo(response.data);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error('Error loading upload info:', error);
     }
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(0);
+  const handleUpload = async (files, category) => {
+    if (!files || files.length === 0) return;
+
+    try {
+      setUploading(true);
+      setError('');
+
+      const response = await imageAPI.uploadMultipleImages(Array.from(files), category);
+      
+      if (response.data) {
+        setSuccess(`Upload thành công ${files.length} hình ảnh`);
+        loadImages(); // Reload images
+      }
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      setError('Không thể upload hình ảnh');
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const handleCategoryFilter = (category) => {
-    setSelectedCategory(category);
-    setCurrentPage(0);
-  };
+  const handleDelete = async (category, filename) => {
+    if (!window.confirm('Bạn có chắc muốn xóa hình ảnh này?')) return;
 
-  const handleImageSelect = (imageId) => {
-    setSelectedImages(prev => 
-      prev.includes(imageId) 
-        ? prev.filter(id => id !== imageId)
-        : [...prev, imageId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedImages.length === images.length) {
-      setSelectedImages([]);
-    } else {
-      setSelectedImages(images.map(img => img.id));
+    try {
+      await imageAPI.deleteImage(category, filename);
+      setSuccess('Xóa hình ảnh thành công');
+      loadImages();
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      setError('Không thể xóa hình ảnh');
     }
   };
 
   const handleBulkDelete = async () => {
     if (selectedImages.length === 0) return;
-    
-    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedImages.length} hình ảnh?`)) {
-      try {
-        await imageAPI.bulkDeleteImages(selectedImages);
-        setSelectedImages([]);
-        loadImages();
-        onSave();
-      } catch (error) {
-        console.error('Error deleting images:', error);
-      }
+    if (!window.confirm(`Bạn có chắc muốn xóa ${selectedImages.length} hình ảnh?`)) return;
+
+    try {
+      await imageAPI.bulkDeleteImages(selectedImages);
+      setSuccess(`Xóa thành công ${selectedImages.length} hình ảnh`);
+      setSelectedImages([]);
+      loadImages();
+    } catch (error) {
+      console.error('Error bulk deleting images:', error);
+      setError('Không thể xóa hình ảnh');
     }
   };
 
-  const handleBulkMove = async () => {
-    if (selectedImages.length === 0) return;
-    
-    const newCategory = prompt('Nhập danh mục mới:');
-    if (newCategory) {
-      try {
-        await imageAPI.bulkMoveImages(selectedImages, newCategory);
-        setSelectedImages([]);
-        loadImages();
-        onSave();
-      } catch (error) {
-        console.error('Error moving images:', error);
-      }
+  const handleSearch = async () => {
+    try {
+      setLoading(true);
+      const response = await imageAPI.searchImages(searchQuery, selectedCategory, 0, 20);
+      const data = response.data;
+      
+      setImages(data.images || []);
+      setTotalPages(data.totalPages || 0);
+    } catch (error) {
+      console.error('Error searching images:', error);
+      setError('Không thể tìm kiếm hình ảnh');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteImage = async (image) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa hình ảnh này?')) {
-      try {
-        await imageAPI.deleteImage(image.category, image.filename);
-        loadImages();
-        onSave();
-      } catch (error) {
-        console.error('Error deleting image:', error);
-      }
+  const handleImageSelect = (image) => {
+    if (onImageSelect) {
+      onImageSelect(image);
+      onClose();
     }
   };
 
-  const handleRenameImage = async (image) => {
-    const newName = prompt('Nhập tên mới:', image.filename);
-    if (newName && newName !== image.filename) {
-      try {
-        await imageAPI.renameImage(image.category, image.filename, newName);
-        loadImages();
-        onSave();
-      } catch (error) {
-        console.error('Error renaming image:', error);
+  const toggleImageSelection = (image) => {
+    setSelectedImages(prev => {
+      const exists = prev.find(img => img.category === image.category && img.filename === image.filename);
+      if (exists) {
+        return prev.filter(img => !(img.category === image.category && img.filename === image.filename));
+      } else {
+        return [...prev, image];
       }
-    }
-  };
-
-  const handleMoveImage = async (image) => {
-    const newCategory = prompt('Nhập danh mục mới:', image.category);
-    if (newCategory && newCategory !== image.category) {
-      try {
-        await imageAPI.moveImage(image.category, image.filename, newCategory);
-        loadImages();
-        onSave();
-      } catch (error) {
-        console.error('Error moving image:', error);
-      }
-    }
-  };
-
-  const getImageUrl = (image) => {
-    return `http://localhost:8080/uploads/${image.category}/${image.filename}`;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    });
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content large">
+      <div className="modal-container image-management-modal">
         <div className="modal-header">
-          <h2>Quản lý hình ảnh</h2>
-          <button className="close-btn" onClick={onClose}>
+          <h2 className="modal-title">
+            <ImageIcon className="modal-title-icon" />
+            Quản lý hình ảnh
+          </h2>
+          <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body">
+        <div className="modal-content">
+          {/* Upload Section */}
+          <div className="upload-section">
+            <h3>Upload hình ảnh</h3>
+            <div className="upload-controls">
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="form-input"
+              >
+                <option value="">Chọn danh mục</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => handleUpload(e.target.files, selectedCategory)}
+                className="form-input"
+                disabled={!selectedCategory || uploading}
+              />
+              {uploading && <span>Đang upload...</span>}
+            </div>
+            {uploadInfo && (
+              <div className="upload-info">
+                <small>
+                  Tối đa {uploadInfo.maxFileSize}, hỗ trợ: {uploadInfo.allowedExtensions?.join(', ')}
+                </small>
+              </div>
+            )}
+          </div>
+
           {/* Search and Filter */}
-          <div className="search-controls">
-            <div className="search-bar">
-              <Search className="search-icon" />
+          <div className="search-section">
+            <div className="search-controls">
               <input
                 type="text"
                 placeholder="Tìm kiếm hình ảnh..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="search-input"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="form-input"
               />
+              <button onClick={handleSearch} className="btn btn-primary">
+                <Search size={16} />
+                Tìm kiếm
+              </button>
             </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => handleCategoryFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">Tất cả danh mục</option>
-              {categories.map(cat => (
-                <option key={cat.category} value={cat.category}>
-                  {cat.category} ({cat.count})
-                </option>
-              ))}
-            </select>
+            <div className="filter-controls">
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="form-input"
+              >
+                <option value="">Tất cả danh mục</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="alert alert-error">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="alert alert-success">
+              {success}
+            </div>
+          )}
 
           {/* Bulk Actions */}
           {selectedImages.length > 0 && (
             <div className="bulk-actions">
-              <span>{selectedImages.length} hình ảnh đã chọn</span>
-              <button onClick={handleBulkMove}>Di chuyển</button>
-              <button onClick={handleBulkDelete} className="danger">Xóa</button>
-              <button onClick={() => setSelectedImages([])}>Bỏ chọn</button>
+              <span>{selectedImages.length} hình ảnh được chọn</span>
+              <button onClick={handleBulkDelete} className="btn btn-danger">
+                <Trash2 size={16} />
+                Xóa đã chọn
+              </button>
             </div>
           )}
 
           {/* Images Grid */}
           <div className="images-grid">
             {loading ? (
-              <div className="loading">Đang tải...</div>
+              <div className="loading-state">
+                <div className="loading-spinner"></div>
+                <p>Đang tải hình ảnh...</p>
+              </div>
             ) : images.length === 0 ? (
-              <div className="no-data">Không có hình ảnh nào</div>
+              <div className="empty-state">
+                <ImageIcon size={48} />
+                <p>Không có hình ảnh nào</p>
+              </div>
             ) : (
-              <>
-                <div className="select-all">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={selectedImages.length === images.length && images.length > 0}
-                      onChange={handleSelectAll}
+              images.map((image, index) => (
+                <div key={`${image.category}-${image.filename}-${index}`} className="image-card">
+                  <div className="image-preview">
+                    <img 
+                      src={`/uploads/${image.category}/${image.filename}`} 
+                      alt={image.filename}
+                      onError={(e) => {
+                        e.target.src = '/placeholder-image.png';
+                      }}
                     />
-                    Chọn tất cả
-                  </label>
-                </div>
-                {images.map(image => (
-                  <div key={image.id} className="image-card">
-                    <div className="image-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={selectedImages.includes(image.id)}
-                        onChange={() => handleImageSelect(image.id)}
-                      />
-                    </div>
-                    <div className="image-preview">
-                      <img
-                        src={getImageUrl(image)}
-                        alt={image.filename}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="image-placeholder" style={{ display: 'none' }}>
-                        <Eye size={24} />
-                      </div>
-                    </div>
-                    <div className="image-info">
-                      <div className="image-filename" title={image.filename}>
-                        {image.filename}
-                      </div>
-                      <div className="image-meta">
-                        {image.category} • {formatFileSize(image.fileSize)}
-                      </div>
-                      <div className="image-date">
-                        {new Date(image.uploadDate).toLocaleDateString('vi-VN')}
-                      </div>
-                    </div>
-                    <div className="image-actions">
-                      <button
-                        className="btn-icon"
-                        onClick={() => window.open(getImageUrl(image), '_blank')}
-                        title="Xem"
+                    <div className="image-overlay">
+                      <button 
+                        onClick={() => handleImageSelect(image)}
+                        className="btn btn-sm btn-primary"
+                        title="Chọn hình ảnh"
                       >
-                        <Eye size={16} />
+                        <Eye size={14} />
                       </button>
-                      <button
-                        className="btn-icon"
-                        onClick={() => handleRenameImage(image)}
-                        title="Đổi tên"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                        className="btn-icon"
-                        onClick={() => handleMoveImage(image)}
-                        title="Di chuyển"
-                      >
-                        <Move size={16} />
-                      </button>
-                      <button
-                        className="btn-icon danger"
-                        onClick={() => handleDeleteImage(image)}
+                      <button 
+                        onClick={() => handleDelete(image.category, image.filename)}
+                        className="btn btn-sm btn-danger"
                         title="Xóa"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
+                    <input
+                      type="checkbox"
+                      checked={selectedImages.some(img => img.category === image.category && img.filename === image.filename)}
+                      onChange={() => toggleImageSelection(image)}
+                      className="image-checkbox"
+                    />
                   </div>
-                ))}
-              </>
+                  <div className="image-info">
+                    <div className="image-name" title={image.filename}>
+                      {image.filename}
+                    </div>
+                    <div className="image-category">{image.category}</div>
+                    {image.size && (
+                      <div className="image-size">
+                        {(image.size / 1024).toFixed(1)} KB
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="pagination">
-              <button
+              <button 
                 onClick={() => setCurrentPage(prev => Math.max(0, prev - 1))}
                 disabled={currentPage === 0}
+                className="btn btn-secondary"
               >
                 Trước
               </button>
-              <span>
-                Trang {currentPage + 1} / {totalPages}
-              </span>
-              <button
+              <span>Trang {currentPage + 1} / {totalPages}</span>
+              <button 
                 onClick={() => setCurrentPage(prev => Math.min(totalPages - 1, prev + 1))}
-                disabled={currentPage === totalPages - 1}
+                disabled={currentPage >= totalPages - 1}
+                className="btn btn-secondary"
               >
                 Sau
               </button>
             </div>
           )}
+        </div>
+
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Đóng
+          </button>
         </div>
       </div>
     </div>
@@ -312,5 +331,3 @@ const ImageManagementModal = ({ isOpen, onClose, mode, image, onSave }) => {
 };
 
 export default ImageManagementModal;
-
-

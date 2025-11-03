@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Car, Zap, Edit, Trash2, Eye, Filter, Grid, List } from 'lucide-react';
+import { Plus, Search, Car, Zap, Edit, Trash2, Eye, Grid, List } from 'lucide-react';
 import { inventoryAPI } from '../services/api';
 import InventoryItemModal from '../components/modals/InventoryItemModal';
 import CreateVehicleFromExistingModal from '../components/modals/CreateVehicleFromExistingModal';
 import VehicleDetailModal from '../components/modals/VehicleDetailModal';
 import VehicleImage from '../components/VehicleImage';
+import '../styles/common.css';
 import './VehicleManagementUnified.css';
 
 // Utility function to get status display text
@@ -87,6 +88,7 @@ const VehicleManagementUnified = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleCreate = () => {
     setSelectedItem(null);
     setModalMode('create');

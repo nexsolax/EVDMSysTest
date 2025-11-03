@@ -5,6 +5,7 @@ import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import CustomerModal from '../components/modals/CustomerModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './CustomerManagement.css';
 
 const CustomerManagement = () => {

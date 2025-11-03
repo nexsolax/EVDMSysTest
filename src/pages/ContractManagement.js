@@ -6,6 +6,7 @@ import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ContractModal from '../components/modals/ContractModal';
 import toast from 'react-hot-toast';
+import '../styles/common.css';
 import './ContractManagement.css';
 
 const ContractManagement = () => {
@@ -177,9 +178,10 @@ const ContractManagement = () => {
           <Package size={16} />
           <div>
             <div className="vehicle-name">
-              {contract.vehicle?.variant?.model?.brand?.name} {contract.vehicle?.variant?.model?.name}
+              {contract.order?.inventory?.variant?.model?.brand?.brandName || contract.vehicle?.variant?.model?.brand?.brandName} {contract.order?.inventory?.variant?.model?.modelName || contract.vehicle?.variant?.model?.modelName}
             </div>
-            <div className="vehicle-variant">{contract.vehicle?.variant?.name}</div>
+            <div className="vehicle-variant">{contract.order?.inventory?.variant?.variantName || contract.vehicle?.variant?.variantName}</div>
+            {(contract.order?.inventory?.vin || contract.vehicle?.vin) && <div className="vehicle-vin">VIN: {contract.order?.inventory?.vin || contract.vehicle?.vin}</div>}
           </div>
         </div>
       )

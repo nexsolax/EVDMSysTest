@@ -1,142 +1,14 @@
+/* Import common styles */
+@import '../styles/common.css';
+@import '../styles/filters.css';
+
 .promotion-management {
   padding: 20px;
   background-color: #f8f9fa;
   min-height: 100vh;
 }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.page-header h1 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 28px;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.header-actions .btn {
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.header-actions .btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.filter-section {
-  margin-bottom: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 10px;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 15px;
-}
-
-.filter-tab {
-  padding: 10px 20px;
-  border: none;
-  background: transparent;
-  color: #6c757d;
-  font-weight: 500;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.filter-tab:hover {
-  background-color: #f8f9fa;
-  color: #495057;
-}
-
-.filter-tab.active {
-  background-color: #007bff;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
-}
-
-.filter-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -17px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid #007bff;
-}
-
-.data-section {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-/* Badge styles */
-.badge {
-  display: inline-block;
-  padding: 4px 8px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.badge-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.badge-success {
-  background-color: #28a745;
-  color: white;
-}
-
-.badge-warning {
-  background-color: #ffc107;
-  color: #212529;
-}
-
-.badge-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.badge-info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.badge-secondary {
-  background-color: #6c757d;
-  color: white;
-}
+/* Promotion Management specific styles */
 
 /* Currency formatting */
 .currency {
@@ -175,64 +47,6 @@
 
 .usage-fill.danger {
   background: linear-gradient(90deg, #dc3545, #e83e8c);
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .promotion-management {
-    padding: 10px;
-  }
-  
-  .page-header {
-    flex-direction: column;
-    gap: 15px;
-    text-align: center;
-  }
-  
-  .page-header h1 {
-    font-size: 24px;
-  }
-  
-  .filter-tabs {
-    justify-content: center;
-  }
-  
-  .filter-tab {
-    padding: 8px 16px;
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-header h1 {
-    font-size: 20px;
-  }
-  
-  .header-actions .btn {
-    padding: 8px 16px;
-    font-size: 14px;
-  }
-  
-  .filter-tab {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
-}
-
-/* Animation for filter tabs */
-.filter-tab {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Hover effects for data table */
@@ -299,20 +113,6 @@
   background: #a8a8a8;
 }
 
-/* Loading state */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
 /* Table enhancements */
 .data-section .table th {
   background-color: #f8f9fa;
@@ -326,42 +126,13 @@
   border-bottom: 1px solid #dee2e6;
 }
 
-/* Action buttons */
-.btn {
-  margin: 2px;
-  transition: all 0.2s ease;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Filter section enhancements */
-.filter-section {
+/* Filter section with gradient background */
+.filter-section.gradient {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
-.filter-section .filter-tabs {
-  border-bottom-color: rgba(255, 255, 255, 0.2);
-}
-
-.filter-section .filter-tab {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.filter-section .filter-tab:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.filter-section .filter-tab.active {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-/* Promotion card style for future enhancements */
+/* Promotion card style */
 .promotion-card {
   background: white;
   border-radius: 8px;
@@ -434,4 +205,17 @@
   border-left-color: #dc3545;
   background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);
   opacity: 0.7;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .promotion-management {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .promotion-management {
+    padding: 10px;
+  }
 }
