@@ -11,24 +11,25 @@ import java.util.List;
 @Repository
 public interface VehicleModelRepository extends JpaRepository<VehicleModel, Integer> {
     
-    @Query("SELECT vm FROM VehicleModel vm")
-    List<VehicleModel> findAllWithDetails();
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand")
+    List<VehicleModel> findAllWithBrand();
     
-    List<VehicleModel> findByBrandBrandId(Integer brandId);
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand WHERE vm.brand.brandId = :brandId")
+    List<VehicleModel> findByBrandBrandId(@Param("brandId") Integer brandId);
     
-    @Query("SELECT vm FROM VehicleModel vm WHERE vm.isActive = true")
-    List<VehicleModel> findByIsActiveTrue();
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand WHERE vm.isActive = true")
+    List<VehicleModel> findActiveModelsWithBrand();
     
-    @Query("SELECT vm FROM VehicleModel vm WHERE vm.brand.brandId = :brandId AND vm.isActive = true")
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand WHERE vm.brand.brandId = :brandId AND vm.isActive = true")
     List<VehicleModel> findActiveByBrandId(@Param("brandId") Integer brandId);
     
-    @Query("SELECT vm FROM VehicleModel vm WHERE vm.modelName LIKE %:name%")
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand WHERE vm.modelName LIKE %:name%")
     List<VehicleModel> findByModelNameContaining(@Param("name") String name);
     
-    @Query("SELECT vm FROM VehicleModel vm WHERE vm.vehicleType = :vehicleType")
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand WHERE vm.vehicleType = :vehicleType")
     List<VehicleModel> findByVehicleType(@Param("vehicleType") String vehicleType);
     
-    @Query("SELECT vm FROM VehicleModel vm WHERE vm.modelYear = :year")
+    @Query("SELECT DISTINCT vm FROM VehicleModel vm LEFT JOIN FETCH vm.brand WHERE vm.modelYear = :year")
     List<VehicleModel> findByModelYear(@Param("year") Integer year);
 }
 

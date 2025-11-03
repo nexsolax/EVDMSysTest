@@ -1,6 +1,7 @@
 package com.evdealer.controller;
 
 import com.evdealer.dto.VehicleInventoryDTO;
+import com.evdealer.dto.VehicleInventoryRequest;
 import com.evdealer.entity.VehicleInventory;
 import com.evdealer.service.VehicleInventoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,9 +36,10 @@ public class VehicleInventoryController {
     }
     
     @GetMapping("/{inventoryId}")
-    @Operation(summary = "Get vehicle inventory by ID", description = "Retrieve a specific vehicle inventory by its ID")
+    @Operation(summary = "Get vehicle inventory by ID", description = "Retrieve a specific vehicle inventory by its ID with all relationships")
     public ResponseEntity<VehicleInventoryDTO> getInventoryById(@PathVariable @Parameter(description = "Inventory ID") UUID inventoryId) {
-        return vehicleInventoryService.getInventoryById(inventoryId)
+        // Use method with eager loading to ensure warehouse is loaded
+        return vehicleInventoryService.getInventoryByIdWithDetails(inventoryId)
                 .map(inventory -> ResponseEntity.ok(toDTO(inventory)))
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -189,9 +191,9 @@ public class VehicleInventoryController {
     
     @PostMapping
     @Operation(summary = "Create vehicle inventory", description = "Create a new vehicle inventory record")
-    public ResponseEntity<VehicleInventoryDTO> createVehicleInventory(@RequestBody VehicleInventory vehicleInventory) {
+    public ResponseEntity<VehicleInventoryDTO> createVehicleInventory(@RequestBody VehicleInventoryRequest request) {
         try {
-            VehicleInventory createdInventory = vehicleInventoryService.createVehicleInventory(vehicleInventory);
+            VehicleInventory createdInventory = vehicleInventoryService.createVehicleInventoryFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdInventory));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -202,9 +204,9 @@ public class VehicleInventoryController {
     @Operation(summary = "Update vehicle inventory", description = "Update an existing vehicle inventory record")
     public ResponseEntity<VehicleInventoryDTO> updateVehicleInventory(
             @PathVariable UUID inventoryId, 
-            @RequestBody VehicleInventory vehicleInventoryDetails) {
+            @RequestBody VehicleInventoryRequest request) {
         try {
-            VehicleInventory updatedInventory = vehicleInventoryService.updateVehicleInventory(inventoryId, vehicleInventoryDetails);
+            VehicleInventory updatedInventory = vehicleInventoryService.updateVehicleInventoryFromRequest(inventoryId, request);
             return ResponseEntity.ok(toDTO(updatedInventory));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

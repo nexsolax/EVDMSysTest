@@ -1,6 +1,7 @@
 package com.evdealer.controller;
 
 import com.evdealer.dto.CustomerDTO;
+import com.evdealer.dto.CustomerRequest;
 import com.evdealer.entity.Customer;
 import com.evdealer.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,9 +77,9 @@ public class CustomerController {
     
     @PostMapping
     @Operation(summary = "Tạo khách hàng mới", description = "Tạo khách hàng mới")
-    public ResponseEntity<CustomerDTO> createCustomer(@RequestBody Customer customer) {
+    public ResponseEntity<CustomerDTO> createCustomer(@RequestBody CustomerRequest request) {
         try {
-            Customer createdCustomer = customerService.createCustomer(customer);
+            Customer createdCustomer = customerService.createCustomerFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdCustomer));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -87,9 +88,9 @@ public class CustomerController {
     
     @PutMapping("/{customerId}")
     @Operation(summary = "Cập nhật khách hàng", description = "Cập nhật thông tin khách hàng")
-    public ResponseEntity<CustomerDTO> updateCustomer(@PathVariable UUID customerId, @RequestBody Customer customerDetails) {
+    public ResponseEntity<CustomerDTO> updateCustomer(@PathVariable UUID customerId, @RequestBody CustomerRequest request) {
         try {
-            Customer updatedCustomer = customerService.updateCustomer(customerId, customerDetails);
+            Customer updatedCustomer = customerService.updateCustomerFromRequest(customerId, request);
             return ResponseEntity.ok(toDTO(updatedCustomer));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

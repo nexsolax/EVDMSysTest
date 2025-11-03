@@ -15,8 +15,14 @@ import java.util.UUID;
 @Repository
 public interface VehicleInventoryRepository extends JpaRepository<VehicleInventory, UUID> {
     
-    @Query("SELECT vi FROM VehicleInventory vi")
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse")
     List<VehicleInventory> findAllWithDetails();
+    
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse")
+    List<VehicleInventory> findAllWithRelationships();
+    
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.inventoryId = :inventoryId")
+    Optional<VehicleInventory> findByIdWithRelationships(@Param("inventoryId") UUID inventoryId);
     
     Optional<VehicleInventory> findByVin(String vin);
     

@@ -19,8 +19,11 @@ import java.util.UUID;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     
-    @Query("SELECT o FROM Order o")
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.quotation q LEFT JOIN FETCH q.customer LEFT JOIN FETCH q.variant LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.user LEFT JOIN FETCH o.inventory i LEFT JOIN FETCH i.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH i.color")
     List<Order> findAllWithDetails();
+    
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.quotation q LEFT JOIN FETCH q.customer LEFT JOIN FETCH q.variant LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.user LEFT JOIN FETCH o.inventory i LEFT JOIN FETCH i.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH i.color")
+    List<Order> findAllWithRelationships();
     
     Optional<Order> findByOrderNumber(String orderNumber);
     

@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Schema(description = "Request để tạo xe mới hoàn chỉnh trong 1 thao tác")
+@Schema(description = "Request để tạo xe điện mới hoàn chỉnh trong 1 thao tác (chỉ hỗ trợ xe điện)")
 public class CreateVehicleRequest {
     
     // ==================== BRAND INFORMATION ====================
@@ -23,7 +23,7 @@ public class CreateVehicleRequest {
     @Schema(description = "Tên mẫu xe", example = "Model 3", required = true)
     private String modelName;
     
-    @Schema(description = "Loại xe", example = "Sedan")
+    @Schema(description = "Loại xe điện (SEDAN, SUV, HATCHBACK, COUPE, TRUCK, MPV)", example = "SEDAN")
     private String vehicleType;
     
     @Schema(description = "Năm sản xuất", example = "2024")
@@ -36,7 +36,7 @@ public class CreateVehicleRequest {
     private MultipartFile modelImage;
     
     // ==================== VARIANT INFORMATION ====================
-    @Schema(description = "Tên phiên bản xe", example = "Standard Range Plus", required = true)
+    @Schema(description = "Tên phiên bản xe điện", example = "Standard Range Plus", required = true)
     private String variantName;
     
     @Schema(description = "Giá bán cơ bản", example = "1500000000", required = true)

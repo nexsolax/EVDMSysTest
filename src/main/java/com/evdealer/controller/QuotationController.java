@@ -111,9 +111,9 @@ public class QuotationController {
     @Operation(summary = "Cập nhật báo giá", description = "Cập nhật báo giá")
     public ResponseEntity<QuotationDTO> updateQuotation(
             @PathVariable UUID quotationId, 
-            @RequestBody Quotation quotationDetails) {
+            @RequestBody QuotationRequest request) {
         try {
-            Quotation updatedQuotation = quotationService.updateQuotation(quotationId, quotationDetails);
+            Quotation updatedQuotation = quotationService.updateQuotationFromRequest(quotationId, request);
             return ResponseEntity.ok(toDTO(updatedQuotation));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

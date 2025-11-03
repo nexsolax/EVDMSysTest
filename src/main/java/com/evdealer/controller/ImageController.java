@@ -1,5 +1,11 @@
 package com.evdealer.controller;
 
+import com.evdealer.entity.VehicleBrand;
+import com.evdealer.entity.VehicleVariant;
+import com.evdealer.entity.VehicleInventory;
+import com.evdealer.repository.VehicleBrandRepository;
+import com.evdealer.repository.VehicleVariantRepository;
+import com.evdealer.repository.VehicleInventoryRepository;
 import com.evdealer.service.FileUploadService;
 import com.evdealer.service.ImageUpdateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +34,15 @@ public class ImageController {
     
     @Autowired
     private ImageUpdateService imageUpdateService;
+    
+    @Autowired
+    private VehicleBrandRepository vehicleBrandRepository;
+    
+    @Autowired
+    private VehicleVariantRepository vehicleVariantRepository;
+    
+    @Autowired
+    private VehicleInventoryRepository vehicleInventoryRepository;
     
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload hình ảnh", description = "Upload một hình ảnh duy nhất")
@@ -70,19 +85,46 @@ public class ImageController {
     }
     
     @PostMapping(value = "/upload/vehicle-brand", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload logo thương hiệu", description = "Upload logo cho thương hiệu xe")
+    @Operation(summary = "Upload logo thương hiệu", description = "Upload logo cho thương hiệu xe. Tự động tạo thư mục theo tên brand")
     public ResponseEntity<?> uploadBrandLogo(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "brandId", required = false) Integer brandId) {
         
         try {
-            FileUploadService.FileUploadResult result = fileUploadService.uploadImage(file, "brands");
+            String category = "brands";
             
-            // TODO: Update brand entity with image URLs
+            // If brandId is provided, get brand name and create subfolder
+            if (brandId != null) {
+                VehicleBrand brand = vehicleBrandRepository.findById(brandId).orElse(null);
+                if (brand != null && brand.getBrandName() != null) {
+                    // Sanitize brand name for folder name (lowercase, replace spaces and special chars with underscore)
+                    String brandFolderName = sanitizeFolderName(brand.getBrandName());
+                    category = "brands/" + brandFolderName;
+                }
+            }
+            
+            FileUploadService.FileUploadResult result = fileUploadService.uploadImage(file, category);
+            
+            // Update brand entity with image URLs if brandId is provided
             Map<String, Object> response = new HashMap<>();
             response.put("uploadResult", result);
             response.put("message", "Brand logo uploaded successfully");
             response.put("brandId", brandId);
+            response.put("category", category);
+            
+            if (brandId != null) {
+                // Create path from category and stored filename
+                String imagePath = result.getCategory() + "/" + result.getStoredFilename();
+                Map<String, Object> updateResult = imageUpdateService.updateBrandImage(
+                        brandId, result.getUrl(), imagePath);
+                response.put("updateResult", updateResult);
+                
+                if (!(Boolean) updateResult.get("success")) {
+                    response.put("warning", "Logo uploaded but failed to update database: " + updateResult.get("message"));
+                }
+            } else {
+                response.put("warning", "brandId not provided - logo uploaded to generic brands folder");
+            }
             
             return ResponseEntity.ok(response);
         } catch (IOException e) {
@@ -90,6 +132,21 @@ public class ImageController {
             error.put("error", "Brand logo upload failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
+    }
+    
+    /**
+     * Sanitize string to be used as folder name
+     * Converts to lowercase, replaces spaces and special characters with underscore
+     */
+    private String sanitizeFolderName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return "unknown";
+        }
+        return name.toLowerCase()
+                .trim()
+                .replaceAll("[^a-z0-9]", "_")  // Replace non-alphanumeric with underscore
+                .replaceAll("_{2,}", "_")       // Replace multiple underscores with single
+                .replaceAll("^_|_$", "");       // Remove leading/trailing underscores
     }
     
     @PostMapping(value = "/upload/vehicle-model", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -115,18 +172,46 @@ public class ImageController {
     }
     
     @PostMapping(value = "/upload/vehicle-variant", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload hình ảnh phiên bản xe", description = "Upload hình ảnh cho phiên bản xe")
+    @Operation(summary = "Upload hình ảnh phiên bản xe", description = "Upload hình ảnh cho phiên bản xe. Tự động tạo thư mục theo tên variant")
     public ResponseEntity<?> uploadVariantImage(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "variantId", required = false) Integer variantId) {
         
         try {
-            FileUploadService.FileUploadResult result = fileUploadService.uploadImage(file, "variants");
+            String category = "variants";
             
+            // If variantId is provided, get variant name and create subfolder
+            if (variantId != null) {
+                VehicleVariant variant = vehicleVariantRepository.findById(variantId).orElse(null);
+                if (variant != null && variant.getVariantName() != null) {
+                    // Sanitize variant name for folder name
+                    String variantFolderName = sanitizeFolderName(variant.getVariantName());
+                    category = "variants/" + variantFolderName;
+                }
+            }
+            
+            FileUploadService.FileUploadResult result = fileUploadService.uploadImage(file, category);
+            
+            // Update variant entity with image URLs if variantId is provided
             Map<String, Object> response = new HashMap<>();
             response.put("uploadResult", result);
             response.put("message", "Variant image uploaded successfully");
             response.put("variantId", variantId);
+            response.put("category", category);
+            
+            if (variantId != null) {
+                // Create path from category and stored filename
+                String imagePath = result.getCategory() + "/" + result.getStoredFilename();
+                Map<String, Object> updateResult = imageUpdateService.updateVariantImage(
+                        variantId, result.getUrl(), imagePath);
+                response.put("updateResult", updateResult);
+                
+                if (!(Boolean) updateResult.get("success")) {
+                    response.put("warning", "Image uploaded but failed to update database: " + updateResult.get("message"));
+                }
+            } else {
+                response.put("warning", "variantId not provided - image uploaded to generic variants folder");
+            }
             
             return ResponseEntity.ok(response);
         } catch (IOException e) {
@@ -137,7 +222,7 @@ public class ImageController {
     }
     
     @PostMapping(value = "/upload/vehicle-inventory", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload hình ảnh xe trong kho", description = "Upload hình ảnh chi tiết cho xe trong kho")
+    @Operation(summary = "Upload hình ảnh xe trong kho", description = "Upload hình ảnh chi tiết cho xe trong kho. Tự động tạo thư mục theo VIN")
     public ResponseEntity<?> uploadInventoryImages(
             @RequestParam("files") MultipartFile[] files,
             @RequestParam("imageType") String imageType, // main, interior, exterior
@@ -145,6 +230,27 @@ public class ImageController {
         
         try {
             String category = "inventory/" + imageType;
+            
+            // If inventoryId is provided, get inventory and create subfolder by VIN
+            if (inventoryId != null && !inventoryId.trim().isEmpty()) {
+                try {
+                    UUID inventoryUuid = UUID.fromString(inventoryId);
+                    VehicleInventory inventory = vehicleInventoryRepository.findById(inventoryUuid).orElse(null);
+                    if (inventory != null) {
+                        // Use VIN if available, otherwise use inventoryId
+                        String vehicleIdentifier;
+                        if (inventory.getVin() != null && !inventory.getVin().trim().isEmpty()) {
+                            vehicleIdentifier = sanitizeFolderName(inventory.getVin());
+                        } else {
+                            vehicleIdentifier = inventoryId.replace("-", "_");
+                        }
+                        category = "inventory/" + imageType + "/" + vehicleIdentifier;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Invalid UUID format, continue with default category
+                }
+            }
+            
             FileUploadService.FileUploadResult result = fileUploadService.uploadMultipleImages(files, category);
             
             // Update database with image URLs if inventoryId is provided
@@ -160,6 +266,7 @@ public class ImageController {
                     response.put("message", "Inventory images uploaded and database updated successfully");
                     response.put("imageType", imageType);
                     response.put("inventoryId", inventoryId);
+                    response.put("category", category);
                     
                     return ResponseEntity.ok(response);
                 } catch (IllegalArgumentException e) {
@@ -177,6 +284,8 @@ public class ImageController {
                 response.put("message", "Inventory images uploaded successfully (database not updated - no inventoryId provided)");
                 response.put("imageType", imageType);
                 response.put("inventoryId", inventoryId);
+                response.put("category", category);
+                response.put("warning", "inventoryId not provided - images uploaded to generic folder");
                 
                 return ResponseEntity.ok(response);
             }

@@ -77,7 +77,8 @@ public class SecurityConfig {
                                  "/api/vehicle-colors/**",
                                  "/api/vehicle-inventory/**",
                                  "/api/promotions/**",
-                                 "/api/quotations/**").permitAll()
+                                 "/api/quotations/**",
+                                 "/api/images/upload/**").permitAll()
                 // Admin and management endpoints require authentication
                 .requestMatchers("/api/users/**",
                                  "/api/dealers/**",

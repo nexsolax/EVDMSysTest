@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -19,6 +20,7 @@ public class VehicleModel {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private VehicleBrand brand;
     
     @Column(name = "model_name", nullable = false, length = 100)

@@ -4,6 +4,10 @@ import com.evdealer.entity.VehicleBrand;
 import com.evdealer.entity.VehicleModel;
 import com.evdealer.entity.VehicleVariant;
 import com.evdealer.entity.VehicleColor;
+import com.evdealer.dto.VehicleModelRequest;
+import com.evdealer.dto.VehicleVariantRequest;
+import com.evdealer.dto.VehicleBrandRequest;
+import com.evdealer.dto.VehicleColorRequest;
 import com.evdealer.repository.VehicleBrandRepository;
 import com.evdealer.repository.VehicleModelRepository;
 import com.evdealer.repository.VehicleVariantRepository;
@@ -64,6 +68,28 @@ public class VehicleService {
         return vehicleBrandRepository.save(brand);
     }
     
+    public VehicleBrand createBrandFromRequest(VehicleBrandRequest request) {
+        // Validate brandName
+        if (request.getBrandName() == null || request.getBrandName().trim().isEmpty()) {
+            throw new RuntimeException("Brand name is required");
+        }
+        
+        // Check if brand already exists
+        if (vehicleBrandRepository.existsByBrandName(request.getBrandName())) {
+            throw new RuntimeException("Brand already exists: " + request.getBrandName());
+        }
+        
+        // Create VehicleBrand entity
+        VehicleBrand brand = new VehicleBrand();
+        brand.setBrandName(request.getBrandName().trim());
+        brand.setCountry(request.getCountry());
+        brand.setFoundedYear(request.getFoundedYear());
+        brand.setBrandLogoUrl(request.getLogoUrl());
+        brand.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        
+        return vehicleBrandRepository.save(brand);
+    }
+    
     public VehicleBrand updateBrand(Integer brandId, VehicleBrand brandDetails) {
         VehicleBrand brand = vehicleBrandRepository.findById(brandId)
                 .orElseThrow(() -> new RuntimeException("Brand not found with id: " + brandId));
@@ -83,6 +109,36 @@ public class VehicleService {
         return vehicleBrandRepository.save(brand);
     }
     
+    public VehicleBrand updateBrandFromRequest(Integer brandId, VehicleBrandRequest request) {
+        VehicleBrand brand = vehicleBrandRepository.findById(brandId)
+                .orElseThrow(() -> new RuntimeException("Brand not found with id: " + brandId));
+        
+        // Validate brandName if provided
+        if (request.getBrandName() != null && !request.getBrandName().trim().isEmpty()) {
+            if (!brand.getBrandName().equals(request.getBrandName()) && 
+                vehicleBrandRepository.existsByBrandName(request.getBrandName())) {
+                throw new RuntimeException("Brand already exists: " + request.getBrandName());
+            }
+            brand.setBrandName(request.getBrandName().trim());
+        }
+        
+        // Update other fields
+        if (request.getCountry() != null) {
+            brand.setCountry(request.getCountry());
+        }
+        if (request.getFoundedYear() != null) {
+            brand.setFoundedYear(request.getFoundedYear());
+        }
+        if (request.getLogoUrl() != null) {
+            brand.setBrandLogoUrl(request.getLogoUrl());
+        }
+        if (request.getIsActive() != null) {
+            brand.setIsActive(request.getIsActive());
+        }
+        
+        return vehicleBrandRepository.save(brand);
+    }
+    
     public void deleteBrand(Integer brandId) {
         VehicleBrand brand = vehicleBrandRepository.findById(brandId)
                 .orElseThrow(() -> new RuntimeException("Brand not found with id: " + brandId));
@@ -92,15 +148,19 @@ public class VehicleService {
     // Vehicle Model methods
     public List<VehicleModel> getAllModels() {
         try {
-            return vehicleModelRepository.findAll();
+            // Use JOIN FETCH to eagerly load brand relationship
+            return vehicleModelRepository.findAllWithBrand();
         } catch (Exception e) {
-            // Return empty list if there's an issue
+            // Log error and return empty list
+            System.err.println("Error fetching models: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
     
     public List<VehicleModel> getActiveModels() {
-        return vehicleModelRepository.findByIsActiveTrue();
+        // Use JOIN FETCH to eagerly load brand relationship
+        return vehicleModelRepository.findActiveModelsWithBrand();
     }
     
     public Optional<VehicleModel> getModelById(Integer modelId) {
@@ -131,6 +191,76 @@ public class VehicleService {
         return vehicleModelRepository.save(model);
     }
     
+    public VehicleModel createModelFromRequest(VehicleModelRequest request) {
+        // Validate brandId
+        if (request.getBrandId() == null) {
+            throw new RuntimeException("Brand ID is required");
+        }
+        
+        // Validate modelName
+        if (request.getModelName() == null || request.getModelName().trim().isEmpty()) {
+            throw new RuntimeException("Model name is required");
+        }
+        
+        // Get VehicleBrand from brandId
+        VehicleBrand brand = vehicleBrandRepository.findById(request.getBrandId())
+                .orElseThrow(() -> new RuntimeException("Brand not found with id: " + request.getBrandId()));
+        
+        // Create VehicleModel entity
+        VehicleModel model = new VehicleModel();
+        model.setBrand(brand);
+        model.setModelName(request.getModelName());
+        
+        // Use effective modelYear (from year if modelYear is null)
+        Integer modelYear = request.getEffectiveModelYear();
+        if (modelYear == null) {
+            throw new RuntimeException("Model year is required");
+        }
+        model.setModelYear(modelYear);
+        
+        model.setVehicleType(request.getVehicleType());
+        model.setDescription(request.getDescription());
+        model.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        
+        return vehicleModelRepository.save(model);
+    }
+    
+    public VehicleModel updateModelFromRequest(Integer modelId, VehicleModelRequest request) {
+        VehicleModel model = vehicleModelRepository.findById(modelId)
+                .orElseThrow(() -> new RuntimeException("Model not found with id: " + modelId));
+        
+        // Update brand if brandId provided
+        if (request.getBrandId() != null) {
+            VehicleBrand brand = vehicleBrandRepository.findById(request.getBrandId())
+                    .orElseThrow(() -> new RuntimeException("Brand not found with id: " + request.getBrandId()));
+            model.setBrand(brand);
+        }
+        
+        // Update other fields
+        if (request.getModelName() != null && !request.getModelName().trim().isEmpty()) {
+            model.setModelName(request.getModelName().trim());
+        }
+        
+        Integer modelYear = request.getEffectiveModelYear();
+        if (modelYear != null) {
+            model.setModelYear(modelYear);
+        }
+        
+        if (request.getVehicleType() != null) {
+            model.setVehicleType(request.getVehicleType());
+        }
+        
+        if (request.getDescription() != null) {
+            model.setDescription(request.getDescription());
+        }
+        
+        if (request.getIsActive() != null) {
+            model.setIsActive(request.getIsActive());
+        }
+        
+        return vehicleModelRepository.save(model);
+    }
+    
     public VehicleModel updateModel(Integer modelId, VehicleModel modelDetails) {
         VehicleModel model = vehicleModelRepository.findById(modelId)
                 .orElseThrow(() -> new RuntimeException("Model not found with id: " + modelId));
@@ -157,19 +287,24 @@ public class VehicleService {
     // Vehicle Variant methods
     public List<VehicleVariant> getAllVariants() {
         try {
-            return vehicleVariantRepository.findAll();
+            // Use JOIN FETCH to eagerly load model relationship
+            return vehicleVariantRepository.findAllWithModel();
         } catch (Exception e) {
-            // Return empty list if there's an issue
+            // Log error and return empty list
+            System.err.println("Error fetching variants: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
     
     public List<VehicleVariant> getActiveVariants() {
+        // Use JOIN FETCH to eagerly load model relationship
         return vehicleVariantRepository.findByIsActiveTrue();
     }
     
     public Optional<VehicleVariant> getVariantById(Integer variantId) {
-        return vehicleVariantRepository.findById(variantId);
+        // Use JOIN FETCH to eagerly load model and brand relationships
+        return vehicleVariantRepository.findByIdWithModel(variantId);
     }
     
     public List<VehicleVariant> getVariantsByModel(Integer modelId) {
@@ -194,6 +329,148 @@ public class VehicleService {
     
     public VehicleVariant createVariant(VehicleVariant variant) {
         return vehicleVariantRepository.save(variant);
+    }
+    
+    public VehicleVariant createVariantFromRequest(VehicleVariantRequest request) {
+        // Validate modelId
+        if (request.getModelId() == null) {
+            throw new RuntimeException("Model ID is required");
+        }
+        
+        // Validate variantName
+        if (request.getVariantName() == null || request.getVariantName().trim().isEmpty()) {
+            throw new RuntimeException("Variant name is required");
+        }
+        
+        // Validate basePrice
+        if (request.getBasePrice() == null) {
+            throw new RuntimeException("Base price is required");
+        }
+        
+        // Get VehicleModel from modelId
+        VehicleModel model = vehicleModelRepository.findById(request.getModelId())
+                .orElseThrow(() -> new RuntimeException("Model not found with id: " + request.getModelId()));
+        
+        // Create VehicleVariant entity
+        VehicleVariant variant = new VehicleVariant();
+        variant.setModel(model);
+        variant.setVariantName(request.getVariantName().trim());
+        variant.setPriceBase(request.getBasePrice());
+        
+        // Convert batteryCapacity from Integer to BigDecimal if provided
+        if (request.getBatteryCapacity() != null) {
+            variant.setBatteryCapacity(BigDecimal.valueOf(request.getBatteryCapacity()));
+        }
+        
+        // Set rangeKm
+        variant.setRangeKm(request.getRangeKm());
+        
+        // Convert powerKw from Integer to BigDecimal if provided
+        if (request.getPowerKw() != null) {
+            variant.setPowerKw(BigDecimal.valueOf(request.getPowerKw()));
+        }
+        
+        // Set acceleration0100
+        variant.setAcceleration0100(request.getAcceleration0100());
+        
+        // Set topSpeed
+        variant.setTopSpeed(request.getTopSpeed());
+        
+        // Set charging times
+        variant.setChargingTimeFast(request.getChargingTimeFast());
+        variant.setChargingTimeSlow(request.getChargingTimeSlow());
+        
+        // Set isActive (default to true if not provided)
+        variant.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        
+        // Handle image fields (empty string -> null)
+        if (request.getVariantImageUrl() != null) {
+            String imageUrl = request.getVariantImageUrl().trim();
+            variant.setVariantImageUrl(imageUrl.isEmpty() ? null : imageUrl);
+        }
+        
+        if (request.getVariantImagePath() != null) {
+            String imagePath = request.getVariantImagePath().trim();
+            variant.setVariantImagePath(imagePath.isEmpty() ? null : imagePath);
+        }
+        
+        // Save variant
+        VehicleVariant savedVariant = vehicleVariantRepository.save(variant);
+        
+        // Fetch again with JOIN FETCH to eagerly load model relationship for response
+        return vehicleVariantRepository.findByIdWithModel(savedVariant.getVariantId())
+                .orElseThrow(() -> new RuntimeException("Failed to fetch created variant"));
+    }
+    
+    public VehicleVariant updateVariantFromRequest(Integer variantId, VehicleVariantRequest request) {
+        VehicleVariant variant = vehicleVariantRepository.findById(variantId)
+                .orElseThrow(() -> new RuntimeException("Variant not found with id: " + variantId));
+        
+        // Update model if modelId provided
+        if (request.getModelId() != null) {
+            VehicleModel model = vehicleModelRepository.findById(request.getModelId())
+                    .orElseThrow(() -> new RuntimeException("Model not found with id: " + request.getModelId()));
+            variant.setModel(model);
+        }
+        
+        // Update other fields
+        if (request.getVariantName() != null && !request.getVariantName().trim().isEmpty()) {
+            variant.setVariantName(request.getVariantName().trim());
+        }
+        
+        if (request.getBasePrice() != null) {
+            variant.setPriceBase(request.getBasePrice());
+        }
+        
+        if (request.getBatteryCapacity() != null) {
+            variant.setBatteryCapacity(BigDecimal.valueOf(request.getBatteryCapacity()));
+        }
+        
+        if (request.getRangeKm() != null) {
+            variant.setRangeKm(request.getRangeKm());
+        }
+        
+        if (request.getPowerKw() != null) {
+            variant.setPowerKw(BigDecimal.valueOf(request.getPowerKw()));
+        }
+        
+        if (request.getAcceleration0100() != null) {
+            variant.setAcceleration0100(request.getAcceleration0100());
+        }
+        
+        if (request.getTopSpeed() != null) {
+            variant.setTopSpeed(request.getTopSpeed());
+        }
+        
+        if (request.getChargingTimeFast() != null) {
+            variant.setChargingTimeFast(request.getChargingTimeFast());
+        }
+        
+        if (request.getChargingTimeSlow() != null) {
+            variant.setChargingTimeSlow(request.getChargingTimeSlow());
+        }
+        
+        if (request.getIsActive() != null) {
+            variant.setIsActive(request.getIsActive());
+        }
+        
+        // Update image fields if provided (handle empty strings)
+        if (request.getVariantImageUrl() != null) {
+            String imageUrl = request.getVariantImageUrl().trim();
+            variant.setVariantImageUrl(imageUrl.isEmpty() ? null : imageUrl);
+        }
+        
+        if (request.getVariantImagePath() != null) {
+            String imagePath = request.getVariantImagePath().trim();
+            variant.setVariantImagePath(imagePath.isEmpty() ? null : imagePath);
+        }
+        
+        // Save variant
+        vehicleVariantRepository.save(variant);
+        
+        // Fetch again with JOIN FETCH to eagerly load model relationship
+        return vehicleVariantRepository.findByIdWithModel(variantId)
+                .orElseThrow(() -> new RuntimeException("Failed to fetch updated variant"));
     }
     
     public VehicleVariant updateVariant(Integer variantId, VehicleVariant variantDetails) {
@@ -255,6 +532,27 @@ public class VehicleService {
         return vehicleColorRepository.save(color);
     }
     
+    public VehicleColor createColorFromRequest(VehicleColorRequest request) {
+        // Validate colorName
+        if (request.getColorName() == null || request.getColorName().trim().isEmpty()) {
+            throw new RuntimeException("Color name is required");
+        }
+        
+        // Check if color already exists
+        if (vehicleColorRepository.existsByColorName(request.getColorName())) {
+            throw new RuntimeException("Color already exists: " + request.getColorName());
+        }
+        
+        // Create VehicleColor entity
+        VehicleColor color = new VehicleColor();
+        color.setColorName(request.getColorName().trim());
+        color.setColorCode(request.getColorCode());
+        color.setColorSwatchUrl(request.getImageUrl());
+        color.setIsActive(request.getIsAvailable() != null ? request.getIsAvailable() : true);
+        
+        return vehicleColorRepository.save(color);
+    }
+    
     public VehicleColor updateColor(Integer colorId, VehicleColor colorDetails) {
         VehicleColor color = vehicleColorRepository.findById(colorId)
                 .orElseThrow(() -> new RuntimeException("Color not found with id: " + colorId));
@@ -269,6 +567,33 @@ public class VehicleService {
         color.setColorSwatchUrl(colorDetails.getColorSwatchUrl());
         color.setColorSwatchPath(colorDetails.getColorSwatchPath());
         color.setIsActive(colorDetails.getIsActive());
+        
+        return vehicleColorRepository.save(color);
+    }
+    
+    public VehicleColor updateColorFromRequest(Integer colorId, VehicleColorRequest request) {
+        VehicleColor color = vehicleColorRepository.findById(colorId)
+                .orElseThrow(() -> new RuntimeException("Color not found with id: " + colorId));
+        
+        // Validate colorName if provided
+        if (request.getColorName() != null && !request.getColorName().trim().isEmpty()) {
+            if (!color.getColorName().equals(request.getColorName()) && 
+                vehicleColorRepository.existsByColorName(request.getColorName())) {
+                throw new RuntimeException("Color already exists: " + request.getColorName());
+            }
+            color.setColorName(request.getColorName().trim());
+        }
+        
+        // Update other fields
+        if (request.getColorCode() != null) {
+            color.setColorCode(request.getColorCode());
+        }
+        if (request.getImageUrl() != null) {
+            color.setColorSwatchUrl(request.getImageUrl());
+        }
+        if (request.getIsAvailable() != null) {
+            color.setIsActive(request.getIsAvailable());
+        }
         
         return vehicleColorRepository.save(color);
     }

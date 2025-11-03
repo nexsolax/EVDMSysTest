@@ -1,5 +1,7 @@
 ## Hướng dẫn luồng dữ liệu, Entity và API mẫu
 
+> **Lưu ý quan trọng**: Hệ thống này được thiết kế **chỉ để quản lý xe điện (Electric Vehicles - EV)**. Tất cả các entity và API đều dành cho xe điện, không hỗ trợ các loại xe khác (xe xăng, diesel, hybrid). Các thông số như dung lượng pin (battery capacity), phạm vi hoạt động (range), thời gian sạc (charging time) đều là các đặc điểm của xe điện.
+
 ### Tổng quan luồng chuẩn
 - **Controller** nhận DTO → **Service (@Transactional)** xử lý nghiệp vụ → **Repository** thao tác DB → **Entity** ánh xạ bảng.
 - **Quy tắc an toàn**:
@@ -19,15 +21,990 @@
 - **Order**: đơn bán lẻ, tham chiếu Quotation/Customer/User/Inventory.
 - **DealerOrder**: đơn đặt giữa hãng và đại lý.
 
-### Thứ tự khởi tạo dữ liệu (không lỗi)
-1) VehicleBrand → VehicleModel → VehicleVariant → VehicleColor
-2) Dealer → Warehouse
-3) VehicleInventory (tham chiếu Dealer/Variant/Color/Warehouse)
-4) Customer
-5) User (tham chiếu Dealer nếu cần)
-6) Quotation (tham chiếu Customer/Variant)
-7) Order (tham chiếu Quotation/Customer/User/Inventory)
-8) DealerOrder (tham chiếu Dealer/User/Variant/Color)
+---
+
+## Chi tiết về Entity và Mối quan hệ với Database
+
+### Khái niệm Entity trong JPA/Hibernate
+
+**Entity** là một class Java được đánh dấu bằng `@Entity` và ánh xạ trực tiếp với một bảng trong database. Entity cho phép:
+- **ORM (Object-Relational Mapping)**: Chuyển đổi giữa đối tượng Java và bản ghi database
+- **Type Safety**: Kiểm tra kiểu dữ liệu ở compile-time
+- **Abstraction**: Ẩn đi SQL queries, làm việc với objects thay vì rows
+
+**Ví dụ cơ bản:**
+```java
+@Entity
+@Table(name = "customers")
+public class Customer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "customer_id")
+    private UUID customerId;  // → Bảng customers, cột customer_id
+    
+    @Column(name = "first_name", nullable = false)
+    private String firstName;  // → Bảng customers, cột first_name
+}
+```
+
+### Các Annotation quan trọng
+
+| Annotation | Mục đích | Ví dụ |
+|------------|----------|-------|
+| `@Entity` | Đánh dấu class là entity | `@Entity` |
+| `@Table(name = "...")` | Tên bảng trong DB | `@Table(name = "orders")` |
+| `@Id` | Khóa chính | `@Id private UUID orderId;` |
+| `@GeneratedValue` | Tự động sinh ID | `@GeneratedValue(strategy = GenerationType.UUID)` |
+| `@Column` | Ánh xạ cột | `@Column(name = "order_number", nullable = false)` |
+| `@ManyToOne` | Quan hệ nhiều-một | `@ManyToOne private Customer customer;` |
+| `@OneToMany` | Quan hệ một-nhiều | `@OneToMany(mappedBy = "order")` |
+| `@JoinColumn` | Tên cột foreign key | `@JoinColumn(name = "customer_id")` |
+| `@CreationTimestamp` | Tự động set thời gian tạo | `@CreationTimestamp private LocalDateTime createdAt;` |
+| `@UpdateTimestamp` | Tự động cập nhật thời gian | `@UpdateTimestamp private LocalDateTime updatedAt;` |
+
+### Các loại mối quan hệ
+
+#### 1. **ManyToOne (Nhiều-Một)**
+- **Ý nghĩa**: Nhiều bản ghi của entity này thuộc về một bản ghi của entity khác
+- **Trong DB**: Foreign key được lưu ở bảng "nhiều"
+- **Ví dụ**: Nhiều `Order` thuộc về một `Customer`
+
+```java
+// Trong Order.java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "customer_id", nullable = true)
+private Customer customer;
+```
+→ Trong database: Bảng `orders` có cột `customer_id` (foreign key)
+
+**Cách hoạt động:**
+- Khi lưu `Order`, chỉ cần set `order.setCustomer(customer)` với `customer` đã có ID
+- Hibernate tự động lưu `customer_id` vào bảng `orders`
+- `fetch = FetchType.LAZY`: Chỉ load `Customer` khi truy cập `order.getCustomer()`
+
+#### 2. **OneToMany (Một-Nhiều)**
+- **Ý nghĩa**: Một bản ghi có thể có nhiều bản ghi liên quan
+- **Trong DB**: Foreign key vẫn ở bảng "nhiều", không tạo cột mới
+- **Ví dụ**: Một `DealerOrder` có nhiều `DealerOrderItem`
+
+```java
+// Trong DealerOrder.java (nếu có)
+@OneToMany(mappedBy = "dealerOrder", cascade = CascadeType.ALL)
+private List<DealerOrderItem> items;
+```
+
+**Lưu ý**: Thường không cần khai báo `@OneToMany` ở phía "một" nếu chỉ truy vấn một chiều từ "nhiều" về "một".
+
+#### 3. **Cascade và FetchType**
+
+**Cascade**: Xóa/sửa entity cha sẽ ảnh hưởng đến entity con
+```java
+@OneToMany(cascade = CascadeType.ALL)  // Xóa Order → xóa luôn OrderItems
+```
+
+**FetchType**:
+- `LAZY`: Load khi cần (mặc định, tiết kiệm bộ nhớ)
+- `EAGER`: Load ngay lập tức (có thể gây N+1 query problem)
+
+---
+
+### Sơ đồ mối quan hệ chính
+
+```
+┌─────────────────┐
+│  VehicleBrand   │
+│   (brand_id)    │
+└────────┬────────┘
+         │ 1
+         │
+         │ N
+┌────────▼────────┐
+│  VehicleModel   │
+│   (model_id)    │
+└────────┬────────┘
+         │ 1
+         │
+         │ N
+┌────────▼────────┐      ┌──────────────┐
+│ VehicleVariant  │      │VehicleColor  │
+│  (variant_id)   │      │  (color_id)  │
+└────────┬────────┘      └──────┬───────┘
+         │                      │
+         │ N                   │ N
+         │                      │
+         └──────┬───────────────┘
+                │
+                │ N
+    ┌───────────▼───────────┐
+    │  VehicleInventory     │
+    │  (inventory_id)      │
+    │  - variant_id FK     │
+    │  - color_id FK       │
+    │  - warehouse_id FK   │
+    │  - reserved_for_dealer FK │
+    └───────────┬───────────┘
+                │
+                │ 1
+                │
+                │ N
+    ┌───────────▼───────────┐
+    │        Order          │
+    │     (order_id)        │
+    │  - inventory_id FK   │
+    │  - customer_id FK    │
+    │  - quotation_id FK    │
+    │  - user_id FK        │
+    └───────────────────────┘
+
+┌──────────────┐      ┌──────────────┐
+│   Dealer     │      │   Customer   │
+│ (dealer_id)  │      │(customer_id)│
+└──────┬───────┘      └──────┬──────┘
+       │                     │
+       │ N                   │ N
+       │                     │
+┌──────▼───────┐      ┌──────▼───────┐
+│     User     │      │  Quotation   │
+│  (user_id)   │      │(quotation_id)│
+│- dealer_id FK│      │- customer_id │
+│              │      │- variant_id  │
+│              │      │- user_id     │
+└──────────────┘      └──────────────┘
+```
+
+---
+
+### Chi tiết từng Entity chính
+
+#### 1. **VehicleBrand** (Thương hiệu xe)
+- **Công dụng**: Lưu thông tin thương hiệu (Tesla, BYD, VinFast...)
+- **ID**: `brand_id` (Integer, auto-increment)
+- **Quan hệ**: 1 Brand → N Models
+- **Đặc điểm**: Standalone, không phụ thuộc entity khác
+- **Cách dùng**: Tạo Brand đầu tiên, sau đó tạo Model thuộc Brand đó
+
+#### 2. **VehicleModel** (Model xe)
+- **Công dụng**: Lưu model cụ thể của một brand (Model 3, Atto 3, VF 5...)
+- **ID**: `model_id` (Integer, auto-increment)
+- **Quan hệ**: 
+  - ManyToOne → `VehicleBrand` (qua `brand_id`)
+  - OneToMany → `VehicleVariant`
+- **Constraint**: Unique (brand_id, model_name, model_year)
+- **Cách dùng**: Cần có Brand trước khi tạo Model
+
+#### 3. **VehicleVariant** (Phiên bản xe điện)
+- **Công dụng**: Lưu phiên bản cụ thể của xe điện với thông số kỹ thuật (Standard Range, Long Range, Performance...)
+- **ID**: `variant_id` (Integer, auto-increment)
+- **Quan hệ**:
+  - ManyToOne → `VehicleModel` (qua `model_id`)
+  - OneToMany → `VehicleInventory`, `Quotation`, `Promotion`
+- **Thông tin đặc trưng xe điện**:
+  - Dung lượng pin (battery capacity - kWh)
+  - Phạm vi hoạt động (range - km)
+  - Công suất động cơ điện (power - kW)
+  - Thời gian sạc nhanh/chậm (charging time)
+  - Giá bán cơ bản (price base)
+- **Cách dùng**: Cần có Model trước khi tạo Variant. Tất cả variant đều là phiên bản xe điện.
+
+---
+
+## Chi tiết Fields của Entity (API Response Schema)
+
+**Mục đích**: Phần này mô tả chi tiết tất cả các fields mà API sẽ trả về và frontend có thể sử dụng. Tất cả fields được map trực tiếp từ Entity → Database → API Response.
+
+### 🔹 VehicleBrand Entity Fields
+
+| Field Name (JSON) | Database Column | Type | Required | Nullable | Description | Example |
+|-------------------|-----------------|------|----------|----------|-------------|---------|
+| `brandId` | `brand_id` | Integer | ✅ Auto | ❌ | ID tự động tăng | `1` |
+| `brandName` | `brand_name` | String (100) | ✅ | ❌ | Tên thương hiệu (unique) | `"Tesla"` |
+| `country` | `country` | String (100) | ❌ | ✅ | Quốc gia | `"USA"` |
+| `foundedYear` | `founded_year` | Integer | ❌ | ✅ | Năm thành lập | `2003` |
+| `brandLogoUrl` | `brand_logo_url` | String (500) | ❌ | ✅ | URL logo (đầy đủ) | `"/uploads/brands/tesla/logo.png"` |
+| `brandLogoPath` | `brand_logo_path` | String (500) | ❌ | ✅ | Path logo (relative) | `"brands/tesla/logo.png"` |
+| `isActive` | `is_active` | Boolean | ✅ | ❌ | Trạng thái hoạt động | `true` |
+| `createdAt` | `created_at` | LocalDateTime | ✅ Auto | ❌ | Thời gian tạo (ISO format) | `"2025-01-15T10:30:00"` |
+
+**JSON Response Example**:
+```json
+{
+  "brandId": 8,
+  "brandName": "Tesla test",
+  "country": "USA",
+  "foundedYear": 2003,
+  "brandLogoUrl": "/uploads/brands/tesla_test/91a75456-b195-45a7-82d9-19c535c14972.png",
+  "brandLogoPath": "brands/tesla_test/91a75456-b195-45a7-82d9-19c535c14972.png",
+  "isActive": true,
+  "createdAt": "2025-10-16T10:16:03.680024"
+}
+```
+
+---
+
+### 🔹 VehicleModel Entity Fields
+
+| Field Name (JSON) | Database Column | Type | Required | Nullable | Description | Example |
+|-------------------|-----------------|------|----------|----------|-------------|---------|
+| `modelId` | `model_id` | Integer | ✅ Auto | ❌ | ID tự động tăng | `25` |
+| `brand` | `brand_id` (FK) | Object (VehicleBrand) | ✅ | ❌ | Thông tin Brand (eager loaded) | `{"brandId": 8, "brandName": "Tesla"}` |
+| `modelName` | `model_name` | String (100) | ✅ | ❌ | Tên model | `"Model 3"` |
+| `modelYear` | `model_year` | Integer | ✅ | ❌ | Năm sản xuất | `2024` |
+| `vehicleType` | `vehicle_type` | String (50) | ❌ | ✅ | Loại xe (SEDAN, SUV, ...) | `"SEDAN"` |
+| `description` | `description` | String (TEXT) | ❌ | ✅ | Mô tả chi tiết | `"Mẫu xe điện sedan..."` |
+| `specifications` | `specifications` | String (JSONB) | ❌ | ✅ | Thông số kỹ thuật (JSON) | `"{\"doors\": 4, \"seats\": 5}"` |
+| `modelImageUrl` | `model_image_url` | String (500) | ❌ | ✅ | URL hình ảnh model | `"/uploads/models/model3/image.jpg"` |
+| `modelImagePath` | `model_image_path` | String (500) | ❌ | ✅ | Path hình ảnh model | `"models/model3/image.jpg"` |
+| `isActive` | `is_active` | Boolean | ✅ | ❌ | Trạng thái hoạt động | `true` |
+| `createdAt` | `created_at` | LocalDateTime | ✅ Auto | ❌ | Thời gian tạo | `"2025-10-16T10:16:03"` |
+
+**Lưu ý**: 
+- `brand` là object được eager load, có thể null nếu lazy loading failed
+- `specifications` là JSONB trong PostgreSQL, API trả về dạng String JSON
+
+**JSON Response Example**:
+```json
+{
+  "modelId": 25,
+  "brand": {
+    "brandId": 8,
+    "brandName": "Tesla test",
+    "country": "USA",
+    "isActive": true
+  },
+  "modelName": "Tesla Model 3",
+  "modelYear": 2017,
+  "vehicleType": "SEDAN",
+  "description": "Tesla Model 3 nổi bật với hiệu suất mạnh mẽ...",
+  "specifications": null,
+  "modelImageUrl": null,
+  "modelImagePath": null,
+  "isActive": true,
+  "createdAt": "2025-10-29T16:15:11.727302"
+}
+```
+
+---
+
+### 🔹 VehicleVariant Entity Fields
+
+| Field Name (JSON) | Database Column | Type | Required | Nullable | Description | Example |
+|-------------------|-----------------|------|----------|----------|-------------|---------|
+| `variantId` | `variant_id` | Integer | ✅ Auto | ❌ | ID tự động tăng | `51` |
+| `model` | `model_id` (FK) | Object (VehicleModel) | ✅ | ❌ | Thông tin Model (eager loaded) | `{"modelId": 25, "modelName": "Model 3"}` |
+| `variantName` | `variant_name` | String (100) | ✅ | ❌ | Tên phiên bản xe điện | `"Model 3 Long Range RWD"` |
+| `batteryCapacity` | `battery_capacity` | BigDecimal (8,2) | ❌ | ✅ | Dung lượng pin (kWh) | `60.00` |
+| `rangeKm` | `range_km` | Integer | ❌ | ✅ | Phạm vi hoạt động (km) | `554` |
+| `powerKw` | `power_kw` | BigDecimal (8,2) | ❌ | ✅ | Công suất động cơ điện (kW) | `202.00` |
+| `acceleration0100` | `acceleration_0_100` | BigDecimal (4,2) | ❌ | ✅ | Thời gian tăng tốc 0-100 km/h (giây) | `6.10` |
+| `topSpeed` | `top_speed` | Integer | ❌ | ✅ | Tốc độ tối đa (km/h) | `225` |
+| `chargingTimeFast` | `charging_time_fast` | Integer | ❌ | ✅ | Thời gian sạc nhanh (phút) | `30` |
+| `chargingTimeSlow` | `charging_time_slow` | Integer | ❌ | ✅ | Thời gian sạc chậm (phút) | `600` |
+| `priceBase` | `price_base` | BigDecimal (12,2) | ✅ | ❌ | Giá bán cơ bản (VND) | `1127000000.00` |
+| `variantImageUrl` | `variant_image_url` | String (500) | ❌ | ✅ | URL hình ảnh variant | `"/uploads/variants/model_3_long_range_rwd/image.jpg"` |
+| `variantImagePath` | `variant_image_path` | String (500) | ❌ | ✅ | Path hình ảnh variant | `"variants/model_3_long_range_rwd/image.jpg"` |
+| `isActive` | `is_active` | Boolean | ✅ | ❌ | Trạng thái hoạt động | `true` |
+| `createdAt` | `created_at` | LocalDateTime | ✅ Auto | ❌ | Thời gian tạo | `"2025-11-03T17:42:19"` |
+
+**Lưu ý**:
+- `model` là object được eager load với brand
+- `batteryCapacity` và `powerKw` là BigDecimal, API trả về số (có thể có decimal)
+- Tất cả fields liên quan đến thông số xe điện (battery, range, power, charging) đều dành cho **xe điện**
+
+**JSON Response Example**:
+```json
+{
+  "variantId": 51,
+  "model": {
+    "modelId": 25,
+    "modelName": "Tesla Model 3",
+    "brand": {
+      "brandId": 8,
+      "brandName": "Tesla test"
+    }
+  },
+  "variantName": "Model 3 Long Range RWD",
+  "batteryCapacity": 60.00,
+  "rangeKm": 554,
+  "powerKw": 202.00,
+  "acceleration0100": 6.10,
+  "topSpeed": 225,
+  "chargingTimeFast": 30,
+  "chargingTimeSlow": 600,
+  "priceBase": 1127000000.00,
+  "variantImageUrl": "/uploads/variants/model_3_long_range_rwd/a69250cf-3bc0-4dc5-934f-f5bebba77444.jpg",
+  "variantImagePath": "variants/model_3_long_range_rwd/a69250cf-3bc0-4dc5-934f-f5bebba77444.jpg",
+  "isActive": true,
+  "createdAt": "2025-11-03T17:42:19.164582"
+}
+```
+
+---
+
+### 🔹 VehicleColor Entity Fields
+
+| Field Name (JSON) | Database Column | Type | Required | Nullable | Description | Example |
+|-------------------|-----------------|------|----------|----------|-------------|---------|
+| `colorId` | `color_id` | Integer | ✅ Auto | ❌ | ID tự động tăng | `1` |
+| `colorName` | `color_name` | String (100) | ✅ | ❌ | Tên màu | `"Trắng"` |
+| `colorCode` | `color_code` | String (20) | ❌ | ✅ | Mã màu (hex, RGB) | `"#FFFFFF"` |
+| `colorSwatchUrl` | `color_swatch_url` | String (500) | ❌ | ✅ | URL mẫu màu | `"/uploads/colors/white.jpg"` |
+| `colorSwatchPath` | `color_swatch_path` | String (500) | ❌ | ✅ | Path mẫu màu | `"colors/white.jpg"` |
+| `isActive` | `is_active` | Boolean | ✅ | ❌ | Trạng thái hoạt động | `true` |
+
+**JSON Response Example**:
+```json
+{
+  "colorId": 1,
+  "colorName": "Trắng",
+  "colorCode": "#FFFFFF",
+  "colorSwatchUrl": null,
+  "colorSwatchPath": null,
+  "isActive": true
+}
+```
+
+---
+
+### 🔹 VehicleInventory Entity Fields
+
+| Field Name (JSON) | Database Column | Type | Required | Nullable | Description | Example |
+|-------------------|-----------------|------|----------|----------|-------------|---------|
+| `inventoryId` | `inventory_id` | UUID | ✅ Auto | ❌ | ID tự động (UUID) | `"a69250cf-3bc0-4dc5-934f-f5bebba77444"` |
+| `variant` | `variant_id` (FK) | Object (VehicleVariant) | ❌ | ✅ | Thông tin Variant (eager loaded) | `{"variantId": 51, ...}` |
+| `color` | `color_id` (FK) | Object (VehicleColor) | ❌ | ✅ | Thông tin Color (eager loaded) | `{"colorId": 1, ...}` |
+| `warehouse` | `warehouse_id` (FK) | Object (Warehouse) | ❌ | ✅ | Thông tin Warehouse (eager loaded) | `{"warehouseId": "...", ...}` |
+| `warehouseLocation` | `warehouse_location` | String (100) | ❌ | ✅ | Vị trí cụ thể trong kho | `"Khu vực A-001"` |
+| `vin` | `vin` | String (17) | ❌ | ✅ | Số khung xe (unique) | `"5YJ3E1EA7KF317000"` |
+| `chassisNumber` | `chassis_number` | String (50) | ❌ | ✅ | Số khung phụ | `"CH123456"` |
+| `manufacturingDate` | `manufacturing_date` | LocalDate | ❌ | ✅ | Ngày sản xuất (ISO) | `"2025-01-15"` |
+| `arrivalDate` | `arrival_date` | LocalDate | ❌ | ✅ | Ngày nhập kho (ISO) | `"2025-01-20"` |
+| `status` | `status` | String (50) | ✅ | ❌ | Trạng thái (default: "available") | `"available"` |
+| `costPrice` | `cost_price` | BigDecimal (12,2) | ❌ | ✅ | Giá nhập (VND) | `1000000000.00` |
+| `sellingPrice` | `selling_price` | BigDecimal (12,2) | ❌ | ✅ | Giá bán (VND) | `1200000000.00` |
+| `vehicleImages` | `vehicle_images` | String (JSONB) | ❌ | ✅ | Hình ảnh xe (JSON array) | `"[{\"url\": \"...\", \"type\": \"main\"}]"` |
+| `interiorImages` | `interior_images` | String (JSONB) | ❌ | ✅ | Hình ảnh nội thất (JSON array) | `"[{\"url\": \"...\"}]"` |
+| `exteriorImages` | `exterior_images` | String (JSONB) | ❌ | ✅ | Hình ảnh ngoại thất (JSON array) | `"[{\"url\": \"...\"}]"` |
+| `reservedForDealer` | `reserved_for_dealer` (FK) | Object (Dealer) | ❌ | ✅ | Đại lý đã đặt giữ | `{"dealerId": "...", ...}` |
+| `reservedForCustomer` | `reserved_for_customer` (FK) | Object (Customer) | ❌ | ✅ | Khách hàng đã đặt giữ | `{"customerId": "...", ...}` |
+| `condition` | `condition` | Enum (VehicleCondition) | ❌ | ✅ | Tình trạng xe (NEW, USED, ...) | `"NEW"` |
+| `reservedDate` | `reserved_date` | LocalDateTime | ❌ | ✅ | Ngày đặt giữ | `"2025-01-20T10:30:00"` |
+| `reservedExpiryDate` | `reserved_expiry_date` | LocalDateTime | ❌ | ✅ | Ngày hết hạn đặt giữ | `"2025-01-27T10:30:00"` |
+| `createdAt` | `created_at` | LocalDateTime | ✅ Auto | ❌ | Thời gian tạo | `"2025-01-15T10:30:00"` |
+| `updatedAt` | `updated_at` | LocalDateTime | ✅ Auto | ❌ | Thời gian cập nhật | `"2025-01-20T15:45:00"` |
+
+**Lưu ý**:
+- `variant`, `color`, `warehouse` là objects được eager load
+- `vehicleImages`, `interiorImages`, `exteriorImages` là JSONB, API trả về String JSON (cần parse)
+- `status` có thể là: `available`, `reserved`, `sold`, `in_stock`, `transit`, `maintenance`
+- `condition` là Enum: `NEW`, `USED`, `DEMO`, `CERTIFIED_PRE_OWNED`
+
+**JSON Response Example**:
+```json
+{
+  "inventoryId": "a69250cf-3bc0-4dc5-934f-f5bebba77444",
+  "variant": {
+    "variantId": 51,
+    "variantName": "Model 3 Long Range RWD",
+    "model": {
+      "modelId": 25,
+      "modelName": "Tesla Model 3"
+    }
+  },
+  "color": {
+    "colorId": 1,
+    "colorName": "Trắng"
+  },
+  "warehouse": {
+    "warehouseId": "...",
+    "warehouseName": "Kho Hà Nội"
+  },
+  "warehouseLocation": "Khu vực A-001",
+  "vin": "5YJ3E1EA7KF317000",
+  "chassisNumber": null,
+  "manufacturingDate": "2025-01-15",
+  "arrivalDate": "2025-01-20",
+  "status": "available",
+  "costPrice": 1000000000.00,
+  "sellingPrice": 1200000000.00,
+  "vehicleImages": "[{\"url\": \"/uploads/inventory/main/image.jpg\", \"type\": \"main\"}]",
+  "interiorImages": null,
+  "exteriorImages": null,
+  "reservedForDealer": null,
+  "reservedForCustomer": null,
+  "condition": "NEW",
+  "reservedDate": null,
+  "reservedExpiryDate": null,
+  "createdAt": "2025-01-15T10:30:00",
+  "updatedAt": "2025-01-20T15:45:00"
+}
+```
+
+---
+
+### 📌 Quy tắc chung về Fields
+
+1. **Field Naming Convention**:
+   - Java Entity: `camelCase` (ví dụ: `variantId`, `brandName`)
+   - Database Column: `snake_case` (ví dụ: `variant_id`, `brand_name`)
+   - JSON Response: `camelCase` (giống Java Entity)
+
+2. **Relationship Fields**:
+   - Khi API eager load, relationship field sẽ là **Object** chứa đầy đủ thông tin
+   - Khi lazy load (hoặc không load), có thể là `null` hoặc object rỗng
+   - Ví dụ: `variant.model.brand.brandName` - có thể truy cập nested
+
+3. **Nullable Fields**:
+   - Fields `nullable = true` có thể là `null` trong response
+   - Frontend cần check `null` trước khi sử dụng
+   - Image fields thường nullable (chưa có ảnh)
+
+4. **Date/DateTime Format**:
+   - `LocalDate`: `"YYYY-MM-DD"` (ví dụ: `"2025-01-15"`)
+   - `LocalDateTime`: `"YYYY-MM-DDTHH:mm:ss"` hoặc `"YYYY-MM-DDTHH:mm:ss.SSSSSS"` (ví dụ: `"2025-01-15T10:30:00"`)
+
+5. **BigDecimal Fields**:
+   - Trả về dạng số, có thể có decimal places
+   - Ví dụ: `1127000000.00`, `60.50`, `6.10`
+
+6. **Boolean Fields**:
+   - Trả về `true`/`false` (không phải `"true"`/`"false"` string)
+
+7. **Enum Fields**:
+   - Trả về String value của enum
+   - Ví dụ: `"NEW"`, `"ACTIVE"`, `"PENDING"`
+
+---
+
+### 🔍 Kiểm tra Fields có sẵn trong API Response
+
+**Cách xác định fields có sẵn**:
+
+1. **GET API**: Tất cả fields trong bảng sẽ được trả về (nếu eager load relationships)
+2. **POST/PUT API**: Chỉ trả về fields đã được set (có thể thiếu một số optional fields)
+3. **Eager Loading**: Các API đã được cấu hình eager loading sẽ trả về đầy đủ relationship objects
+
+**Ví dụ kiểm tra trong Frontend**:
+```javascript
+// Kiểm tra field có tồn tại và không null
+if (variant.batteryCapacity != null) {
+  console.log('Battery:', variant.batteryCapacity, 'kWh');
+}
+
+// Kiểm tra nested field
+if (variant.model?.brand?.brandName) {
+  console.log('Brand:', variant.model.brand.brandName);
+}
+
+// Kiểm tra image field
+if (variant.variantImageUrl) {
+  const imageUrl = `http://localhost:8080${variant.variantImageUrl}`;
+}
+```
+
+---
+
+
+#### 4. **VehicleColor** (Màu sắc)
+- **Công dụng**: Danh mục màu xe (Trắng, Đen, Xanh...)
+- **ID**: `color_id` (Integer, auto-increment)
+- **Quan hệ**: OneToMany → `VehicleInventory`, `Quotation`, `DealerOrderItem`
+- **Đặc điểm**: Standalone, không phụ thuộc entity khác
+- **Cách dùng**: Tạo Color độc lập, có thể dùng chung cho nhiều xe
+
+#### 5. **Warehouse** (Kho)
+- **Công dụng**: Quản lý kho chứa xe
+- **ID**: `warehouse_id` (UUID)
+- **Quan hệ**: OneToMany → `VehicleInventory`
+- **Thông tin**: Tên, địa chỉ, capacity
+- **Cách dùng**: Tạo Warehouse trước khi nhập xe vào kho
+
+#### 6. **VehicleInventory** (Tồn kho xe điện)
+- **Công dụng**: Lưu thông tin từng chiếc xe điện cụ thể trong kho (có VIN riêng)
+- **ID**: `inventory_id` (UUID)
+- **Quan hệ**:
+  - ManyToOne → `VehicleVariant` (variant_id)
+  - ManyToOne → `VehicleColor` (color_id)
+  - ManyToOne → `Warehouse` (warehouse_id)
+  - ManyToOne → `Dealer` (reserved_for_dealer) - optional
+  - ManyToOne → `Customer` (reserved_for_customer) - optional
+  - OneToMany → `Order`
+- **Đặc điểm**: 
+  - Mỗi xe có VIN duy nhất
+  - Có status: available, reserved, sold
+  - Lưu ảnh dạng JSONB
+- **Cách dùng**: 
+  1. Có sẵn Variant, Color, Warehouse
+  2. Tạo Inventory với VIN
+  3. Status = "available" để có thể bán
+
+#### 7. **Dealer** (Đại lý)
+- **Công dụng**: Thông tin đại lý bán hàng
+- **ID**: `dealer_id` (UUID)
+- **Quan hệ**:
+  - OneToMany → `User` (users có dealer_id)
+  - OneToMany → `DealerOrder`, `DealerContract`, `VehicleInventory` (reserved)
+- **Thông tin**: Mã đại lý, tên, liên hệ, commission rate, status
+- **Cách dùng**: Tạo Dealer trước khi tạo User thuộc Dealer
+
+#### 8. **User** (Người dùng)
+- **Công dụng**: Tài khoản hệ thống (Admin, EVM Staff, Dealer Staff)
+- **ID**: `user_id` (UUID)
+- **Quan hệ**:
+  - ManyToOne → `Dealer` (dealer_id) - optional, chỉ khi userType = DEALER_STAFF
+  - OneToMany → `Order`, `Quotation`, `DealerOrder` (evm_staff_id/approved_by)
+- **Enums**: 
+  - `UserType`: ADMIN, EVM_STAFF, DEALER_MANAGER, DEALER_STAFF
+  - `UserStatus`: ACTIVE, INACTIVE, SUSPENDED
+- **Cách dùng**: 
+  - Admin/EVM: không cần dealer_id
+  - Dealer staff: cần dealer_id hợp lệ
+
+#### 9. **Customer** (Khách hàng)
+- **Công dụng**: Thông tin khách hàng mua xe
+- **ID**: `customer_id` (UUID)
+- **Quan hệ**:
+  - OneToMany → `Quotation`, `Order`, `Appointment`, `CustomerPayment`
+- **Thông tin**: Họ tên, email, phone, địa chỉ, credit score
+- **Cách dùng**: Tạo Customer độc lập, không phụ thuộc entity khác
+
+#### 10. **Quotation** (Báo giá)
+- **Công dụng**: Báo giá cho khách hàng
+- **ID**: `quotation_id` (UUID)
+- **Quan hệ**:
+  - ManyToOne → `Customer` (customer_id) - optional
+  - ManyToOne → `User` (user_id) - người tạo báo giá
+  - ManyToOne → `VehicleVariant` (variant_id) - optional
+  - ManyToOne → `VehicleColor` (color_id) - optional
+  - OneToMany → `Order` (một quotation có thể tạo nhiều order)
+- **Thông tin**: Số báo giá, giá, discount, validity days, status
+- **Cách dùng**:
+  1. Có Customer, User, Variant (optional), Color (optional)
+  2. Tạo Quotation
+  3. Khách chấp nhận → chuyển thành Order
+
+#### 11. **Order** (Đơn hàng)
+- **Công dụng**: Đơn bán lẻ xe điện cho khách hàng cuối
+- **ID**: `order_id` (UUID)
+- **Quan hệ**:
+  - ManyToOne → `Quotation` (quotation_id) - optional, đơn có thể từ báo giá
+  - ManyToOne → `Customer` (customer_id) - optional
+  - ManyToOne → `User` (user_id) - nhân viên xử lý
+  - ManyToOne → `VehicleInventory` (inventory_id) - xe cụ thể được bán
+  - OneToMany → `SalesContract`, `InstallmentPlan`, `CustomerPayment`
+- **Enums**:
+  - `OrderType`: RETAIL, WHOLESALE, DEMO, TEST_DRIVE
+  - `PaymentStatus`: PENDING, PARTIAL, PAID, OVERDUE, REFUNDED
+  - `DeliveryStatus`: PENDING, SCHEDULED, IN_TRANSIT, DELIVERED, CANCELLED
+- **Cách dùng**:
+  1. Có Inventory với status = "available"
+  2. Có Customer (optional), User, Quotation (optional)
+  3. Tạo Order → Inventory status = "reserved" hoặc "sold"
+
+#### 12. **DealerOrder** (Đơn đặt của đại lý)
+- **Công dụng**: Đơn đặt hàng giữa hãng (EVM) và đại lý
+- **ID**: `dealer_order_id` (UUID)
+- **Quan hệ**:
+  - ManyToOne → `Dealer` (dealer_id) - bắt buộc
+  - ManyToOne → `User` (evm_staff_id) - nhân viên EVM xử lý
+  - ManyToOne → `User` (approved_by) - người duyệt đơn
+  - OneToMany → `DealerOrderItem` (danh sách sản phẩm trong đơn)
+  - OneToMany → `DealerInvoice`, `VehicleDelivery`
+- **Thông tin**: Số đơn, tổng số lượng, tổng tiền, approval_status, order_type
+- **Enums**:
+  - `OrderType`: PURCHASE, RESERVE, SAMPLE
+  - `ApprovalStatus`: PENDING, APPROVED, REJECTED
+- **Cách dùng**:
+  1. Có Dealer
+  2. Tạo DealerOrder
+  3. Thêm DealerOrderItem (có Variant, Color)
+  4. Gửi phê duyệt → Approved → Tạo Invoice
+
+#### 13. **DealerOrderItem** (Chi tiết đơn đại lý)
+- **Công dụng**: Chi tiết từng sản phẩm trong đơn đại lý
+- **ID**: `item_id` (UUID)
+- **Quan hệ**:
+  - ManyToOne → `DealerOrder` (dealer_order_id) - bắt buộc
+  - ManyToOne → `VehicleVariant` (variant_id) - bắt buộc
+  - ManyToOne → `VehicleColor` (color_id) - bắt buộc
+  - OneToMany → `VehicleDelivery` (dealer_order_item_id)
+- **Thông tin**: Số lượng, đơn giá, tổng tiền, discount, status
+- **Cách dùng**: Tạo cùng lúc với DealerOrder, tính toán giá tự động
+
+---
+
+### Cách Entity tương tác với Database
+
+#### 1. **Lưu (Save/Persist)**
+```java
+// Tạo entity mới
+Customer customer = new Customer();
+customer.setFirstName("Nguyễn");
+customer.setLastName("Văn A");
+
+// Set quan hệ (nếu có)
+Quotation quotation = new Quotation();
+quotation.setCustomer(customer);  // Set object, không cần set ID
+quotation.setVariant(variant);      // Hibernate tự lấy variant_id
+
+// Lưu vào DB
+customerRepository.save(customer);    // INSERT INTO customers ...
+quotationRepository.save(quotation);  // INSERT INTO quotations (customer_id = ...) ...
+```
+
+**Hibernate tự động**:
+- Tạo UUID cho `customer_id`
+- Insert vào bảng `customers`
+- Lấy `customer_id` vừa tạo
+- Insert vào bảng `quotations` với `customer_id`
+
+#### 2. **Tải (Load/Fetch)**
+```java
+// Tải từ DB
+Order order = orderRepository.findById(orderId);  // SELECT * FROM orders WHERE order_id = ?
+
+// LAZY Loading: Chỉ load khi truy cập
+Customer customer = order.getCustomer();  // SELECT * FROM customers WHERE customer_id = ?
+```
+
+**Fetch Strategy**:
+- `LAZY`: Chỉ query khi cần (`order.getCustomer()` mới query)
+- `EAGER`: Query ngay khi load Order (có thể gây N+1 problem)
+
+#### 3. **Cập nhật (Update)**
+```java
+Order order = orderRepository.findById(orderId);
+order.setStatus("confirmed");
+order.setPaymentStatus(PaymentStatus.PARTIAL);
+orderRepository.save(order);  // UPDATE orders SET status = ..., payment_status = ...
+```
+
+**Hibernate tự động**:
+- So sánh entity hiện tại với snapshot
+- Chỉ UPDATE các trường thay đổi
+- Tự động cập nhật `updated_at` (nếu có `@UpdateTimestamp`)
+
+#### 4. **Xóa (Delete)**
+```java
+orderRepository.delete(order);  // DELETE FROM orders WHERE order_id = ?
+```
+
+**Cascade Delete**:
+```java
+@OneToMany(cascade = CascadeType.ALL)
+private List<DealerOrderItem> items;
+// Xóa DealerOrder → tự động xóa tất cả DealerOrderItem liên quan
+```
+
+#### 5. **Truy vấn quan hệ (Join Query)**
+```java
+// Trong Repository
+@Query("SELECT o FROM Order o JOIN FETCH o.customer WHERE o.orderId = :id")
+Order findByIdWithCustomer(@Param("id") UUID id);
+
+// Sử dụng
+Order order = orderRepository.findByIdWithCustomer(orderId);
+// Chỉ 1 query thay vì 2 (Order + Customer), tránh N+1 problem
+```
+
+---
+
+### Best Practices
+
+#### 1. **Thứ tự tạo Entity**
+Luôn tạo entity "cha" trước entity "con":
+```
+1. VehicleBrand → VehicleModel → VehicleVariant
+2. Dealer → User (nếu DEALER_STAFF)
+3. Warehouse → VehicleInventory
+4. Customer → Quotation → Order
+```
+
+#### 2. **Sử dụng LAZY Loading**
+```java
+@ManyToOne(fetch = FetchType.LAZY)  // ✅ Tốt
+@ManyToOne(fetch = FetchType.EAGER)  // ❌ Tránh dùng, gây N+1
+```
+
+#### 3. **Validate Foreign Key trước khi lưu**
+```java
+// Kiểm tra tồn tại trước
+if (!variantRepository.existsById(variantId)) {
+    throw new EntityNotFoundException("Variant not found");
+}
+inventory.setVariant(variantRepository.findById(variantId).get());
+```
+
+#### 4. **Sử dụng @CreationTimestamp và @UpdateTimestamp**
+```java
+@CreationTimestamp  // Tự động set khi tạo
+private LocalDateTime createdAt;
+
+@UpdateTimestamp    // Tự động cập nhật khi sửa
+private LocalDateTime updatedAt;
+```
+
+#### 5. **Tránh N+1 Query Problem**
+```java
+// ❌ Bad: N+1 queries
+List<Order> orders = orderRepository.findAll();
+for (Order o : orders) {
+    Customer c = o.getCustomer();  // Query riêng cho mỗi Order
+}
+
+// ✅ Good: JOIN FETCH
+@Query("SELECT o FROM Order o JOIN FETCH o.customer")
+List<Order> findAllWithCustomers();
+```
+
+---
+
+### Transaction và Entity Lifecycle
+
+#### Transaction Scope
+```java
+@Transactional  // Tất cả operations trong một transaction
+public void createOrderWithPayment(Order order, Payment payment) {
+    Order saved = orderRepository.save(order);  // Chưa commit
+    payment.setOrder(saved);
+    paymentRepository.save(payment);            // Chưa commit
+    // Commit tự động khi method kết thúc → Cả 2 đều lưu hoặc cả 2 đều rollback
+}
+```
+
+#### Entity States
+1. **Transient**: Entity mới tạo, chưa có trong DB
+2. **Persistent**: Entity đã được save, có trong DB
+3. **Detached**: Entity đã rời khỏi session
+4. **Removed**: Entity được đánh dấu xóa
+
+---
+
+### Thứ tự khởi tạo dữ liệu (để tránh lỗi Foreign Key)
+
+Khi tạo dữ liệu mới, **phải** tuân thủ thứ tự sau để tránh lỗi Foreign Key Constraint:
+
+```
+1. VehicleBrand (standalone)
+   ↓
+2. VehicleModel (cần Brand)
+   ↓
+3. VehicleVariant (cần Model)
+   ↓
+4. VehicleColor (standalone) // Có thể tạo song song với Brand
+   ↓
+5. Dealer (standalone)
+   ↓
+6. Warehouse (standalone) // Có thể tạo song song với Dealer
+   ↓
+7. VehicleInventory (cần: Variant, Color, Warehouse, Dealer optional)
+   ↓
+8. Customer (standalone) // Có thể tạo bất kỳ lúc nào
+   ↓
+9. User (cần Dealer nếu userType = DEALER_STAFF)
+   ↓
+10. Quotation (cần: Customer, User, Variant optional, Color optional)
+    ↓
+11. Order (cần: Quotation optional, Customer optional, User, Inventory)
+    ↓
+12. DealerOrder (cần: Dealer, User optional)
+    ↓
+13. DealerOrderItem (cần: DealerOrder, Variant, Color)
+```
+
+**Ví dụ luồng tạo Order:**
+```java
+// Bước 1-4: Tạo danh mục (chỉ làm 1 lần)
+VehicleBrand brand = new VehicleBrand("Tesla", "USA", 2003);
+brandRepository.save(brand);
+
+VehicleModel model = new VehicleModel(brand, "Model 3", 2024, "sedan");
+modelRepository.save(model);
+
+VehicleVariant variant = new VehicleVariant(model, "Standard Range", 1200000000.00);
+variantRepository.save(variant);
+
+VehicleColor color = new VehicleColor("Trắng", "#FFFFFF");
+colorRepository.save(color);
+
+// Bước 5-6: Tạo Dealer và Warehouse
+Dealer dealer = dealerRepository.save(new Dealer(...));
+Warehouse warehouse = warehouseRepository.save(new Warehouse(...));
+
+// Bước 7: Tạo Inventory
+VehicleInventory inventory = new VehicleInventory();
+inventory.setVariant(variant);      // Set object, không cần ID
+inventory.setColor(color);
+inventory.setWarehouse(warehouse);
+inventory.setVin("5YJ3E1EA7KF317000");
+inventory.setStatus("available");
+inventoryRepository.save(inventory);
+
+// Bước 8-9: Tạo Customer và User
+Customer customer = customerRepository.save(new Customer(...));
+User user = userRepository.save(new User(...));
+
+// Bước 10: Tạo Quotation
+Quotation quotation = new Quotation();
+quotation.setCustomer(customer);
+quotation.setUser(user);
+quotation.setVariant(variant);
+quotation.setColor(color);
+quotation.setQuotationNumber("QT-2025-001");
+quotation.setTotalPrice(new BigDecimal("1200000000"));
+quotation.setFinalPrice(new BigDecimal("1180000000"));
+quotationRepository.save(quotation);
+
+// Bước 11: Tạo Order
+Order order = new Order();
+order.setQuotation(quotation);      // Optional: có thể tạo Order không cần Quotation
+order.setCustomer(customer);
+order.setUser(user);
+order.setInventory(inventory);      // Quan trọng: set xe cụ thể
+order.setOrderNumber("ORD-2025-001");
+order.setOrderDate(LocalDate.now());
+orderRepository.save(order);
+
+// Update inventory status
+inventory.setStatus("reserved");
+inventoryRepository.save(inventory);
+```
+
+---
+
+### Các Entity phụ hỗ trợ
+
+#### 14. **SalesContract** (Hợp đồng bán hàng)
+- **Công dụng**: Hợp đồng chính thức sau khi Order được xác nhận
+- **Quan hệ**: ManyToOne → `Order`, `Customer`, `User`
+- **Thông tin**: Số hợp đồng, giá trị, điều khoản thanh toán, warranty
+
+#### 15. **CustomerPayment** (Thanh toán khách hàng)
+- **Công dụng**: Ghi nhận thanh toán của khách cho Order
+- **Quan hệ**: ManyToOne → `Order`, `Customer`, `User` (processed_by)
+- **Thông tin**: Số tiền, loại thanh toán, phương thức, reference number
+
+#### 16. **InstallmentPlan** (Kế hoạch trả góp)
+- **Công dụng**: Kế hoạch trả góp cho Order
+- **Quan hệ**: ManyToOne → `Order`, `Customer`, `DealerInvoice` (optional)
+- **Quan hệ**: OneToMany → `InstallmentSchedule` (lịch trả từng tháng)
+
+#### 17. **InstallmentSchedule** (Lịch trả góp)
+- **Công dụng**: Từng kỳ thanh toán trong kế hoạch trả góp
+- **Quan hệ**: ManyToOne → `InstallmentPlan`
+- **Thông tin**: Số kỳ, ngày đáo hạn, số tiền, trạng thái đã thanh toán
+
+#### 18. **Promotion** (Khuyến mãi)
+- **Công dụng**: Chương trình khuyến mãi cho Variant cụ thể
+- **Quan hệ**: ManyToOne → `VehicleVariant`
+- **Thông tin**: Tiêu đề, mô tả, discount %, ngày bắt đầu/kết thúc
+
+#### 19. **Appointment** (Lịch hẹn)
+- **Công dụng**: Lịch hẹn với khách (tư vấn, lái thử, giao xe)
+- **Quan hệ**: ManyToOne → `Customer`, `User` (staff_id), `VehicleVariant`
+- **Thông tin**: Loại hẹn, thời gian, địa điểm, trạng thái
+
+#### 20. **VehicleDelivery** (Giao xe)
+- **Công dụng**: Quản lý việc giao xe cho khách hoặc đại lý
+- **Quan hệ**: 
+  - ManyToOne → `Order`, `VehicleInventory`, `Customer`, `User` (delivered_by)
+  - ManyToOne → `DealerOrder`, `DealerOrderItem` (cho đơn đại lý)
+- **Thông tin**: Ngày giao, địa chỉ giao, trạng thái, chữ ký khách
+
+#### 21. **DealerInvoice** (Hóa đơn đại lý)
+- **Công dụng**: Hóa đơn cho đơn đặt của đại lý
+- **Quan hệ**: ManyToOne → `DealerOrder`, `User` (evm_staff_id)
+- **Quan hệ**: OneToMany → `DealerPayment`, `DealerInstallmentPlan`
+
+#### 22. **DealerPayment** (Thanh toán đại lý)
+- **Công dụng**: Ghi nhận thanh toán của đại lý cho Invoice
+- **Quan hệ**: ManyToOne → `DealerInvoice`
+
+#### 23. **DealerContract** (Hợp đồng đại lý)
+- **Công dụng**: Hợp đồng giữa hãng và đại lý
+- **Quan hệ**: ManyToOne → `Dealer`
+- **Thông tin**: Loại hợp đồng, lãnh thổ, commission rate, chỉ tiêu
+
+#### 24. **DealerTarget** (Mục tiêu đại lý)
+- **Công dụng**: Mục tiêu doanh số cho đại lý (tháng/năm)
+- **Quan hệ**: ManyToOne → `Dealer` (optional)
+- **Thông tin**: Năm, tháng, số tiền, số lượng, tỷ lệ đạt được
+
+---
+
+### Tóm tắt cách Entity tương tác với Database
+
+#### 1. **Mapping (Ánh xạ)**
+```java
+@Entity                    // Class → Table
+@Table(name = "orders")    // Tên bảng
+public class Order {
+    @Id                    // Khóa chính
+    @GeneratedValue        // Tự sinh ID
+    private UUID orderId;  // → orders.order_id
+    
+    @Column(name = "order_number")  // Field → Column
+    private String orderNumber;      // → orders.order_number
+}
+```
+
+#### 2. **Relationship Mapping (Ánh xạ quan hệ)**
+```java
+@ManyToOne                    // Quan hệ N-1
+@JoinColumn(name = "customer_id")  // Foreign key column
+private Customer customer;          // → orders.customer_id
+```
+
+**Trong Database:**
+- Bảng `orders` có cột `customer_id` (foreign key)
+- Ràng buộc: `FOREIGN KEY (customer_id) REFERENCES customers(customer_id)`
+
+#### 3. **Lazy Loading trong Database**
+```java
+// Khi load Order
+Order order = repository.findById(id);  
+// SQL: SELECT * FROM orders WHERE order_id = ?
+
+// Chỉ khi truy cập Customer
+Customer c = order.getCustomer();
+// SQL: SELECT * FROM customers WHERE customer_id = ? (chỉ chạy khi cần)
+```
+
+**Lợi ích:**
+- Tiết kiệm bộ nhớ
+- Tránh load dữ liệu không cần thiết
+- Tối ưu performance
+
+#### 4. **Cascade Operations**
+```java
+@OneToMany(cascade = CascadeType.ALL)
+private List<DealerOrderItem> items;
+
+// Khi xóa DealerOrder
+dealerOrderRepository.delete(dealerOrder);
+// → Hibernate tự động: DELETE FROM dealer_order_items WHERE dealer_order_id = ?
+```
+
+#### 5. **Transaction và Database Consistency**
+```java
+@Transactional
+public void createOrder(Order order) {
+    // Tất cả operations trong 1 transaction
+    orderRepository.save(order);           // INSERT (chưa commit)
+    inventory.setStatus("reserved");       // UPDATE (chưa commit)
+    inventoryRepository.save(inventory);
+    
+    // Nếu có lỗi → ROLLBACK toàn bộ
+    // Nếu thành công → COMMIT toàn bộ
+}
+```
+
+**Database Level:**
+- BEGIN TRANSACTION
+- INSERT INTO orders ...
+- UPDATE vehicle_inventory SET status = ...
+- COMMIT (hoặc ROLLBACK nếu lỗi)
+
+---
 
 ### Quy ước request chung
 - Header: `Content-Type: application/json`.

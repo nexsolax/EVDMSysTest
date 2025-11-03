@@ -1,8 +1,13 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.VehicleInventory;
+import com.evdealer.entity.VehicleVariant;
+import com.evdealer.entity.VehicleColor;
+import com.evdealer.dto.VehicleInventoryRequest;
 import com.evdealer.enums.VehicleStatus;
 import com.evdealer.repository.VehicleInventoryRepository;
+import com.evdealer.repository.VehicleVariantRepository;
+import com.evdealer.repository.VehicleColorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +25,23 @@ public class VehicleInventoryService {
     @Autowired
     private VehicleInventoryRepository vehicleInventoryRepository;
     
+    @Autowired
+    private VehicleVariantRepository vehicleVariantRepository;
+    
+    @Autowired
+    private VehicleColorRepository vehicleColorRepository;
+    
+    @Autowired
+    private com.evdealer.repository.WarehouseRepository warehouseRepository;
+    
     public List<VehicleInventory> getAllVehicleInventory() {
         try {
-            return vehicleInventoryRepository.findAll();
+            // Use JOIN FETCH to eagerly load relationships
+            return vehicleInventoryRepository.findAllWithRelationships();
         } catch (Exception e) {
-            // Return empty list if there's an issue
+            // Log error and return empty list
+            System.err.println("Error fetching vehicle inventory: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -70,7 +87,15 @@ public class VehicleInventoryService {
     }
     
     public Optional<VehicleInventory> getInventoryById(UUID inventoryId) {
-        return vehicleInventoryRepository.findById(inventoryId);
+        // Use eager loading to fetch warehouse relationship
+        return vehicleInventoryRepository.findByIdWithRelationships(inventoryId);
+    }
+    
+    /**
+     * Get inventory by ID with all relationships eagerly loaded (alias)
+     */
+    public Optional<VehicleInventory> getInventoryByIdWithDetails(UUID inventoryId) {
+        return getInventoryById(inventoryId);
     }
     
     public Optional<VehicleInventory> getInventoryByVin(String vin) {
@@ -83,6 +108,67 @@ public class VehicleInventoryService {
             throw new RuntimeException("VIN already exists");
         }
         return vehicleInventoryRepository.save(vehicleInventory);
+    }
+    
+    public VehicleInventory createVehicleInventoryFromRequest(VehicleInventoryRequest request) {
+        // Validate required fields
+        if (request.getVariantId() == null) {
+            throw new RuntimeException("Variant ID is required");
+        }
+        if (request.getColorId() == null) {
+            throw new RuntimeException("Color ID is required");
+        }
+        if (request.getVin() == null || request.getVin().trim().isEmpty()) {
+            throw new RuntimeException("VIN is required");
+        }
+        
+        // Check for duplicate VIN
+        if (vehicleInventoryRepository.existsByVin(request.getVin())) {
+            throw new RuntimeException("VIN already exists: " + request.getVin());
+        }
+        
+        // Get VehicleVariant
+        VehicleVariant variant = vehicleVariantRepository.findById(request.getVariantId())
+                .orElseThrow(() -> new RuntimeException("Variant not found with id: " + request.getVariantId()));
+        
+        // Get VehicleColor
+        VehicleColor color = vehicleColorRepository.findById(request.getColorId())
+                .orElseThrow(() -> new RuntimeException("Color not found with id: " + request.getColorId()));
+        
+        // Get Warehouse if provided
+        com.evdealer.entity.Warehouse warehouse = null;
+        if (request.getWarehouseId() != null) {
+            warehouse = warehouseRepository.findById(request.getWarehouseId())
+                    .orElseThrow(() -> new RuntimeException("Warehouse not found with id: " + request.getWarehouseId()));
+        }
+        
+        // Create VehicleInventory entity
+        VehicleInventory inventory = new VehicleInventory();
+        inventory.setVariant(variant);
+        inventory.setColor(color);
+        inventory.setWarehouse(warehouse);  // Set warehouse if provided
+        inventory.setVin(request.getVin().trim());
+        inventory.setChassisNumber(request.getChassisNumber());
+        inventory.setManufacturingDate(request.getManufacturingDate());
+        inventory.setWarehouseLocation(request.getLocation());
+        
+        // Set prices
+        if (request.getPurchasePrice() != null) {
+            inventory.setCostPrice(request.getPurchasePrice());
+        }
+        if (request.getSellingPrice() != null) {
+            inventory.setSellingPrice(request.getSellingPrice());
+        }
+        
+        // Normalize and set status
+        if (request.getStatus() != null) {
+            VehicleStatus normalizedStatus = VehicleStatus.fromString(request.getStatus());
+            inventory.setStatus(normalizedStatus.getValue());
+        } else {
+            inventory.setStatus(VehicleStatus.AVAILABLE.getValue());
+        }
+        
+        return vehicleInventoryRepository.save(inventory);
     }
     
     public VehicleInventory updateVehicleInventory(UUID inventoryId, VehicleInventory vehicleInventoryDetails) {
@@ -105,6 +191,67 @@ public class VehicleInventoryService {
         vehicleInventory.setExteriorImages(vehicleInventoryDetails.getExteriorImages());
         
         return vehicleInventoryRepository.save(vehicleInventory);
+    }
+    
+    public VehicleInventory updateVehicleInventoryFromRequest(UUID inventoryId, VehicleInventoryRequest request) {
+        VehicleInventory inventory = vehicleInventoryRepository.findById(inventoryId)
+                .orElseThrow(() -> new RuntimeException("Vehicle inventory not found"));
+        
+        // Update variant if provided
+        if (request.getVariantId() != null) {
+            VehicleVariant variant = vehicleVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Variant not found with id: " + request.getVariantId()));
+            inventory.setVariant(variant);
+        }
+        
+        // Update color if provided
+        if (request.getColorId() != null) {
+            VehicleColor color = vehicleColorRepository.findById(request.getColorId())
+                    .orElseThrow(() -> new RuntimeException("Color not found with id: " + request.getColorId()));
+            inventory.setColor(color);
+        }
+        
+        // Update warehouse if provided
+        // Note: If warehouseId is null in request, we don't update warehouse (keep existing)
+        // To clear warehouse, frontend should send a special flag or use a separate endpoint
+        if (request.getWarehouseId() != null) {
+            com.evdealer.entity.Warehouse warehouse = warehouseRepository.findById(request.getWarehouseId())
+                    .orElseThrow(() -> new RuntimeException("Warehouse not found with id: " + request.getWarehouseId()));
+            inventory.setWarehouse(warehouse);
+        }
+        // If warehouseId is not provided in request, warehouse remains unchanged
+        
+        // Update VIN if provided (check for duplicates)
+        if (request.getVin() != null && !request.getVin().trim().isEmpty()) {
+            if (!inventory.getVin().equals(request.getVin()) && 
+                vehicleInventoryRepository.existsByVin(request.getVin())) {
+                throw new RuntimeException("VIN already exists: " + request.getVin());
+            }
+            inventory.setVin(request.getVin().trim());
+        }
+        
+        // Update other fields
+        if (request.getChassisNumber() != null) {
+            inventory.setChassisNumber(request.getChassisNumber());
+        }
+        if (request.getManufacturingDate() != null) {
+            inventory.setManufacturingDate(request.getManufacturingDate());
+        }
+        if (request.getLocation() != null) {
+            inventory.setWarehouseLocation(request.getLocation());
+        }
+        if (request.getPurchasePrice() != null) {
+            inventory.setCostPrice(request.getPurchasePrice());
+        }
+        if (request.getSellingPrice() != null) {
+            inventory.setSellingPrice(request.getSellingPrice());
+        }
+        if (request.getStatus() != null) {
+            VehicleStatus normalizedStatus = VehicleStatus.fromString(request.getStatus());
+            inventory.setStatus(normalizedStatus.getValue());
+        }
+        
+        return vehicleInventoryRepository.save(inventory);
     }
     
     public void deleteVehicleInventory(UUID inventoryId) {

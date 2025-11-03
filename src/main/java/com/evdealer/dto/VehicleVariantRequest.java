@@ -1,44 +1,76 @@
 package com.evdealer.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 
-@Schema(description = "Vehicle variant request DTO for variant management")
+@Schema(description = "DTO để tạo/cập nhật phiên bản xe điện (Electric Vehicle Variant)")
 public class VehicleVariantRequest {
     
     @Schema(description = "Model ID", example = "1", required = true)
+    @JsonProperty("modelId")
     private Integer modelId;
     
-    @Schema(description = "Variant name", example = "Long Range", required = true)
+    // Setter that accepts both Integer and String for modelId
+    public void setModelId(Object modelId) {
+        if (modelId == null) {
+            this.modelId = null;
+        } else if (modelId instanceof Integer) {
+            this.modelId = (Integer) modelId;
+        } else if (modelId instanceof String) {
+            try {
+                this.modelId = Integer.parseInt((String) modelId);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid modelId format: " + modelId);
+            }
+        } else {
+            throw new IllegalArgumentException("modelId must be Integer or String, got: " + modelId.getClass());
+        }
+    }
+    
+    @Schema(description = "Tên phiên bản xe điện", example = "Long Range", required = true)
     private String variantName;
     
-    @Schema(description = "Base price", example = "1200000000", required = true)
+    @Schema(description = "Giá bán cơ bản (VND)", example = "1200000000", required = true)
+    @JsonProperty("basePrice")
     private BigDecimal basePrice;
     
-    @Schema(description = "Engine type", example = "electric")
+    @Schema(description = "Loại động cơ (luôn là 'electric' cho xe điện)", example = "electric", defaultValue = "electric")
     private String engineType;
     
-    @Schema(description = "Power output (kW)", example = "283")
-    private Integer powerOutput;
+    @Schema(description = "Loại hộp số (AUTOMATIC cho xe điện)", example = "AUTOMATIC")
+    private String transmission;
     
-    @Schema(description = "Torque (Nm)", example = "440")
+    @Schema(description = "Loại nhiên liệu (ELECTRIC cho xe điện)", example = "ELECTRIC")
+    private String fuelType;
+    
+    @Schema(description = "Công suất động cơ điện (kW)", example = "283")
+    @JsonProperty("powerKw")
+    private Integer powerKw;
+    
+    @Schema(description = "Mô-men xoắn (Nm)", example = "440")
     private Integer torque;
     
-    @Schema(description = "Acceleration 0-100 km/h (seconds)", example = "4.4")
-    private BigDecimal acceleration;
+    @Schema(description = "Thời gian tăng tốc 0-100 km/h (giây)", example = "6.1")
+    @JsonProperty("acceleration0100")
+    private BigDecimal acceleration0100;
     
-    @Schema(description = "Top speed (km/h)", example = "225")
+    @Schema(description = "Tốc độ tối đa (km/h)", example = "225")
     private Integer topSpeed;
     
-    @Schema(description = "Range (km)", example = "560")
-    private Integer range;
+    @Schema(description = "Phạm vi hoạt động (km) - đặc trưng của xe điện", example = "560")
+    @JsonProperty("rangeKm")
+    private Integer rangeKm;
     
-    @Schema(description = "Battery capacity (kWh)", example = "75")
+    @Schema(description = "Dung lượng pin (kWh) - đặc trưng của xe điện", example = "75")
     private Integer batteryCapacity;
     
-    @Schema(description = "Charging time (hours)", example = "8")
-    private BigDecimal chargingTime;
+    @Schema(description = "Thời gian sạc nhanh (phút) - đặc trưng của xe điện", example = "30")
+    private Integer chargingTimeFast;
+    
+    @Schema(description = "Thời gian sạc chậm (phút) - đặc trưng của xe điện", example = "600")
+    private Integer chargingTimeSlow;
     
     @Schema(description = "Weight (kg)", example = "1847")
     private Integer weight;
@@ -55,7 +87,7 @@ public class VehicleVariantRequest {
     @Schema(description = "Wheelbase (mm)", example = "2875")
     private Integer wheelbase;
     
-    @Schema(description = "Description", example = "Long range variant with extended battery")
+    @Schema(description = "Mô tả về phiên bản xe điện", example = "Phiên bản tầm xa với pin mở rộng 75kWh, phạm vi hoạt động 560km")
     private String description;
     
     @Schema(description = "Is active", example = "true")
@@ -63,6 +95,12 @@ public class VehicleVariantRequest {
     
     @Schema(description = "Notes", example = "Most popular variant")
     private String notes;
+    
+    @Schema(description = "Variant image URL", example = "/uploads/variants/model3/image.jpg")
+    private String variantImageUrl;
+    
+    @Schema(description = "Variant image path", example = "variants/model3/image.jpg")
+    private String variantImagePath;
     
     // Constructors
     public VehicleVariantRequest() {}
@@ -73,14 +111,17 @@ public class VehicleVariantRequest {
         this.basePrice = basePrice;
     }
     
+    // Helper method to check if required fields are present
+    public boolean isValid() {
+        return modelId != null && variantName != null && !variantName.trim().isEmpty() && basePrice != null;
+    }
+    
     // Getters and Setters
     public Integer getModelId() {
         return modelId;
     }
     
-    public void setModelId(Integer modelId) {
-        this.modelId = modelId;
-    }
+    // Removed old setModelId(Integer) - now using setModelId(Object) above
     
     public String getVariantName() {
         return variantName;
@@ -94,8 +135,23 @@ public class VehicleVariantRequest {
         return basePrice;
     }
     
-    public void setBasePrice(BigDecimal basePrice) {
-        this.basePrice = basePrice;
+    @JsonProperty("basePrice")
+    public void setBasePrice(Object basePrice) {
+        if (basePrice == null) {
+            this.basePrice = null;
+        } else if (basePrice instanceof BigDecimal) {
+            this.basePrice = (BigDecimal) basePrice;
+        } else if (basePrice instanceof Number) {
+            this.basePrice = BigDecimal.valueOf(((Number) basePrice).doubleValue());
+        } else if (basePrice instanceof String) {
+            try {
+                this.basePrice = new BigDecimal((String) basePrice);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid basePrice format: " + basePrice);
+            }
+        } else {
+            throw new IllegalArgumentException("basePrice must be Number or String, got: " + basePrice.getClass());
+        }
     }
     
     public String getEngineType() {
@@ -106,12 +162,12 @@ public class VehicleVariantRequest {
         this.engineType = engineType;
     }
     
-    public Integer getPowerOutput() {
-        return powerOutput;
+    public Integer getPowerKw() {
+        return powerKw;
     }
     
-    public void setPowerOutput(Integer powerOutput) {
-        this.powerOutput = powerOutput;
+    public void setPowerKw(Integer powerKw) {
+        this.powerKw = powerKw;
     }
     
     public Integer getTorque() {
@@ -122,12 +178,12 @@ public class VehicleVariantRequest {
         this.torque = torque;
     }
     
-    public BigDecimal getAcceleration() {
-        return acceleration;
+    public BigDecimal getAcceleration0100() {
+        return acceleration0100;
     }
     
-    public void setAcceleration(BigDecimal acceleration) {
-        this.acceleration = acceleration;
+    public void setAcceleration0100(BigDecimal acceleration0100) {
+        this.acceleration0100 = acceleration0100;
     }
     
     public Integer getTopSpeed() {
@@ -138,12 +194,12 @@ public class VehicleVariantRequest {
         this.topSpeed = topSpeed;
     }
     
-    public Integer getRange() {
-        return range;
+    public Integer getRangeKm() {
+        return rangeKm;
     }
     
-    public void setRange(Integer range) {
-        this.range = range;
+    public void setRangeKm(Integer rangeKm) {
+        this.rangeKm = rangeKm;
     }
     
     public Integer getBatteryCapacity() {
@@ -154,12 +210,36 @@ public class VehicleVariantRequest {
         this.batteryCapacity = batteryCapacity;
     }
     
-    public BigDecimal getChargingTime() {
-        return chargingTime;
+    public Integer getChargingTimeFast() {
+        return chargingTimeFast;
     }
     
-    public void setChargingTime(BigDecimal chargingTime) {
-        this.chargingTime = chargingTime;
+    public void setChargingTimeFast(Integer chargingTimeFast) {
+        this.chargingTimeFast = chargingTimeFast;
+    }
+    
+    public Integer getChargingTimeSlow() {
+        return chargingTimeSlow;
+    }
+    
+    public void setChargingTimeSlow(Integer chargingTimeSlow) {
+        this.chargingTimeSlow = chargingTimeSlow;
+    }
+    
+    public String getTransmission() {
+        return transmission;
+    }
+    
+    public void setTransmission(String transmission) {
+        this.transmission = transmission;
+    }
+    
+    public String getFuelType() {
+        return fuelType;
+    }
+    
+    public void setFuelType(String fuelType) {
+        this.fuelType = fuelType;
     }
     
     public Integer getWeight() {
@@ -224,5 +304,21 @@ public class VehicleVariantRequest {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public String getVariantImageUrl() {
+        return variantImageUrl;
+    }
+    
+    public void setVariantImageUrl(String variantImageUrl) {
+        this.variantImageUrl = variantImageUrl;
+    }
+    
+    public String getVariantImagePath() {
+        return variantImagePath;
+    }
+    
+    public void setVariantImagePath(String variantImagePath) {
+        this.variantImagePath = variantImagePath;
     }
 }

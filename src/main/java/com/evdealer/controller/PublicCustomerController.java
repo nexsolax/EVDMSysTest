@@ -1,6 +1,7 @@
 package com.evdealer.controller;
 
 import com.evdealer.entity.Customer;
+import com.evdealer.dto.CustomerRequest;
 import com.evdealer.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,9 +25,9 @@ public class PublicCustomerController {
 
     @PostMapping
     @Operation(summary = "Tạo khách hàng", description = "Khách vãng lai có thể khai báo thông tin để mua hàng")
-    public ResponseEntity<?> createCustomer(@RequestBody Customer customer) {
+    public ResponseEntity<?> createCustomer(@RequestBody CustomerRequest request) {
         try {
-            Customer created = customerService.createCustomer(customer);
+            Customer created = customerService.createCustomerFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

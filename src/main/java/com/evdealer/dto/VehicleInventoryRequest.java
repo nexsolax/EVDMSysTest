@@ -16,6 +16,9 @@ public class VehicleInventoryRequest {
     @Schema(description = "Color ID", example = "1", required = true)
     private Integer colorId;
     
+    @Schema(description = "Warehouse ID", example = "a69250cf-3bc0-4dc5-934f-f5bebba77444")
+    private UUID warehouseId;
+    
     @Schema(description = "VIN", example = "1HGBH41JXMN109186", required = true)
     private String vin;
     
@@ -87,6 +90,14 @@ public class VehicleInventoryRequest {
     
     public void setColorId(Integer colorId) {
         this.colorId = colorId;
+    }
+    
+    public UUID getWarehouseId() {
+        return warehouseId;
+    }
+    
+    public void setWarehouseId(UUID warehouseId) {
+        this.warehouseId = warehouseId;
     }
     
     public String getVin() {

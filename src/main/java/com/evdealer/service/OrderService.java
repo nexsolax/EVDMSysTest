@@ -34,9 +34,12 @@ public class OrderService {
     
     public List<Order> getAllOrders() {
         try {
-            return orderRepository.findAll();
+            // Use JOIN FETCH to eagerly load relationships
+            return orderRepository.findAllWithRelationships();
         } catch (Exception e) {
-            // Return empty list if there's an issue
+            // Log error and return empty list
+            System.err.println("Error fetching orders: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -158,6 +161,82 @@ public class OrderService {
         order.setBalanceAmount(orderDetails.getBalanceAmount());
         order.setPaymentMethod(orderDetails.getPaymentMethod());
         order.setNotes(orderDetails.getNotes());
+        
+        return orderRepository.save(order);
+    }
+    
+    public Order updateOrderFromRequest(UUID orderId, OrderRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+        
+        // Update quotation if provided
+        if (request.getQuotationId() != null) {
+            Quotation quotation = quotationRepository.findById(request.getQuotationId())
+                    .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + request.getQuotationId()));
+            order.setQuotation(quotation);
+        }
+        
+        // Update customer if provided
+        if (request.getCustomerId() != null) {
+            Customer customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+            order.setCustomer(customer);
+        }
+        
+        // Update user if provided
+        if (request.getUserId() != null) {
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getUserId()));
+            order.setUser(user);
+        }
+        
+        // Update inventory if provided
+        if (request.getInventoryId() != null) {
+            VehicleInventory inventory = vehicleInventoryRepository.findById(request.getInventoryId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle inventory not found with ID: " + request.getInventoryId()));
+            order.setInventory(inventory);
+        }
+        
+        // Update other fields
+        if (request.getOrderDate() != null) {
+            order.setOrderDate(request.getOrderDate());
+        }
+        if (request.getOrderType() != null) {
+            order.setOrderType(request.getOrderType());
+        }
+        if (request.getPaymentStatus() != null) {
+            order.setPaymentStatus(request.getPaymentStatus());
+        }
+        if (request.getDeliveryStatus() != null) {
+            order.setDeliveryStatus(request.getDeliveryStatus());
+        }
+        if (request.getFulfillmentStatus() != null) {
+            order.setFulfillmentStatus(request.getFulfillmentStatus());
+        }
+        if (request.getFulfillmentMethod() != null) {
+            order.setFulfillmentMethod(request.getFulfillmentMethod());
+        }
+        if (request.getTotalAmount() != null) {
+            order.setTotalAmount(request.getTotalAmount());
+        }
+        if (request.getDepositAmount() != null) {
+            order.setDepositAmount(request.getDepositAmount());
+        }
+        if (request.getBalanceAmount() != null) {
+            order.setBalanceAmount(request.getBalanceAmount());
+        }
+        if (request.getPaymentMethod() != null) {
+            order.setPaymentMethod(request.getPaymentMethod());
+        }
+        if (request.getNotes() != null) {
+            order.setNotes(request.getNotes());
+        }
+        if (request.getDeliveryDate() != null) {
+            order.setDeliveryDate(request.getDeliveryDate());
+        }
+        if (request.getSpecialRequests() != null) {
+            order.setSpecialRequests(request.getSpecialRequests());
+        }
         
         return orderRepository.save(order);
     }

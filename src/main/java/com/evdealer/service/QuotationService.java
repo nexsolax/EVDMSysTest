@@ -34,9 +34,12 @@ public class QuotationService {
     
     public List<Quotation> getAllQuotations() {
         try {
-            return quotationRepository.findAll();
+            // Use JOIN FETCH to eagerly load relationships
+            return quotationRepository.findAllWithRelationships();
         } catch (Exception e) {
-            // Return empty list if there's an issue
+            // Log error and return empty list
+            System.err.println("Error fetching quotations: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -162,6 +165,64 @@ public class QuotationService {
         quotation.setValidityDays(quotationDetails.getValidityDays());
         quotation.setStatus(normalizeStatus(quotationDetails.getStatus()));
         quotation.setNotes(quotationDetails.getNotes());
+        
+        return quotationRepository.save(quotation);
+    }
+    
+    public Quotation updateQuotationFromRequest(UUID quotationId, QuotationRequest request) {
+        Quotation quotation = quotationRepository.findById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found"));
+        
+        // Update customer if provided
+        if (request.getCustomerId() != null) {
+            Customer customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+            quotation.setCustomer(customer);
+        }
+        
+        // Update user if provided
+        if (request.getUserId() != null) {
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getUserId()));
+            quotation.setUser(user);
+        }
+        
+        // Update variant if provided
+        if (request.getVariantId() != null) {
+            VehicleVariant variant = vehicleVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle variant not found with ID: " + request.getVariantId()));
+            quotation.setVariant(variant);
+        }
+        
+        // Update color if provided
+        if (request.getColorId() != null) {
+            VehicleColor color = vehicleColorRepository.findById(request.getColorId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle color not found with ID: " + request.getColorId()));
+            quotation.setColor(color);
+        }
+        
+        // Update other fields
+        if (request.getQuotationDate() != null) {
+            quotation.setQuotationDate(request.getQuotationDate());
+        }
+        if (request.getTotalPrice() != null) {
+            quotation.setTotalPrice(request.getTotalPrice());
+        }
+        if (request.getDiscountAmount() != null) {
+            quotation.setDiscountAmount(request.getDiscountAmount());
+        }
+        if (request.getFinalPrice() != null) {
+            quotation.setFinalPrice(request.getFinalPrice());
+        }
+        if (request.getValidityDays() != null) {
+            quotation.setValidityDays(request.getValidityDays());
+        }
+        if (request.getStatus() != null) {
+            quotation.setStatus(normalizeStatus(request.getStatus()));
+        }
+        if (request.getNotes() != null) {
+            quotation.setNotes(request.getNotes());
+        }
         
         return quotationRepository.save(quotation);
     }

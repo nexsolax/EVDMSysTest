@@ -106,9 +106,9 @@ public class OrderController {
     
     @PutMapping("/{orderId}")
     @Operation(summary = "Cập nhật đơn hàng", description = "Cập nhật thông tin đơn hàng")
-    public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID orderId, @RequestBody Order orderDetails) {
+    public ResponseEntity<OrderDTO> updateOrder(@PathVariable UUID orderId, @RequestBody OrderRequest request) {
         try {
-            Order updatedOrder = orderService.updateOrder(orderId, orderDetails);
+            Order updatedOrder = orderService.updateOrderFromRequest(orderId, request);
             return ResponseEntity.ok(toDTO(updatedOrder));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

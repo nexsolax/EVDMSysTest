@@ -4,6 +4,10 @@ import com.evdealer.entity.VehicleBrand;
 import com.evdealer.entity.VehicleModel;
 import com.evdealer.entity.VehicleVariant;
 import com.evdealer.entity.VehicleColor;
+import com.evdealer.dto.VehicleModelRequest;
+import com.evdealer.dto.VehicleVariantRequest;
+import com.evdealer.dto.VehicleBrandRequest;
+import com.evdealer.dto.VehicleColorRequest;
 import com.evdealer.service.VehicleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -68,9 +72,9 @@ public class VehicleController {
     
     @PostMapping("/brands")
     @Operation(summary = "Tạo thương hiệu mới", description = "Tạo thương hiệu xe mới")
-    public ResponseEntity<VehicleBrand> createBrand(@RequestBody VehicleBrand brand) {
+    public ResponseEntity<VehicleBrand> createBrand(@RequestBody VehicleBrandRequest request) {
         try {
-            VehicleBrand createdBrand = vehicleService.createBrand(brand);
+            VehicleBrand createdBrand = vehicleService.createBrandFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdBrand);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -78,9 +82,10 @@ public class VehicleController {
     }
     
     @PutMapping("/brands/{brandId}")
-    public ResponseEntity<VehicleBrand> updateBrand(@PathVariable Integer brandId, @RequestBody VehicleBrand brandDetails) {
+    @Operation(summary = "Cập nhật thương hiệu", description = "Cập nhật thông tin thương hiệu")
+    public ResponseEntity<VehicleBrand> updateBrand(@PathVariable Integer brandId, @RequestBody VehicleBrandRequest request) {
         try {
-            VehicleBrand updatedBrand = vehicleService.updateBrand(brandId, brandDetails);
+            VehicleBrand updatedBrand = vehicleService.updateBrandFromRequest(brandId, request);
             return ResponseEntity.ok(updatedBrand);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -101,8 +106,12 @@ public class VehicleController {
     @GetMapping("/models")
     @Operation(summary = "Lấy danh sách mẫu xe", description = "Lấy tất cả mẫu xe")
     public ResponseEntity<List<VehicleModel>> getAllModels() {
-        List<VehicleModel> models = vehicleService.getAllModels();
-        return ResponseEntity.ok(models);
+        try {
+            List<VehicleModel> models = vehicleService.getAllModels();
+            return ResponseEntity.ok(models);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     @GetMapping("/models/active")
@@ -151,15 +160,20 @@ public class VehicleController {
     
     @PostMapping("/models")
     @Operation(summary = "Tạo mẫu xe mới", description = "Tạo mẫu xe mới")
-    public ResponseEntity<VehicleModel> createModel(@RequestBody VehicleModel model) {
-        VehicleModel createdModel = vehicleService.createModel(model);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdModel);
+    public ResponseEntity<VehicleModel> createModel(@RequestBody VehicleModelRequest request) {
+        try {
+            VehicleModel createdModel = vehicleService.createModelFromRequest(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdModel);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
     
     @PutMapping("/models/{modelId}")
-    public ResponseEntity<VehicleModel> updateModel(@PathVariable Integer modelId, @RequestBody VehicleModel modelDetails) {
+    @Operation(summary = "Cập nhật mẫu xe", description = "Cập nhật thông tin mẫu xe")
+    public ResponseEntity<VehicleModel> updateModel(@PathVariable Integer modelId, @RequestBody VehicleModelRequest request) {
         try {
-            VehicleModel updatedModel = vehicleService.updateModel(modelId, modelDetails);
+            VehicleModel updatedModel = vehicleService.updateModelFromRequest(modelId, request);
             return ResponseEntity.ok(updatedModel);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -180,8 +194,13 @@ public class VehicleController {
     @GetMapping("/variants")
     @Operation(summary = "Lấy danh sách phiên bản xe", description = "Lấy tất cả phiên bản xe")
     public ResponseEntity<List<VehicleVariant>> getAllVariants() {
-        List<VehicleVariant> variants = vehicleService.getAllVariants();
-        return ResponseEntity.ok(variants);
+        try {
+            List<VehicleVariant> variants = vehicleService.getAllVariants();
+            return ResponseEntity.ok(variants);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     @GetMapping("/variants/active")
@@ -231,19 +250,32 @@ public class VehicleController {
     }
     
     @PostMapping("/variants")
-    @Operation(summary = "Tạo phiên bản xe mới", description = "Tạo phiên bản xe mới")
-    public ResponseEntity<VehicleVariant> createVariant(@RequestBody VehicleVariant variant) {
-        VehicleVariant createdVariant = vehicleService.createVariant(variant);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdVariant);
+    @Operation(summary = "Tạo phiên bản xe mới", description = "Tạo phiên bản xe điện mới")
+    public ResponseEntity<VehicleVariant> createVariant(@RequestBody VehicleVariantRequest request) {
+        try {
+            VehicleVariant createdVariant = vehicleService.createVariantFromRequest(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdVariant);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     @PutMapping("/variants/{variantId}")
-    public ResponseEntity<VehicleVariant> updateVariant(@PathVariable Integer variantId, @RequestBody VehicleVariant variantDetails) {
+    @Operation(summary = "Cập nhật phiên bản xe", description = "Cập nhật thông tin phiên bản xe điện")
+    public ResponseEntity<VehicleVariant> updateVariant(@PathVariable Integer variantId, @RequestBody VehicleVariantRequest request) {
         try {
-            VehicleVariant updatedVariant = vehicleService.updateVariant(variantId, variantDetails);
+            VehicleVariant updatedVariant = vehicleService.updateVariantFromRequest(variantId, request);
             return ResponseEntity.ok(updatedVariant);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
@@ -301,9 +333,9 @@ public class VehicleController {
     
     @PostMapping("/colors")
     @Operation(summary = "Tạo màu sắc mới", description = "Tạo màu sắc xe mới")
-    public ResponseEntity<VehicleColor> createColor(@RequestBody VehicleColor color) {
+    public ResponseEntity<VehicleColor> createColor(@RequestBody VehicleColorRequest request) {
         try {
-            VehicleColor createdColor = vehicleService.createColor(color);
+            VehicleColor createdColor = vehicleService.createColorFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdColor);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -311,9 +343,10 @@ public class VehicleController {
     }
     
     @PutMapping("/colors/{colorId}")
-    public ResponseEntity<VehicleColor> updateColor(@PathVariable Integer colorId, @RequestBody VehicleColor colorDetails) {
+    @Operation(summary = "Cập nhật màu sắc", description = "Cập nhật thông tin màu sắc")
+    public ResponseEntity<VehicleColor> updateColor(@PathVariable Integer colorId, @RequestBody VehicleColorRequest request) {
         try {
-            VehicleColor updatedColor = vehicleService.updateColor(colorId, colorDetails);
+            VehicleColor updatedColor = vehicleService.updateColorFromRequest(colorId, request);
             return ResponseEntity.ok(updatedColor);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

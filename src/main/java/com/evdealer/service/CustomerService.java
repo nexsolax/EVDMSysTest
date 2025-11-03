@@ -1,6 +1,7 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.Customer;
+import com.evdealer.dto.CustomerRequest;
 import com.evdealer.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -55,6 +56,43 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
     
+    public Customer createCustomerFromRequest(CustomerRequest request) {
+        // Validate required fields
+        if (request.getFirstName() == null || request.getFirstName().trim().isEmpty()) {
+            throw new RuntimeException("First name is required");
+        }
+        if (request.getLastName() == null || request.getLastName().trim().isEmpty()) {
+            throw new RuntimeException("Last name is required");
+        }
+        
+        // Check for duplicate email
+        if (request.getEmail() != null && customerRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists: " + request.getEmail());
+        }
+        
+        // Check for duplicate phone
+        if (request.getPhone() != null && customerRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone already exists: " + request.getPhone());
+        }
+        
+        // Create Customer entity
+        Customer customer = new Customer();
+        customer.setFirstName(request.getFirstName().trim());
+        customer.setLastName(request.getLastName().trim());
+        customer.setEmail(request.getEmail());
+        customer.setPhone(request.getPhone());
+        customer.setDateOfBirth(request.getDateOfBirth());
+        customer.setAddress(request.getAddress());
+        customer.setCity(request.getCity());
+        customer.setProvince(request.getProvince());
+        customer.setPostalCode(request.getPostalCode());
+        customer.setCreditScore(request.getCreditScore());
+        customer.setPreferredContactMethod(request.getPreferredContactMethod());
+        customer.setNotes(request.getNotes());
+        
+        return customerRepository.save(customer);
+    }
+    
     public Customer updateCustomer(UUID customerId, Customer customerDetails) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + customerId));
@@ -85,6 +123,65 @@ public class CustomerService {
         customer.setCreditScore(customerDetails.getCreditScore());
         customer.setPreferredContactMethod(customerDetails.getPreferredContactMethod());
         customer.setNotes(customerDetails.getNotes());
+        
+        return customerRepository.save(customer);
+    }
+    
+    public Customer updateCustomerFromRequest(UUID customerId, CustomerRequest request) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + customerId));
+        
+        // Check for duplicate email (excluding current customer)
+        if (request.getEmail() != null && 
+            !customer.getEmail().equals(request.getEmail()) && 
+            customerRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists: " + request.getEmail());
+        }
+        
+        // Check for duplicate phone (excluding current customer)
+        if (request.getPhone() != null && 
+            !customer.getPhone().equals(request.getPhone()) && 
+            customerRepository.existsByPhone(request.getPhone())) {
+            throw new RuntimeException("Phone already exists: " + request.getPhone());
+        }
+        
+        // Update fields
+        if (request.getFirstName() != null && !request.getFirstName().trim().isEmpty()) {
+            customer.setFirstName(request.getFirstName().trim());
+        }
+        if (request.getLastName() != null && !request.getLastName().trim().isEmpty()) {
+            customer.setLastName(request.getLastName().trim());
+        }
+        if (request.getEmail() != null) {
+            customer.setEmail(request.getEmail());
+        }
+        if (request.getPhone() != null) {
+            customer.setPhone(request.getPhone());
+        }
+        if (request.getDateOfBirth() != null) {
+            customer.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getAddress() != null) {
+            customer.setAddress(request.getAddress());
+        }
+        if (request.getCity() != null) {
+            customer.setCity(request.getCity());
+        }
+        if (request.getProvince() != null) {
+            customer.setProvince(request.getProvince());
+        }
+        if (request.getPostalCode() != null) {
+            customer.setPostalCode(request.getPostalCode());
+        }
+        if (request.getCreditScore() != null) {
+            customer.setCreditScore(request.getCreditScore());
+        }
+        if (request.getPreferredContactMethod() != null) {
+            customer.setPreferredContactMethod(request.getPreferredContactMethod());
+        }
+        if (request.getNotes() != null) {
+            customer.setNotes(request.getNotes());
+        }
         
         return customerRepository.save(customer);
     }

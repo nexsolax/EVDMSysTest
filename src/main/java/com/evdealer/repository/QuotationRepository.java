@@ -14,8 +14,11 @@ import java.util.UUID;
 @Repository
 public interface QuotationRepository extends JpaRepository<Quotation, UUID> {
     
-    @Query("SELECT q FROM Quotation q")
+    @Query("SELECT DISTINCT q FROM Quotation q LEFT JOIN FETCH q.customer LEFT JOIN FETCH q.user LEFT JOIN FETCH q.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH q.color")
     List<Quotation> findAllWithDetails();
+    
+    @Query("SELECT DISTINCT q FROM Quotation q LEFT JOIN FETCH q.customer LEFT JOIN FETCH q.user LEFT JOIN FETCH q.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH q.color")
+    List<Quotation> findAllWithRelationships();
     
     Optional<Quotation> findByQuotationNumber(String quotationNumber);
     
