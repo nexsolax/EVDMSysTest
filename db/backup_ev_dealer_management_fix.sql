@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BD4boUTetHYO8KVhWuyx9UZHEyqb5BfeaZpHMnKSgftmXcFZezAWV6yNE6w8BiQ
+\restrict QMVPmGE3cvhur7LK30STNh18CdoheZ6s0Wp96IhULMkkVK39K4p6gYw1leVKihv
 
 -- Dumped from database version 18.0
 -- Dumped by pg_dump version 18.0
@@ -48,6 +48,40 @@ $$;
 
 
 ALTER FUNCTION public.update_dealer_order_items_updated_at() OWNER TO postgres;
+
+--
+-- Name: update_dealer_quotation_expiry_date(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_dealer_quotation_expiry_date() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW.quotation_date IS NOT NULL AND NEW.validity_days IS NOT NULL THEN
+        NEW.expiry_date := NEW.quotation_date + (NEW.validity_days || ' days')::INTERVAL;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_dealer_quotation_expiry_date() OWNER TO postgres;
+
+--
+-- Name: update_dealer_quotation_updated_at(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_dealer_quotation_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at := CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_dealer_quotation_updated_at() OWNER TO postgres;
 
 --
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
@@ -278,11 +312,19 @@ CREATE TABLE public.dealer_invoices (
     payment_terms_days integer DEFAULT 30,
     notes text,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    quotation_id uuid
 );
 
 
 ALTER TABLE public.dealer_invoices OWNER TO postgres;
+
+--
+-- Name: COLUMN dealer_invoices.quotation_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.dealer_invoices.quotation_id IS 'Reference to DealerQuotation if invoice was created from quotation';
+
 
 --
 -- Name: dealer_order_items; Type: TABLE; Schema: public; Owner: postgres
@@ -361,6 +403,86 @@ CREATE TABLE public.dealer_payments (
 
 
 ALTER TABLE public.dealer_payments OWNER TO postgres;
+
+--
+-- Name: dealer_quotation_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.dealer_quotation_items (
+    item_id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    quotation_id uuid NOT NULL,
+    variant_id integer NOT NULL,
+    color_id integer NOT NULL,
+    quantity integer NOT NULL,
+    unit_price numeric(15,2) NOT NULL,
+    discount_percentage numeric(5,2) DEFAULT 0,
+    discount_amount numeric(12,2) DEFAULT 0,
+    total_price numeric(15,2) NOT NULL,
+    notes text,
+    created_at timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT dealer_quotation_items_quantity_check CHECK ((quantity > 0)),
+    CONSTRAINT dealer_quotation_items_total_price_check CHECK ((total_price >= (0)::numeric)),
+    CONSTRAINT dealer_quotation_items_unit_price_check CHECK ((unit_price >= (0)::numeric))
+);
+
+
+ALTER TABLE public.dealer_quotation_items OWNER TO postgres;
+
+--
+-- Name: TABLE dealer_quotation_items; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.dealer_quotation_items IS 'Chi tiết từng sản phẩm trong báo giá đại lý';
+
+
+--
+-- Name: dealer_quotations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.dealer_quotations (
+    quotation_id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    quotation_number character varying(100) NOT NULL,
+    dealer_id uuid NOT NULL,
+    dealer_order_id uuid,
+    evm_staff_id uuid,
+    quotation_date date NOT NULL,
+    validity_days integer DEFAULT 30 NOT NULL,
+    expiry_date date,
+    subtotal numeric(15,2) NOT NULL,
+    tax_amount numeric(12,2) DEFAULT 0,
+    discount_amount numeric(12,2) DEFAULT 0,
+    discount_percentage numeric(5,2) DEFAULT 0,
+    total_amount numeric(15,2) NOT NULL,
+    status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    payment_terms character varying(100),
+    delivery_terms character varying(255),
+    expected_delivery_date date,
+    accepted_at timestamp(6) without time zone,
+    rejected_at timestamp(6) without time zone,
+    rejection_reason text,
+    notes text,
+    created_at timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    CONSTRAINT dealer_quotations_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'sent'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'expired'::character varying, 'converted'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.dealer_quotations OWNER TO postgres;
+
+--
+-- Name: TABLE dealer_quotations; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.dealer_quotations IS 'Báo giá từ hãng cho đại lý khi đại lý đặt xe';
+
+
+--
+-- Name: COLUMN dealer_quotations.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.dealer_quotations.status IS 'pending, sent, accepted, rejected, expired, converted';
+
 
 --
 -- Name: dealer_targets; Type: TABLE; Schema: public; Owner: postgres
@@ -636,43 +758,6 @@ CREATE TABLE public.test_drive_schedules (
 
 
 ALTER TABLE public.test_drive_schedules OWNER TO postgres;
-
---
--- Name: user_roles; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.user_roles (
-    role_id integer NOT NULL,
-    role_name character varying(50) NOT NULL,
-    description text,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    permissions character varying(4000) DEFAULT '{}'::character varying NOT NULL
-);
-
-
-ALTER TABLE public.user_roles OWNER TO postgres;
-
---
--- Name: user_roles_role_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.user_roles_role_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.user_roles_role_id_seq OWNER TO postgres;
-
---
--- Name: user_roles_role_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public.user_roles_role_id_seq OWNED BY public.user_roles.role_id;
-
 
 --
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
@@ -966,13 +1051,6 @@ CREATE TABLE public.warehouse (
 ALTER TABLE public.warehouse OWNER TO postgres;
 
 --
--- Name: user_roles role_id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.user_roles ALTER COLUMN role_id SET DEFAULT nextval('public.user_roles_role_id_seq'::regclass);
-
-
---
 -- Name: vehicle_brands brand_id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -1005,6 +1083,11 @@ ALTER TABLE ONLY public.vehicle_variants ALTER COLUMN variant_id SET DEFAULT nex
 --
 
 COPY public.appointments (appointment_id, customer_id, staff_id, appointment_type, title, description, appointment_date, duration_minutes, location, status, notes, created_at, updated_at, variant_id) FROM stdin;
+a0bb45f0-e026-4548-ac0e-7e531a611525	23c800a2-5903-4b5e-bb41-c86e0e4a5107	\N	test_drive	Test Drive - Standard Range	\N	2024-03-20 10:00:00	60	\N	pending	\N	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104	1
+ab2e7251-dcab-46e1-be82-bf42178dc8af	bc295b71-4784-42bb-8711-573b48d28101	\N	test_drive	Test Drive - VF 5 Standard	\N	2024-03-20 10:00:00	60	\N	pending	\N	2025-10-14 23:15:14.855996	2025-10-14 23:15:14.855996	8
+0bbd5116-4504-4304-8a7d-fec50a78b666	0766234c-d354-476c-a8f9-200cd74f2d9e	\N	test_drive	Test Drive - Model 3 Standard Range	\N	2024-03-25 14:00:00	60	\N	pending	\N	2025-10-14 23:15:14.855996	2025-10-14 23:15:14.855996	3
+1d956e90-14db-4927-a883-8a8bd53994c8	\N	\N	test_drive	Lái thử xe - Test Customer	\N	2024-12-20 03:00:00	60	\N	scheduled	Test appointment\nCustomer: Test Customer (test@example.com, 0123456789), Variant ID: 1	2025-10-26 15:24:30.955333	2025-10-26 15:24:30.955333	\N
+af293c23-38d8-4106-b37b-f7195dcde0ed	\N	\N	delivery	Nhận xe - Test Customer	\N	2024-12-25 07:00:00	60	\N	scheduled	Test delivery appointment\nCustomer: Test Customer (test@example.com, 0123456789), Order ID: 48bbd74e-ce34-4f48-9b26-eb9e0c9de16a, Address: 123 Test Street, Ho Chi Minh City	2025-10-26 15:29:47.056141	2025-10-26 15:29:47.056141	\N
 \.
 
 
@@ -1013,6 +1096,10 @@ COPY public.appointments (appointment_id, customer_id, staff_id, appointment_typ
 --
 
 COPY public.customer_feedbacks (feedback_id, customer_id, order_id, rating, feedback_type, message, response, status, created_at, updated_at) FROM stdin;
+3512230a-8c44-46d8-b4c1-c10e2199936a	e9c41a60-f600-4188-80fb-55fbc60ae128	1a242971-a5d8-41ae-9681-0b4081c6a5da	5	general	Dịch vụ tốt, giao xe đúng hẹn	\N	resolved	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104
+ecba9a9d-180c-41b8-9ca5-d08d413c2c70	23c800a2-5903-4b5e-bb41-c86e0e4a5107	f574227f-d7c9-4145-91bd-a3b2bf409b6a	4	service	Nhân viên tư vấn nhiệt tình	\N	resolved	2025-10-14 23:15:14.855996	2025-10-14 23:15:14.855996
+7ee1382a-090d-4aec-81a1-d2034e4c38e6	\N	\N	5	compliment	I love this car!\n\nCustomer Info: Test Customer (test@example.com, 0123456789), Subject: Great service	\N	pending	2025-10-26 15:24:24.914978	2025-10-26 15:24:24.914978
+68ff9047-6820-4e42-bde1-9371d821d90d	\N	\N	5	compliment	I love this car!\n\nCustomer Info: Test Customer (test@example.com, 0123456789), Variant ID: 1, Subject: Great service	\N	pending	2025-10-26 15:25:21.827458	2025-10-26 15:25:21.827458
 \.
 
 
@@ -1021,6 +1108,10 @@ COPY public.customer_feedbacks (feedback_id, customer_id, order_id, rating, feed
 --
 
 COPY public.customer_payments (payment_id, order_id, customer_id, payment_number, payment_date, amount, payment_type, payment_method, reference_number, status, processed_by, notes, created_at) FROM stdin;
+7f52485c-db0b-4fbf-970d-10cadeeb4472	1a242971-a5d8-41ae-9681-0b4081c6a5da	e9c41a60-f600-4188-80fb-55fbc60ae128	CUST-PAY-2024-001	2024-02-15	236000000.00	down_payment	bank_transfer	\N	completed	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	\N	2025-10-14 23:14:45.443104
+5427f291-b31a-48dc-855a-79f269cb4ab7	f574227f-d7c9-4145-91bd-a3b2bf409b6a	23c800a2-5903-4b5e-bb41-c86e0e4a5107	CUST-PAY-2024-002	2024-02-16	800000000.00	full_payment	bank_transfer	\N	completed	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	\N	2025-10-14 23:15:14.855996
+32c9ee85-fd3a-4b07-a9e9-f8145ec12cc9	48bbd74e-ce34-4f48-9b26-eb9e0c9de16a	\N	PAY-1761492535661	2025-10-26	100000000.00	deposit	bank_transfer	\N	pending	\N	Test deposit payment	2025-10-26 15:28:55.667017
+941f3463-4521-4c0f-bca0-552cd2e875ca	48bbd74e-ce34-4f48-9b26-eb9e0c9de16a	\N	PAY-1761492593226	2025-10-26	1000000000.00	full	credit_card	\N	pending	\N	Test full payment	2025-10-26 15:29:53.227518
 \.
 
 
@@ -1037,6 +1128,7 @@ COPY public.customers (customer_id, first_name, last_name, email, phone, date_of
 --
 
 COPY public.dealer_contracts (contract_id, contract_number, contract_type, start_date, end_date, territory, commission_rate, minimum_sales_target, contract_status, signed_date, contract_file_url, contract_file_path, terms_and_conditions, created_at, updated_at, dealer_id, monthly_target, yearly_target) FROM stdin;
+f1abe2b8-c6b0-4e1e-b54e-d2f27a349f5d	DC-2024-001	exclusive	2024-01-01	2024-12-31	Ho Chi Minh City	3.50	50000000000.00	ACTIVE	2023-12-15	https://example.com/contracts/DC-2024-001.pdf	\N	Hợp đồng đại lý độc quyền tại TP.HCM	2025-10-14 23:14:45.443104	2025-10-29 16:15:11.727302	\N	\N	\N
 \.
 
 
@@ -1068,7 +1160,8 @@ COPY public.dealer_installment_schedules (schedule_id, amount, created_at, due_d
 -- Data for Name: dealer_invoices; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.dealer_invoices (invoice_id, invoice_number, dealer_order_id, evm_staff_id, invoice_date, due_date, subtotal, tax_amount, discount_amount, total_amount, status, payment_terms_days, notes, created_at, updated_at) FROM stdin;
+COPY public.dealer_invoices (invoice_id, invoice_number, dealer_order_id, evm_staff_id, invoice_date, due_date, subtotal, tax_amount, discount_amount, total_amount, status, payment_terms_days, notes, created_at, updated_at, quotation_id) FROM stdin;
+c3f451ff-60cd-42b7-aac0-87dfe80e2275	TEST-INVOICE-001	e31c5e36-4bd6-4708-b4c8-fa59d161a5b8	\N	2025-10-29	2025-11-28	1000000000.00	0.00	0.00	1000000000.00	issued	30	\N	2025-10-29 16:58:33.656844	2025-10-29 16:58:33.656844	\N
 \.
 
 
@@ -1085,6 +1178,7 @@ COPY public.dealer_order_items (item_id, created_at, discount_amount, discount_p
 --
 
 COPY public.dealer_orders (dealer_order_id, dealer_order_number, evm_staff_id, order_date, expected_delivery_date, total_quantity, total_amount, status, priority, notes, created_at, updated_at, approved_at, approved_by, rejection_reason, dealer_id, order_type, approval_status, payment_terms, delivery_terms, discount_applied, discount_reason) FROM stdin;
+e31c5e36-4bd6-4708-b4c8-fa59d161a5b8	TEST-DEALER-ORDER-001	\N	2025-10-29	\N	1	1000000000.00	pending	normal	\N	2025-10-29 16:58:33.656844	2025-10-29 16:58:33.656844	\N	\N	\N	\N	PURCHASE	APPROVED	NET_30	FOB_FACTORY	0.00	\N
 \.
 
 
@@ -1097,10 +1191,29 @@ COPY public.dealer_payments (payment_id, invoice_id, payment_number, payment_dat
 
 
 --
+-- Data for Name: dealer_quotation_items; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.dealer_quotation_items (item_id, quotation_id, variant_id, color_id, quantity, unit_price, discount_percentage, discount_amount, total_price, notes, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: dealer_quotations; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.dealer_quotations (quotation_id, quotation_number, dealer_id, dealer_order_id, evm_staff_id, quotation_date, validity_days, expiry_date, subtotal, tax_amount, discount_amount, discount_percentage, total_amount, status, payment_terms, delivery_terms, expected_delivery_date, accepted_at, rejected_at, rejection_reason, notes, created_at, updated_at) FROM stdin;
+\.
+
+
+--
 -- Data for Name: dealer_targets; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.dealer_targets (target_id, target_year, target_month, target_type, target_amount, target_quantity, achieved_amount, achieved_quantity, target_status, notes, created_at, updated_at, dealer_id, target_scope) FROM stdin;
+36888548-0f6e-4d2e-9dce-b2960a110dbf	2024	1	monthly	5000000000.00	4	1200000000.00	1	active	Chỉ tiêu tháng 1/2024	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104	\N	dealer
+ca72dcc3-ea16-4c19-91b1-7b98b9a9e836	2024	2	monthly	6000000000.00	5	1180000000.00	1	active	Chỉ tiêu tháng 2/2024	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104	\N	dealer
+87aa5aed-6157-4f80-9e78-90fddf847c42	2024	\N	yearly	60000000000.00	50	2380000000.00	2	active	Chỉ tiêu cả năm 2024	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104	\N	dealer
 \.
 
 
@@ -1109,6 +1222,7 @@ COPY public.dealer_targets (target_id, target_year, target_month, target_type, t
 --
 
 COPY public.dealers (dealer_id, dealer_code, dealer_name, contact_person, email, phone, address, city, province, postal_code, dealer_type, license_number, tax_code, bank_account, bank_name, commission_rate, status, notes, created_at, updated_at, contract_start_date, contract_end_date, monthly_sales_target, yearly_sales_target) FROM stdin;
+42a9c22c-5817-438c-9aea-859a99c33f2f	EVD001	EV Đại lý 1 test	\N	evd001@gmail.com	0987654321	1/1a abc	HCM	\N	70000	authorized	AM02	0123019788	\N	\N	1.00	ACTIVE	\N	2025-11-03 12:44:13.47997	2025-11-03 19:49:09.718835	\N	\N	\N	\N
 \.
 
 
@@ -1117,6 +1231,9 @@ COPY public.dealers (dealer_id, dealer_code, dealer_name, contact_person, email,
 --
 
 COPY public.installment_plans (plan_id, order_id, customer_id, total_amount, down_payment_amount, loan_amount, interest_rate, loan_term_months, monthly_payment_amount, first_payment_date, last_payment_date, plan_status, finance_company, contract_number, created_at, invoice_id, dealer_id, plan_type) FROM stdin;
+569515c4-22c0-40f6-be0d-d4191e1045bc	1a242971-a5d8-41ae-9681-0b4081c6a5da	e9c41a60-f600-4188-80fb-55fbc60ae128	1180000000.00	236000000.00	944000000.00	8.50	36	30000000.00	2024-03-15	2027-02-15	active	Vietcombank	VCB-INST-2024-001	2025-10-14 23:14:45.443104	\N	\N	customer
+d5696832-b27a-4a2c-9d86-62d25826bdfd	c6544d05-f1e6-4842-a1cc-3a6af4a873e7	bc295b71-4784-42bb-8711-573b48d28101	350000000.00	0.00	350000000.00	9.00	24	16000000.00	2024-03-17	2026-02-17	active	BIDV	BIDV-INST-2024-001	2025-10-14 23:15:14.855996	\N	\N	customer
+37516889-d4c8-4118-a715-321e3b53016f	\N	\N	2000000000.00	400000000.00	1600000000.00	7.50	24	75000000.00	2024-03-01	2026-02-01	active	EV Finance	EVF-DEALER-2024-001	2025-10-14 23:14:45.443104	7578326c-b3cb-4c79-99fb-61118f0494e0	\N	dealer
 \.
 
 
@@ -1133,6 +1250,7 @@ COPY public.installment_schedules (schedule_id, plan_id, installment_number, due
 --
 
 COPY public.orders (order_id, order_number, quotation_id, customer_id, user_id, inventory_id, order_date, status, total_amount, deposit_amount, balance_amount, payment_method, notes, created_at, updated_at, delivery_date, special_requests, order_type, payment_status, delivery_status, fulfillment_status, fulfillment_method, fulfillment_reference_id) FROM stdin;
+6dfe1afc-b82f-4d18-8954-bfca67a311d7	TEST-ORDER-001	\N	\N	\N	\N	2025-10-29	pending	1000000000.00	\N	\N	\N	\N	2025-10-29 16:58:33.656844	2025-10-29 16:58:33.656844	\N	\N	RETAIL	PENDING	PENDING	IN_PROGRESS	DEALER_ORDER	c3f451ff-60cd-42b7-aac0-87dfe80e2275
 \.
 
 
@@ -1149,6 +1267,9 @@ COPY public.pricing_policies (policy_id, policy_name, description, policy_type, 
 --
 
 COPY public.promotions (promotion_id, variant_id, title, description, discount_percent, discount_amount, start_date, end_date, status, created_at, updated_at) FROM stdin;
+55db5285-efe6-4e12-9f6e-36919bd61bfe	1	Khuyến mãi mùa hè	Giảm giá 5% cho Tesla Model 3	5.00	\N	2024-06-01	2024-07-01	active	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104
+534f600d-f319-4b62-8fff-a8655c5d2430	3	Khuyến mãi mùa hè Tesla	Giảm giá 5% cho Tesla Model 3 Standard Range	5.00	\N	2024-06-01	2024-07-01	active	2025-10-14 23:15:14.855996	2025-10-14 23:15:14.855996
+99942c2c-c1e5-4ad2-9dee-6580d286bf7f	8	Khuyến mãi VinFast VF 5	Giảm giá 10% cho VinFast VF 5 Standard	10.00	\N	2024-03-01	2024-04-01	active	2025-10-14 23:15:14.855996	2025-10-14 23:15:14.855996
 \.
 
 
@@ -1157,6 +1278,18 @@ COPY public.promotions (promotion_id, variant_id, title, description, discount_p
 --
 
 COPY public.quotations (quotation_id, quotation_number, customer_id, user_id, variant_id, color_id, quotation_date, total_price, discount_amount, final_price, validity_days, status, notes, created_at, updated_at) FROM stdin;
+e13dea70-2661-4527-ab52-13284fa3eff9	QT-2024-001	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	1	1	2025-10-14	1200000000.00	20000000.00	1180000000.00	7	pending	Báo giá Tesla Model 3 Standard Range màu trắng	2025-10-14 23:14:45.443104	2025-10-20 19:13:56.50184
+869777a2-80ac-4996-a9cb-d7707d4d678b	QT-2024-002	23c800a2-5903-4b5e-bb41-c86e0e4a5107	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	6	4	2025-10-14	800000000.00	0.00	800000000.00	7	pending	Báo giá BYD Atto 3 Standard màu xanh dương	2025-10-14 23:15:14.855996	2025-10-20 19:14:01.794677
+2cf9b2c9-db82-40fc-9629-fcee4ddf0c8d	QT-2024-003	bc295b71-4784-42bb-8711-573b48d28101	52b27bc0-f457-4f96-bcaf-d20daadf9f56	8	1	2025-10-14	350000000.00	0.00	350000000.00	7	pending	Báo giá VinFast VF 5 Standard màu trắng	2025-10-14 23:15:14.855996	2025-10-20 19:14:07.461984
+9910249d-a3bd-4e4d-a22b-c04225da94a5	QT-2024-004	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	\N	\N	2024-02-18	1900000000.00	100000000.00	1800000000.00	7	pending	Báo giá cho khách hàng Nguyễn Thị Thu	2025-10-14 23:18:22.035186	2025-10-20 19:14:12.781567
+d3ad4833-c0b2-49dd-b40c-6040853e5772	QT-2024-005	e9c41a60-f600-4188-80fb-55fbc60ae128	52b27bc0-f457-4f96-bcaf-d20daadf9f56	11	\N	2024-02-20	2300000000.00	100000000.00	2200000000.00	7	pending	Báo giá cho khách hàng Phạm Văn Đức	2025-10-14 23:18:22.035186	2025-10-20 19:14:17.873351
+5dfe0c7a-0d44-467f-b815-79adedd33f2c	QT-2024-006	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	\N	1	2024-02-22	1250000000.00	50000000.00	1200000000.00	7	pending	Báo giá cho khách hàng Trần Thị Mai	2025-10-14 23:18:22.035186	2025-10-20 19:14:23.335086
+e22ada09-2477-41df-ac3a-85058b3fe516	QT-2024-007	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	21	1	2024-03-01	2500000000.00	100000000.00	2400000000.00	7	pending	Báo giá cho Tesla Model S Plaid	2025-10-14 23:46:18.12036	2025-10-20 19:14:28.313952
+9b82e51f-30a5-4237-9a21-a7223926c08b	QT-2024-008	23c800a2-5903-4b5e-bb41-c86e0e4a5107	52b27bc0-f457-4f96-bcaf-d20daadf9f56	22	3	2024-03-02	2800000000.00	150000000.00	2650000000.00	7	pending	Báo giá cho Tesla Model X Plaid	2025-10-14 23:46:18.12036	2025-10-20 19:14:35.110954
+9bd78eb4-3700-48e3-8e72-84a09aaa3c9e	QT-2024-010	2d374584-fb65-472d-83a5-c1136f26bc38	52b27bc0-f457-4f96-bcaf-d20daadf9f56	24	\N	2024-03-04	2000000000.00	100000000.00	1900000000.00	7	pending	Báo giá cho BMW iX3 xDrive30	2025-10-14 23:46:18.12036	2025-10-20 19:14:40.314095
+81661b71-7b3c-43bb-8171-0cd6af2762fc	QT-2024-009	80ff5c2e-f596-4638-9f14-733ae515bbeb	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	23	1	2024-03-03	1200000000.00	50000000.00	1150000000.00	7	pending	Báo giá cho BYD Atto 3 Extended Range	2025-10-14 23:46:18.12036	2025-10-20 19:14:47.996452
+e913b770-4755-4375-9744-ff97ff827c7a	QUO-20251023-3448	78fe7eb0-ceb8-4793-a8af-187a3fe26f67	6f2431b7-10c9-4d61-b612-33e11b923752	1	1	2025-10-23	1200000000.00	0.00	1200000000.00	7	accepted	test	2025-10-23 10:31:25.24992	2025-10-23 10:31:25.24992
+0565564e-0656-4716-a799-a57c5f7bb17c	QUO-20251023-7976	78fe7eb0-ceb8-4793-a8af-187a3fe26f67	6f2431b7-10c9-4d61-b612-33e11b923752	1	1	2025-10-23	1200000000.00	0.00	1200000000.00	7	accepted	test	2025-10-23 10:36:28.973223	2025-10-23 10:36:28.973223
 \.
 
 
@@ -1165,6 +1298,14 @@ COPY public.quotations (quotation_id, quotation_number, customer_id, user_id, va
 --
 
 COPY public.sales_contracts (contract_id, contract_number, order_id, customer_id, user_id, contract_date, delivery_date, contract_value, payment_terms, warranty_period_months, contract_status, signed_date, contract_file_url, contract_file_path, notes, created_at, updated_at) FROM stdin;
+8a6c521b-8618-4416-ab3e-54911a58ed2a	SC-2024-001	1a242971-a5d8-41ae-9681-0b4081c6a5da	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	2024-02-16	2024-03-01	1180000000.00	Trả góp 36 tháng, lãi suất 8.5%/năm	24	signed	2024-02-16	https://example.com/contracts/SC-2024-001.pdf	\N	\N	2025-10-14 23:14:45.443104	2025-10-14 23:14:45.443104
+4e153212-9b59-47bb-b801-f02421a259f2	SC-2024-002	f574227f-d7c9-4145-91bd-a3b2bf409b6a	23c800a2-5903-4b5e-bb41-c86e0e4a5107	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	2024-02-17	2024-02-20	800000000.00	Thanh toán một lần	24	signed	2024-02-17	https://example.com/contracts/SC-2024-002.pdf	\N	\N	2025-10-14 23:15:14.855996	2025-10-14 23:15:14.855996
+db5615f4-c7f7-4b51-8098-ce1b4680297d	SC-2024-003	c6544d05-f1e6-4842-a1cc-3a6af4a873e7	\N	52b27bc0-f457-4f96-bcaf-d20daadf9f56	2024-02-18	2024-03-05	950000000.00	Trả góp 24 tháng, lãi suất 7.5%/năm	24	signed	2024-02-18	https://example.com/contracts/SC-2024-003.pdf	\N	\N	2025-10-14 23:18:22.035186	2025-10-14 23:18:22.035186
+c6b5b1af-b84f-482c-a4ee-a69a66c8ba94	SC-2024-004	1a242971-a5d8-41ae-9681-0b4081c6a5da	\N	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	2024-02-20	2024-03-08	1800000000.00	Trả góp 48 tháng, lãi suất 8.0%/năm	36	signed	2024-02-20	https://example.com/contracts/SC-2024-004.pdf	\N	\N	2025-10-14 23:18:22.035186	2025-10-14 23:18:42.729405
+762eaafe-5dc5-4044-887a-b2d9d9065844	SC-2024-005	1a242971-a5d8-41ae-9681-0b4081c6a5da	\N	52b27bc0-f457-4f96-bcaf-d20daadf9f56	2024-02-22	2024-03-10	2200000000.00	Trả góp 60 tháng, lãi suất 8.5%/năm	48	signed	2024-02-22	https://example.com/contracts/SC-2024-005.pdf	\N	\N	2025-10-14 23:18:22.035186	2025-10-14 23:18:42.729405
+27794eed-3af2-4b75-8c35-eabd1ee43871	SC-2024-006	1a242971-a5d8-41ae-9681-0b4081c6a5da	\N	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	2024-02-25	2024-03-15	1200000000.00	Trả góp 36 tháng, lãi suất 8.5%/năm	24	pending	\N	https://example.com/contracts/SC-2024-006.pdf	\N	\N	2025-10-14 23:18:22.035186	2025-10-14 23:18:42.729405
+879f3482-1b58-417e-8da9-7d5871e60d34	SC-2024-007	9d035558-89e5-4a9d-a6d9-1b6462f36ab4	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	2024-03-01	2024-03-15	2400000000.00	Trả góp 48 tháng, lãi suất 8.0%/năm	36	signed	2024-03-01	https://example.com/contracts/SC-2024-007.pdf	\N	\N	2025-10-14 23:46:18.12036	2025-10-14 23:46:18.12036
+32e4457e-8c48-434a-9f38-8ce4578f752c	SC-2024-008	5993dd7a-c68d-4f13-bf12-d97f4fa8b28b	23c800a2-5903-4b5e-bb41-c86e0e4a5107	52b27bc0-f457-4f96-bcaf-d20daadf9f56	2024-03-02	2024-03-16	2650000000.00	Trả góp 60 tháng, lãi suất 8.5%/năm	48	signed	2024-03-02	https://example.com/contracts/SC-2024-008.pdf	\N	\N	2025-10-14 23:46:18.12036	2025-10-14 23:46:18.12036
 \.
 
 
@@ -1177,23 +1318,12 @@ COPY public.test_drive_schedules (schedule_id, created_at, notes, preferred_date
 
 
 --
--- Data for Name: user_roles; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public.user_roles (role_id, role_name, description, created_at, permissions) FROM stdin;
-1	admin	System Administrator	2025-10-14 23:14:45.443104	{"users": ["create", "read", "update", "delete"], "orders": ["create", "read", "update", "delete"], "dealers": ["create", "read", "update", "delete"], "reports": ["read"], "invoices": ["create", "read", "update", "delete"], "vehicles": ["create", "read", "update", "delete"]}
-2	evm_staff	Electric Vehicle Manufacturer Staff	2025-10-14 23:14:45.443104	{"dealers": ["read", "update"], "reports": ["read"], "invoices": ["create", "read", "update"], "vehicles": ["create", "read", "update"]}
-3	dealer_manager	Dealer Manager	2025-10-14 23:14:45.443104	{"users": ["read"], "orders": ["create", "read", "update"], "reports": ["read"], "invoices": ["read"], "customers": ["create", "read", "update"]}
-4	dealer_staff	Dealer Staff 123	2025-10-14 23:14:45.443104	{"quotations":["read","write"],"vehicles":["read","write"],"orders":["read","write"],"customers":["read","write"]}
-\.
-
-
---
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.users (user_id, username, email, password_hash, first_name, last_name, phone, address, date_of_birth, profile_image_url, profile_image_path, is_active, created_at, updated_at, dealer_id, user_type, status, last_login) FROM stdin;
 6f2431b7-10c9-4d61-b612-33e11b923752	admin	admin@evdealer.com	$2a$10$twGkmusRXuBWmxF7.j04n.jt7BMv2W1TgcVNGiZNLAlJ68vGWU7Ne	Test	Administrator	0123456789	System Address	\N	\N	\N	t	2025-10-16 10:16:03.680024	2025-10-29 16:15:11.727302	\N	ADMIN	ACTIVE	\N
+2563a80e-b726-476a-b1a5-072a5d40908f	manager	manager@evdealer.com	$2a$10$3wclfmXQcRYQuZm.0NVZx.opfgL.qDboHUyU2LaXlKFw/8/yH6sxi	Manager	Toan	0987654321	\N	\N	\N	\N	t	2025-11-04 06:18:09.870708	2025-11-04 13:30:42.288958	\N	DEALER_MANAGER	ACTIVE	\N
 \.
 
 
@@ -1202,6 +1332,7 @@ COPY public.users (user_id, username, email, password_hash, first_name, last_nam
 --
 
 COPY public.vehicle_brands (brand_id, brand_name, country, founded_year, brand_logo_url, brand_logo_path, is_active, created_at) FROM stdin;
+8	Tesla test	USA	2003	/uploads/brands/tesla_test/91a75456-b195-45a7-82d9-19c535c14972.png	brands/tesla_test/91a75456-b195-45a7-82d9-19c535c14972.png	t	2025-11-03 07:37:12.466565
 \.
 
 
@@ -1210,6 +1341,8 @@ COPY public.vehicle_brands (brand_id, brand_name, country, founded_year, brand_l
 --
 
 COPY public.vehicle_colors (color_id, color_name, color_code, color_swatch_url, color_swatch_path, is_active) FROM stdin;
+10	RED	RED001	\N	\N	t
+9	BLUE	BLUE01			t
 \.
 
 
@@ -1226,6 +1359,8 @@ COPY public.vehicle_deliveries (delivery_id, order_id, inventory_id, customer_id
 --
 
 COPY public.vehicle_inventory (inventory_id, variant_id, color_id, warehouse_id, warehouse_location, vin, chassis_number, manufacturing_date, arrival_date, status, cost_price, selling_price, vehicle_images, interior_images, exterior_images, created_at, updated_at, reserved_for_dealer, reserved_for_customer, condition, reserved_date, reserved_expiry_date) FROM stdin;
+cde0fcc0-8b99-4018-bb4a-661453dcb567	51	10	f9e3d37d-b23d-4c21-9666-4636667bdd7c	\N	1HGBH41JXMN109188	\N	\N	\N	available	\N	\N	\N	\N	\N	2025-11-03 12:59:52.966529	2025-11-04 13:06:08.400843	\N	\N	NEW	\N	\N
+561f7afa-912e-46f5-8c9c-092a19656752	51	9	f9e3d37d-b23d-4c21-9666-4636667bdd7c	\N	1HGBH41JXMN109189	\N	\N	\N	available	\N	\N	\N	\N	\N	2025-11-04 06:09:35.627478	2025-11-04 13:11:51.118553	\N	\N	NEW	\N	\N
 \.
 
 
@@ -1234,6 +1369,7 @@ COPY public.vehicle_inventory (inventory_id, variant_id, color_id, warehouse_id,
 --
 
 COPY public.vehicle_models (model_id, brand_id, model_name, model_year, vehicle_type, description, specifications, model_image_url, model_image_path, is_active, created_at) FROM stdin;
+25	8	Tesla Model 3	2017	SEDAN	Tesla Model 3 nổi bật với hiệu suất mạnh mẽ, phạm vi hoạt động tốt và chi phí vận hành tiết kiệm, là mẫu xe điện phổ biến trên thị trường hiện nay.	\N	\N	\N	t	2025-11-03 07:49:42.193365
 \.
 
 
@@ -1242,6 +1378,7 @@ COPY public.vehicle_models (model_id, brand_id, model_name, model_year, vehicle_
 --
 
 COPY public.vehicle_variants (variant_id, model_id, variant_name, battery_capacity, range_km, power_kw, acceleration_0_100, top_speed, charging_time_fast, charging_time_slow, price_base, variant_image_url, variant_image_path, is_active, created_at) FROM stdin;
+51	25	Model 3 Long Range RWD	60.00	554	202.00	6.10	225	30	600	1127000000.00	/uploads/variants/model_3_long_range_rwd/78108c48-4feb-40c7-8a8f-9ea4aeac170a.jpg	variants/model_3_long_range_rwd/78108c48-4feb-40c7-8a8f-9ea4aeac170a.jpg	t	2025-11-03 10:42:19.164582
 \.
 
 
@@ -1250,42 +1387,36 @@ COPY public.vehicle_variants (variant_id, model_id, variant_name, battery_capaci
 --
 
 COPY public.warehouse (warehouse_id, warehouse_name, warehouse_code, address, city, province, postal_code, phone, email, capacity, is_active, created_at, updated_at) FROM stdin;
+f9e3d37d-b23d-4c21-9666-4636667bdd7c	Kho 1	W001	1/1a abc	HCM	HCM	70000	0987654321	kho001@gmail.com	1000	t	2025-11-03 12:55:55.127747	2025-11-03 12:55:55.127747
 \.
-
-
---
--- Name: user_roles_role_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public.user_roles_role_id_seq', 4, true);
 
 
 --
 -- Name: vehicle_brands_brand_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_brands_brand_id_seq', 1, false);
+SELECT pg_catalog.setval('public.vehicle_brands_brand_id_seq', 8, true);
 
 
 --
 -- Name: vehicle_colors_color_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_colors_color_id_seq', 1, false);
+SELECT pg_catalog.setval('public.vehicle_colors_color_id_seq', 10, true);
 
 
 --
 -- Name: vehicle_models_model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_models_model_id_seq', 1, false);
+SELECT pg_catalog.setval('public.vehicle_models_model_id_seq', 27, true);
 
 
 --
 -- Name: vehicle_variants_variant_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_variants_variant_id_seq', 1, false);
+SELECT pg_catalog.setval('public.vehicle_variants_variant_id_seq', 51, true);
 
 
 --
@@ -1425,6 +1556,30 @@ ALTER TABLE ONLY public.dealer_payments
 
 
 --
+-- Name: dealer_quotation_items dealer_quotation_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotation_items
+    ADD CONSTRAINT dealer_quotation_items_pkey PRIMARY KEY (item_id);
+
+
+--
+-- Name: dealer_quotations dealer_quotations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotations
+    ADD CONSTRAINT dealer_quotations_pkey PRIMARY KEY (quotation_id);
+
+
+--
+-- Name: dealer_quotations dealer_quotations_quotation_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotations
+    ADD CONSTRAINT dealer_quotations_quotation_number_key UNIQUE (quotation_number);
+
+
+--
 -- Name: dealer_targets dealer_targets_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1542,22 +1697,6 @@ ALTER TABLE ONLY public.test_drive_schedules
 
 ALTER TABLE ONLY public.vehicle_models
     ADD CONSTRAINT ukgexpl1erlcv1p14voml8ytdv UNIQUE (brand_id, model_name, model_year);
-
-
---
--- Name: user_roles user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.user_roles
-    ADD CONSTRAINT user_roles_pkey PRIMARY KEY (role_id);
-
-
---
--- Name: user_roles user_roles_role_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.user_roles
-    ADD CONSTRAINT user_roles_role_name_key UNIQUE (role_name);
 
 
 --
@@ -1770,6 +1909,13 @@ CREATE INDEX idx_dealer_contracts_start_date ON public.dealer_contracts USING bt
 
 
 --
+-- Name: idx_dealer_invoices_quotation; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_invoices_quotation ON public.dealer_invoices USING btree (quotation_id);
+
+
+--
 -- Name: idx_dealer_order_items_color; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1879,6 +2025,69 @@ CREATE INDEX idx_dealer_orders_status ON public.dealer_orders USING btree (statu
 --
 
 CREATE INDEX idx_dealer_payments_invoice_id ON public.dealer_payments USING btree (invoice_id);
+
+
+--
+-- Name: idx_dealer_quotation_items_color; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotation_items_color ON public.dealer_quotation_items USING btree (color_id);
+
+
+--
+-- Name: idx_dealer_quotation_items_quotation; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotation_items_quotation ON public.dealer_quotation_items USING btree (quotation_id);
+
+
+--
+-- Name: idx_dealer_quotation_items_variant; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotation_items_variant ON public.dealer_quotation_items USING btree (variant_id);
+
+
+--
+-- Name: idx_dealer_quotations_date; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotations_date ON public.dealer_quotations USING btree (quotation_date);
+
+
+--
+-- Name: idx_dealer_quotations_dealer; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotations_dealer ON public.dealer_quotations USING btree (dealer_id);
+
+
+--
+-- Name: idx_dealer_quotations_evm_staff; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotations_evm_staff ON public.dealer_quotations USING btree (evm_staff_id);
+
+
+--
+-- Name: idx_dealer_quotations_expiry_date; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotations_expiry_date ON public.dealer_quotations USING btree (expiry_date);
+
+
+--
+-- Name: idx_dealer_quotations_order; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotations_order ON public.dealer_quotations USING btree (dealer_order_id);
+
+
+--
+-- Name: idx_dealer_quotations_status; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_dealer_quotations_status ON public.dealer_quotations USING btree (status);
 
 
 --
@@ -2470,6 +2679,27 @@ CREATE TRIGGER trigger_update_dealer_order_items_updated_at BEFORE UPDATE ON pub
 
 
 --
+-- Name: dealer_quotations trigger_update_dealer_quotation_expiry_date; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_dealer_quotation_expiry_date BEFORE INSERT OR UPDATE OF quotation_date, validity_days ON public.dealer_quotations FOR EACH ROW EXECUTE FUNCTION public.update_dealer_quotation_expiry_date();
+
+
+--
+-- Name: dealer_quotation_items trigger_update_dealer_quotation_item_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_dealer_quotation_item_updated_at BEFORE UPDATE ON public.dealer_quotation_items FOR EACH ROW EXECUTE FUNCTION public.update_dealer_quotation_updated_at();
+
+
+--
+-- Name: dealer_quotations trigger_update_dealer_quotation_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_dealer_quotation_updated_at BEFORE UPDATE ON public.dealer_quotations FOR EACH ROW EXECUTE FUNCTION public.update_dealer_quotation_updated_at();
+
+
+--
 -- Name: customer_feedbacks update_customer_feedbacks_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -2688,6 +2918,14 @@ ALTER TABLE ONLY public.appointments
 
 
 --
+-- Name: dealer_invoices fk_dealer_invoices_quotation; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_invoices
+    ADD CONSTRAINT fk_dealer_invoices_quotation FOREIGN KEY (quotation_id) REFERENCES public.dealer_quotations(quotation_id) ON DELETE SET NULL;
+
+
+--
 -- Name: dealer_orders fk_dealer_orders_approved_by; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -2701,6 +2939,54 @@ ALTER TABLE ONLY public.dealer_orders
 
 ALTER TABLE ONLY public.dealer_orders
     ADD CONSTRAINT fk_dealer_orders_dealer FOREIGN KEY (dealer_id) REFERENCES public.dealers(dealer_id) ON DELETE RESTRICT;
+
+
+--
+-- Name: dealer_quotation_items fk_dealer_quotation_items_color; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotation_items
+    ADD CONSTRAINT fk_dealer_quotation_items_color FOREIGN KEY (color_id) REFERENCES public.vehicle_colors(color_id) ON DELETE RESTRICT;
+
+
+--
+-- Name: dealer_quotation_items fk_dealer_quotation_items_quotation; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotation_items
+    ADD CONSTRAINT fk_dealer_quotation_items_quotation FOREIGN KEY (quotation_id) REFERENCES public.dealer_quotations(quotation_id) ON DELETE CASCADE;
+
+
+--
+-- Name: dealer_quotation_items fk_dealer_quotation_items_variant; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotation_items
+    ADD CONSTRAINT fk_dealer_quotation_items_variant FOREIGN KEY (variant_id) REFERENCES public.vehicle_variants(variant_id) ON DELETE RESTRICT;
+
+
+--
+-- Name: dealer_quotations fk_dealer_quotations_dealer; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotations
+    ADD CONSTRAINT fk_dealer_quotations_dealer FOREIGN KEY (dealer_id) REFERENCES public.dealers(dealer_id) ON DELETE CASCADE;
+
+
+--
+-- Name: dealer_quotations fk_dealer_quotations_dealer_order; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotations
+    ADD CONSTRAINT fk_dealer_quotations_dealer_order FOREIGN KEY (dealer_order_id) REFERENCES public.dealer_orders(dealer_order_id) ON DELETE SET NULL;
+
+
+--
+-- Name: dealer_quotations fk_dealer_quotations_evm_staff; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dealer_quotations
+    ADD CONSTRAINT fk_dealer_quotations_evm_staff FOREIGN KEY (evm_staff_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
 
 
 --
@@ -3027,5 +3313,5 @@ ALTER TABLE ONLY public.vehicle_variants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BD4boUTetHYO8KVhWuyx9UZHEyqb5BfeaZpHMnKSgftmXcFZezAWV6yNE6w8BiQ
+\unrestrict QMVPmGE3cvhur7LK30STNh18CdoheZ6s0Wp96IhULMkkVK39K4p6gYw1leVKihv
 

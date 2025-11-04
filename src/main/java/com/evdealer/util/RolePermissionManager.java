@@ -81,7 +81,6 @@ public class RolePermissionManager {
     private static Map<String, List<String>> createAdminPermissions() {
         Map<String, List<String>> permissions = new HashMap<>();
         permissions.put("users", Arrays.asList("read", "write", "delete"));
-        permissions.put("roles", Arrays.asList("read", "write", "delete"));
         permissions.put("dealers", Arrays.asList("read", "write", "delete"));
         permissions.put("customers", Arrays.asList("read", "write", "delete"));
         permissions.put("vehicles", Arrays.asList("read", "write", "delete"));

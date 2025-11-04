@@ -6,6 +6,7 @@ import com.evdealer.entity.DealerOrderItem;
 import com.evdealer.service.DealerInvoiceService;
 import com.evdealer.service.DealerOrderService;
 import com.evdealer.service.DealerOrderItemService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,111 +37,404 @@ public class DealerInvoiceController {
     @Autowired
     private DealerOrderItemService dealerOrderItemService;
     
+    @Autowired
+    private SecurityUtils securityUtils;
+    
     @GetMapping
     @Operation(summary = "Lấy danh sách hóa đơn", description = "Lấy tất cả hóa đơn đại lý")
-    public ResponseEntity<List<DealerInvoice>> getAllInvoices() {
-        List<DealerInvoice> invoices = dealerInvoiceService.getAllInvoices();
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getAllInvoices() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getAllInvoices();
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    invoices = invoices.stream()
+                        .filter(invoice -> invoice.getDealerOrder() != null 
+                            && invoice.getDealerOrder().getDealer() != null
+                            && invoice.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{invoiceId}")
     @Operation(summary = "Lấy hóa đơn theo ID", description = "Lấy hóa đơn theo ID")
-    public ResponseEntity<DealerInvoice> getInvoiceById(@PathVariable @Parameter(description = "Invoice ID") UUID invoiceId) {
-        return dealerInvoiceService.getInvoiceById(invoiceId)
-                .map(invoice -> ResponseEntity.ok(invoice))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getInvoiceById(@PathVariable @Parameter(description = "Invoice ID") UUID invoiceId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
+            
+            // Kiểm tra dealer user chỉ có thể xem invoice của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
+                        UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
+                        if (!invoiceDealerId.equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only view invoices for your own dealer");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    }
+                }
+            }
+            
+            return ResponseEntity.ok(invoice);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoice: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
     }
     
     @GetMapping("/number/{invoiceNumber}")
     @Operation(summary = "Lấy hóa đơn theo số", description = "Lấy hóa đơn theo số hóa đơn")
-    public ResponseEntity<DealerInvoice> getInvoiceByNumber(@PathVariable String invoiceNumber) {
-        return dealerInvoiceService.getInvoiceByNumber(invoiceNumber)
-                .map(invoice -> ResponseEntity.ok(invoice))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getInvoiceByNumber(@PathVariable String invoiceNumber) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            DealerInvoice invoice = dealerInvoiceService.getInvoiceByNumber(invoiceNumber)
+                .orElseThrow(() -> new RuntimeException("Invoice not found"));
+            
+            // Kiểm tra dealer user chỉ có thể xem invoice của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
+                        UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
+                        if (!invoiceDealerId.equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only view invoices for your own dealer");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    }
+                }
+            }
+            
+            return ResponseEntity.ok(invoice);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoice: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Lấy hóa đơn theo trạng thái", description = "Lấy hóa đơn theo trạng thái")
-    public ResponseEntity<List<DealerInvoice>> getInvoicesByStatus(@PathVariable String status) {
-        List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByStatus(status);
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getInvoicesByStatus(@PathVariable String status) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByStatus(status);
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    invoices = invoices.stream()
+                        .filter(invoice -> invoice.getDealerOrder() != null 
+                            && invoice.getDealerOrder().getDealer() != null
+                            && invoice.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer-order/{dealerOrderId}")
     @Operation(summary = "Lấy hóa đơn theo đơn hàng", description = "Lấy hóa đơn theo đơn hàng đại lý")
-    public ResponseEntity<List<DealerInvoice>> getInvoicesByDealerOrder(@PathVariable UUID dealerOrderId) {
-        List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByDealerOrder(dealerOrderId);
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getInvoicesByDealerOrder(@PathVariable UUID dealerOrderId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xem invoices của order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    // Kiểm tra order thuộc về dealer của user
+                    var orderOpt = dealerOrderService.getDealerOrderById(dealerOrderId);
+                    if (orderOpt.isPresent() && orderOpt.get().getDealer() != null) {
+                        UUID orderDealerId = orderOpt.get().getDealer().getDealerId();
+                        if (!orderDealerId.equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only view invoices for orders of your own dealer");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    }
+                }
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByDealerOrder(dealerOrderId);
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/evm-staff/{evmStaffId}")
     @Operation(summary = "Lấy hóa đơn theo nhân viên", description = "Lấy hóa đơn theo nhân viên EVM")
-    public ResponseEntity<List<DealerInvoice>> getInvoicesByEvmStaff(@PathVariable UUID evmStaffId) {
-        List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByEvmStaff(evmStaffId);
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getInvoicesByEvmStaff(@PathVariable UUID evmStaffId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByEvmStaff(evmStaffId);
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    invoices = invoices.stream()
+                        .filter(invoice -> invoice.getDealerOrder() != null 
+                            && invoice.getDealerOrder().getDealer() != null
+                            && invoice.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/date-range")
     @Operation(summary = "Lấy hóa đơn theo khoảng ngày", description = "Lấy hóa đơn theo khoảng ngày")
-    public ResponseEntity<List<DealerInvoice>> getInvoicesByDateRange(
+    public ResponseEntity<?> getInvoicesByDateRange(
             @RequestParam @Parameter(description = "Start date") LocalDate startDate,
             @RequestParam @Parameter(description = "End date") LocalDate endDate) {
-        List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByDateRange(startDate, endDate);
-        return ResponseEntity.ok(invoices);
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByDateRange(startDate, endDate);
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    invoices = invoices.stream()
+                        .filter(invoice -> invoice.getDealerOrder() != null 
+                            && invoice.getDealerOrder().getDealer() != null
+                            && invoice.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/overdue")
     @Operation(summary = "Lấy hóa đơn quá hạn", description = "Lấy hóa đơn quá hạn")
-    public ResponseEntity<List<DealerInvoice>> getOverdueInvoices() {
-        List<DealerInvoice> invoices = dealerInvoiceService.getOverdueInvoices();
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getOverdueInvoices() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getOverdueInvoices();
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    invoices = invoices.stream()
+                        .filter(invoice -> invoice.getDealerOrder() != null 
+                            && invoice.getDealerOrder().getDealer() != null
+                            && invoice.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(invoices);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
     @Operation(summary = "Tạo hóa đơn mới", description = "Tạo hóa đơn đại lý mới")
-    public ResponseEntity<DealerInvoice> createInvoice(@RequestBody DealerInvoice invoice) {
+    public ResponseEntity<?> createInvoice(@RequestBody DealerInvoice invoice) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể tạo invoice
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can create invoices");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerInvoice createdInvoice = dealerInvoiceService.createInvoice(invoice);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdInvoice);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create invoice: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         }
     }
     
     @PutMapping("/{invoiceId}")
     @Operation(summary = "Cập nhật hóa đơn", description = "Cập nhật hóa đơn")
-    public ResponseEntity<DealerInvoice> updateInvoice(
+    public ResponseEntity<?> updateInvoice(
             @PathVariable UUID invoiceId, 
             @RequestBody DealerInvoice invoiceDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể update invoice
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can update invoices");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerInvoice updatedInvoice = dealerInvoiceService.updateInvoice(invoiceId, invoiceDetails);
             return ResponseEntity.ok(updatedInvoice);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update invoice: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
     
     @PutMapping("/{invoiceId}/status")
     @Operation(summary = "Cập nhật trạng thái hóa đơn", description = "Cập nhật trạng thái hóa đơn")
-    public ResponseEntity<DealerInvoice> updateInvoiceStatus(
+    public ResponseEntity<?> updateInvoiceStatus(
             @PathVariable UUID invoiceId, 
             @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể update status
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can update invoice status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerInvoice updatedInvoice = dealerInvoiceService.updateInvoiceStatus(invoiceId, status);
             return ResponseEntity.ok(updatedInvoice);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update invoice status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
     
     @DeleteMapping("/{invoiceId}")
     @Operation(summary = "Xóa hóa đơn", description = "Xóa hóa đơn")
-    public ResponseEntity<Void> deleteInvoice(@PathVariable UUID invoiceId) {
+    public ResponseEntity<?> deleteInvoice(@PathVariable UUID invoiceId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ ADMIN có thể xóa invoice
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete invoices");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             dealerInvoiceService.deleteInvoice(invoiceId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete invoice: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
     
@@ -150,6 +444,28 @@ public class DealerInvoiceController {
     @Operation(summary = "Tự động tạo hóa đơn từ đơn hàng", description = "Tự động tạo hóa đơn từ đơn hàng đại lý đã duyệt")
     public ResponseEntity<?> generateInvoiceFromOrder(@PathVariable UUID dealerOrderId, @RequestParam(required = false) UUID evmStaffId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể tạo invoice từ order
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can generate invoices from orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Sử dụng current user nếu không có evmStaffId
+            if (evmStaffId == null) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent()) {
+                    evmStaffId = currentUserOpt.get().getUserId();
+                }
+            }
+            
             // Validate dealer order exists and is approved
             DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
                 .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
@@ -197,8 +513,31 @@ public class DealerInvoiceController {
     @Operation(summary = "Lấy chi tiết xe trong hóa đơn", description = "Lấy danh sách xe trong hóa đơn đại lý")
     public ResponseEntity<?> getInvoiceItems(@PathVariable UUID invoiceId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
             DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found with ID: " + invoiceId));
+            
+            // Kiểm tra dealer user chỉ có thể xem items của invoice của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
+                        UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
+                        if (!invoiceDealerId.equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only view items for invoices of your own dealer");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    }
+                }
+            }
             
             List<DealerOrderItem> items = dealerOrderItemService.getItemsByDealerOrderId(invoice.getDealerOrder().getDealerOrderId());
             
@@ -224,6 +563,20 @@ public class DealerInvoiceController {
     @Operation(summary = "Gửi hóa đơn cho đại lý", description = "Gửi hóa đơn cho đại lý qua email")
     public ResponseEntity<?> sendInvoiceToDealer(@PathVariable UUID invoiceId, @RequestParam(required = false) String email) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể gửi invoice
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can send invoices");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found with ID: " + invoiceId));
             
@@ -260,8 +613,31 @@ public class DealerInvoiceController {
     @Operation(summary = "Tải hóa đơn PDF", description = "Tải hóa đơn dưới dạng PDF")
     public ResponseEntity<?> downloadInvoicePDF(@PathVariable UUID invoiceId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
             DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found with ID: " + invoiceId));
+            
+            // Kiểm tra dealer user chỉ có thể xem PDF của invoice của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
+                        UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
+                        if (!invoiceDealerId.equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only view PDF for invoices of your own dealer");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    }
+                }
+            }
             
             // For now, return invoice data as JSON
             // In real implementation, you would generate PDF and return as byte array
@@ -284,8 +660,31 @@ public class DealerInvoiceController {
     @Operation(summary = "Kiểm tra số dư còn lại", description = "Kiểm tra số tiền còn lại chưa thanh toán")
     public ResponseEntity<?> getInvoiceBalance(@PathVariable UUID invoiceId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
             DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found with ID: " + invoiceId));
+            
+            // Kiểm tra dealer user chỉ có thể xem balance của invoice của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
+                        UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
+                        if (!invoiceDealerId.equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only view balance for invoices of your own dealer");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    }
+                }
+            }
             
             // Calculate paid amount and balance
             BigDecimal paidAmount = dealerInvoiceService.calculatePaidAmount(invoiceId);
@@ -311,15 +710,61 @@ public class DealerInvoiceController {
     
     @GetMapping("/dealer/{dealerId}")
     @Operation(summary = "Lấy hóa đơn theo đại lý", description = "Lấy danh sách hóa đơn của một đại lý")
-    public ResponseEntity<List<DealerInvoice>> getInvoicesByDealer(@PathVariable UUID dealerId) {
-        List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByDealer(dealerId);
-        return ResponseEntity.ok(invoices);
+    public ResponseEntity<?> getInvoicesByDealer(@PathVariable UUID dealerId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xem invoices của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerId.equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view invoices for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByDealer(dealerId);
+            return ResponseEntity.ok(invoices);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get invoices: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
     }
     
     @GetMapping("/dealer/{dealerId}/unpaid")
     @Operation(summary = "Lấy hóa đơn chưa thanh toán", description = "Lấy danh sách hóa đơn chưa thanh toán của đại lý")
     public ResponseEntity<?> getUnpaidInvoicesByDealer(@PathVariable UUID dealerId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xem invoices của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerId.equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view unpaid invoices for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
             List<DealerInvoice> unpaidInvoices = dealerInvoiceService.getUnpaidInvoicesByDealer(dealerId);
             
             Map<String, Object> response = new HashMap<>();
@@ -343,6 +788,20 @@ public class DealerInvoiceController {
     @Operation(summary = "Thống kê hóa đơn", description = "Lấy thống kê tổng quan về hóa đơn")
     public ResponseEntity<?> getInvoiceStatistics(@RequestParam(required = false) LocalDate startDate, @RequestParam(required = false) LocalDate endDate) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể xem statistics
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can view invoice statistics");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Map<String, Object> statistics = dealerInvoiceService.getInvoiceStatistics();
             return ResponseEntity.ok(statistics);
             

@@ -2,10 +2,9 @@ package com.evdealer.controller;
 
 import com.evdealer.dto.UserRequest;
 import com.evdealer.dto.UserUpdateRequest;
-import com.evdealer.dto.RoleRequest;
 import com.evdealer.entity.User;
-import com.evdealer.entity.UserRole;
 import com.evdealer.service.UserService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,17 +16,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
-@Tag(name = "User Management", description = "APIs quản lý người dùng và vai trò")
+@Tag(name = "User Management", description = "APIs quản lý người dùng")
 public class UserController {
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     // User endpoints
     @GetMapping
@@ -95,11 +96,37 @@ public class UserController {
     
     @GetMapping("/dealer/{dealerId}")
     @Operation(summary = "Lấy người dùng theo đại lý", description = "Lấy danh sách người dùng thuộc một đại lý cụ thể")
-    public ResponseEntity<List<User>> getUsersByDealer(@PathVariable UUID dealerId) {
-        List<User> users = userService.getUsersByDealer(dealerId);
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getUsersByDealer(@PathVariable UUID dealerId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xem users của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerId.equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view users for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            List<User> users = userService.getUsersByDealer(dealerId);
+            // Remove password hash from all users for security
+            users.forEach(user -> user.setPasswordHash(null));
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/role-string/{roleString}")
@@ -158,14 +185,34 @@ public class UserController {
     
     @PostMapping
     @Operation(summary = "Tạo người dùng mới", description = "Tạo người dùng mới")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
+    public ResponseEntity<?> createUser(@RequestBody User user) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo user
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create users");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             User createdUser = userService.createUser(user);
             // Remove password hash from response for security
             createdUser.setPasswordHash(null);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -173,6 +220,20 @@ public class UserController {
     @Operation(summary = "Tạo người dùng mới từ DTO", description = "Tạo người dùng mới từ UserRequest DTO")
     public ResponseEntity<?> createUserFromRequest(@RequestBody UserRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo user
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create users");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             User createdUser = userService.createUserFromRequest(request);
             // Remove password hash from response for security
             createdUser.setPasswordHash(null);
@@ -192,29 +253,43 @@ public class UserController {
     @Operation(summary = "Cập nhật người dùng", description = "Cập nhật thông tin người dùng")
     public ResponseEntity<?> updateUser(@PathVariable UUID userId, @RequestBody UserUpdateRequest userUpdateRequest) {
         try {
-            // Log incoming data for debugging
-            System.out.println("=== UPDATE USER DEBUG ===");
-            System.out.println("User ID: " + userId);
-            System.out.println("Username: " + userUpdateRequest.getUsername());
-            System.out.println("Email: " + userUpdateRequest.getEmail());
-            System.out.println("User Type: " + userUpdateRequest.getUserType());
-            System.out.println("Status: " + userUpdateRequest.getStatus());
-            System.out.println("Is Active: " + userUpdateRequest.getIsActive());
-            System.out.println("=========================");
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: ADMIN, EVM_STAFF hoặc user tự update chính mình
+            var currentUserOpt = securityUtils.getCurrentUser();
+            if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
+                // User chỉ có thể update chính mình
+                if (currentUserOpt.isPresent()) {
+                    UUID currentUserId = currentUserOpt.get().getUserId();
+                    if (!userId.equals(currentUserId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only update your own profile");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                } else {
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error", "Access denied. Only admin, EVM staff or the user themselves can update users");
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                }
+            }
             
             User updatedUser = userService.updateUser(userId, userUpdateRequest);
             // Remove password hash from response for security
             updatedUser.setPasswordHash(null);
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
-            System.err.println("Error updating user: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error updating user: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         } catch (Exception e) {
-            System.err.println("Unexpected error updating user: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Internal server error: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -222,8 +297,24 @@ public class UserController {
     @Operation(summary = "Xóa người dùng", description = "Xóa người dùng")
     public ResponseEntity<?> deleteUser(@PathVariable UUID userId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa user
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete users");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             userService.deleteUser(userId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "User deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -237,126 +328,34 @@ public class UserController {
     
     @PutMapping("/{userId}/deactivate")
     @Operation(summary = "Vô hiệu hóa người dùng", description = "Vô hiệu hóa người dùng")
-    public ResponseEntity<Void> deactivateUser(@PathVariable UUID userId) {
+    public ResponseEntity<?> deactivateUser(@PathVariable UUID userId) {
         try {
-            userService.deactivateUser(userId);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-    
-    // User Role endpoints
-    @GetMapping("/roles")
-    @Operation(summary = "Lấy danh sách vai trò", description = "Lấy tất cả vai trò")
-    public ResponseEntity<List<UserRole>> getAllRoles() {
-        List<UserRole> roles = userService.getAllRoles();
-        return ResponseEntity.ok(roles);
-    }
-    
-    @GetMapping("/roles/{roleId}")
-    @Operation(summary = "Lấy vai trò theo ID", description = "Lấy thông tin vai trò theo ID")
-    public ResponseEntity<UserRole> getRoleById(@PathVariable Integer roleId) {
-        return userService.getRoleById(roleId)
-                .map(role -> ResponseEntity.ok(role))
-                .orElse(ResponseEntity.notFound().build());
-    }
-    
-    @GetMapping("/roles/name/{roleName}")
-    @Operation(summary = "Lấy vai trò theo tên", description = "Lấy thông tin vai trò theo tên")
-    public ResponseEntity<UserRole> getRoleByName(@PathVariable String roleName) {
-        return userService.getRoleByName(roleName)
-                .map(role -> ResponseEntity.ok(role))
-                .orElse(ResponseEntity.notFound().build());
-    }
-    
-    @PostMapping("/roles")
-    @Operation(summary = "Tạo vai trò mới", description = "Tạo vai trò mới (permissions sẽ được tự động tạo dựa trên role name)")
-    public ResponseEntity<?> createRole(@RequestBody RoleRequest roleRequest) {
-        try {
-            UserRole role = new UserRole();
-            role.setRoleName(roleRequest.getRoleName());
-            role.setDescription(roleRequest.getDescription());
-            // Permissions sẽ được tự động tạo trong service
-            
-            UserRole createdRole = userService.createRole(role);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdRole);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("Error creating role: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Internal server error: " + e.getMessage());
-        }
-    }
-    
-    @PutMapping("/roles/{roleId}")
-    @Operation(summary = "Cập nhật vai trò", description = "Cập nhật thông tin vai trò (permissions sẽ được tự động cập nhật dựa trên role name)")
-    public ResponseEntity<?> updateRole(@PathVariable Integer roleId, @RequestBody RoleRequest roleRequest) {
-        try {
-            // Log incoming data for debugging
-            System.out.println("=== ROLE UPDATE CONTROLLER DEBUG ===");
-            System.out.println("Role ID: " + roleId);
-            System.out.println("Role Name: " + roleRequest.getRoleName());
-            System.out.println("Description: " + roleRequest.getDescription());
-            System.out.println("=====================================");
-            
-            UserRole roleDetails = new UserRole();
-            roleDetails.setRoleName(roleRequest.getRoleName());
-            roleDetails.setDescription(roleRequest.getDescription());
-            // Permissions sẽ được tự động tạo trong service dựa trên role name
-            
-            UserRole updatedRole = userService.updateRole(roleId, roleDetails);
-            return ResponseEntity.ok(updatedRole);
-        } catch (RuntimeException e) {
-            System.err.println("Error updating role: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error updating role: " + e.getMessage());
-        } catch (Exception e) {
-            System.err.println("Unexpected error updating role: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Internal server error: " + e.getMessage());
-        }
-    }
-    
-    @DeleteMapping("/roles/{roleId}")
-    @Operation(summary = "Xóa vai trò", description = "Xóa vai trò")
-    public ResponseEntity<?> deleteRole(@PathVariable Integer roleId) {
-        try {
-            userService.deleteRole(roleId);
-            return ResponseEntity.ok().body("Role deleted successfully");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("Error deleting role: " + e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Internal server error: " + e.getMessage());
-        }
-    }
-    
-    @GetMapping("/roles/test/{roleId}")
-    @Operation(summary = "Test role update", description = "Test role update functionality")
-    public ResponseEntity<?> testRoleUpdate(@PathVariable Integer roleId) {
-        try {
-            // Test getting role first
-            Optional<UserRole> roleOpt = userService.getRoleById(roleId);
-            if (!roleOpt.isPresent()) {
-                return ResponseEntity.notFound().build();
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            UserRole role = roleOpt.get();
-            System.out.println("=== TEST ROLE DEBUG ===");
-            System.out.println("Role ID: " + role.getRoleId());
-            System.out.println("Role Name: " + role.getRoleName());
-            System.out.println("Description: " + role.getDescription());
-            System.out.println("Permissions: " + role.getPermissions());
-            System.out.println("======================");
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể deactivate user
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can deactivate users");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
             
-            return ResponseEntity.ok(role);
+            userService.deactivateUser(userId);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "User deactivated successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to deactivate user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         } catch (Exception e) {
-            System.err.println("Error testing role: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error testing role: " + e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to deactivate user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -367,10 +366,30 @@ public class UserController {
             @PathVariable @Parameter(description = "User ID") UUID userId,
             @RequestParam(required = false) String newPassword) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể reset password
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can reset passwords");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             String result = userService.resetUserPassword(userId, newPassword);
             return ResponseEntity.ok().body(java.util.Map.of("message", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to reset password: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -380,10 +399,30 @@ public class UserController {
             @PathVariable @Parameter(description = "Username") String username,
             @RequestParam(required = false) String newPassword) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể reset password
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can reset passwords");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             String result = userService.resetUserPasswordByUsername(username, newPassword);
             return ResponseEntity.ok().body(java.util.Map.of("message", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to reset password: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -393,10 +432,30 @@ public class UserController {
             @PathVariable @Parameter(description = "Email") String email,
             @RequestParam(required = false) String newPassword) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể reset password
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can reset passwords");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             String result = userService.resetUserPasswordByEmail(email, newPassword);
             return ResponseEntity.ok().body(java.util.Map.of("message", result));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to reset password: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -404,10 +463,30 @@ public class UserController {
     @Operation(summary = "Đặt lại mật khẩu hàng loạt", description = "Quản trị viên có thể đặt lại mật khẩu cho nhiều người dùng")
     public ResponseEntity<?> bulkResetPasswords(@RequestBody java.util.List<UUID> userIds) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể bulk reset password
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can bulk reset passwords");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             java.util.Map<String, Object> result = userService.bulkResetPasswords(userIds);
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to bulk reset passwords: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

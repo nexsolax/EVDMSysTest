@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/public")
+@RequestMapping({"/api/public", "/"})
 @CrossOrigin(origins = "*")
 @Tag(name = "Public Access", description = "APIs công khai cho khách hàng không cần đăng nhập")
 public class PublicController {
@@ -50,16 +50,89 @@ public class PublicController {
     @Autowired
     private VehicleComparisonService vehicleComparisonService;
     
+    // ==================== HOME PAGE ENDPOINTS ====================
+    
+    @GetMapping("/")
+    @Operation(summary = "Trang chủ", description = "Thông tin tổng quan cho trang chủ")
+    public ResponseEntity<Map<String, Object>> getHomePage() {
+        Map<String, Object> homeData = new HashMap<>();
+        
+        // Featured vehicles (available inventory)
+        List<VehicleInventory> featuredVehicles = vehicleInventoryService.getInventoryByStatus("available");
+        homeData.put("featuredVehicles", featuredVehicles.stream().map(this::toInventoryDTO).toList());
+        
+        // Active promotions
+        List<Promotion> activePromotions = promotionService.getPromotionsByStatus("active");
+        homeData.put("activePromotions", activePromotions.stream().map(this::toPromotionDTO).toList());
+        
+        // Statistics
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalVehicles", featuredVehicles.size());
+        stats.put("activePromotions", activePromotions.size());
+        homeData.put("statistics", stats);
+        
+        return ResponseEntity.ok(homeData);
+    }
+    
+    @GetMapping("/catalog")
+    @Operation(summary = "Danh mục xe", description = "Xem tất cả xe có sẵn")
+    public ResponseEntity<Map<String, Object>> getVehicleCatalog() {
+        Map<String, Object> catalog = new HashMap<>();
+        
+        // Vehicle brands
+        List<VehicleBrand> brands = vehicleService.getAllBrands();
+        catalog.put("brands", brands.stream().map(this::toBrandDTO).toList());
+        
+        // Vehicle models
+        List<VehicleModel> models = vehicleService.getAllModels();
+        catalog.put("models", models.stream().map(this::toModelDTO).toList());
+        
+        // Vehicle variants
+        List<VehicleVariant> variants = vehicleService.getAllVariants();
+        catalog.put("variants", variants.stream().map(this::toVariantDTO).toList());
+        
+        // Vehicle colors
+        List<VehicleColor> colors = vehicleService.getAllColors();
+        catalog.put("colors", colors.stream().map(this::toColorDTO).toList());
+        
+        // Available inventory
+        List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus("available");
+        catalog.put("availableInventory", inventory.stream().map(this::toInventoryDTO).toList());
+        
+        return ResponseEntity.ok(catalog);
+    }
+    
+    @GetMapping("/search")
+    @Operation(summary = "Tìm kiếm", description = "Tìm kiếm xe theo tiêu chí")
+    public ResponseEntity<Map<String, Object>> searchVehicles(
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) String variant,
+            @RequestParam(required = false) String color,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice) {
+        
+        Map<String, Object> searchResults = new HashMap<>();
+        
+        // Get all available inventory
+        List<VehicleInventory> allInventory = vehicleInventoryService.getInventoryByStatus("available");
+        searchResults.put("results", allInventory.stream().map(this::toInventoryDTO).toList());
+        searchResults.put("totalCount", allInventory.size());
+        
+        return ResponseEntity.ok(searchResults);
+    }
+    
     // ==================== VEHICLE CATALOG ====================
     
-    @GetMapping("/vehicle-brands")
+    // Alias endpoints for backward compatibility with HomeController paths
+    @GetMapping({"/brands", "/vehicle-brands"})
     @Operation(summary = "Xem danh sách thương hiệu", description = "Khách hàng có thể xem tất cả thương hiệu xe")
     public ResponseEntity<List<VehicleBrandDTO>> getAllVehicleBrands() {
         List<VehicleBrand> brands = vehicleService.getAllBrands();
         return ResponseEntity.ok(brands.stream().map(this::toBrandDTO).toList());
     }
     
-    @GetMapping("/vehicle-brands/{brandId}")
+    @GetMapping({"/brands/{brandId}", "/vehicle-brands/{brandId}"})
     @Operation(summary = "Xem chi tiết thương hiệu", description = "Khách hàng có thể xem chi tiết thương hiệu xe")
     public ResponseEntity<VehicleBrandDTO> getVehicleBrandById(@PathVariable Integer brandId) {
         return vehicleService.getBrandById(brandId)
@@ -67,14 +140,14 @@ public class PublicController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/vehicle-models")
+    @GetMapping({"/models", "/vehicle-models"})
     @Operation(summary = "Xem danh sách mẫu xe", description = "Khách hàng có thể xem tất cả mẫu xe")
     public ResponseEntity<List<VehicleModelDTO>> getAllVehicleModels() {
         List<VehicleModel> models = vehicleService.getAllModels();
         return ResponseEntity.ok(models.stream().map(this::toModelDTO).toList());
     }
     
-    @GetMapping("/vehicle-models/{modelId}")
+    @GetMapping({"/models/{modelId}", "/vehicle-models/{modelId}"})
     @Operation(summary = "Xem chi tiết mẫu xe", description = "Khách hàng có thể xem chi tiết mẫu xe")
     public ResponseEntity<VehicleModelDTO> getVehicleModelById(@PathVariable Integer modelId) {
         return vehicleService.getModelById(modelId)
@@ -82,14 +155,14 @@ public class PublicController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/vehicle-variants")
+    @GetMapping({"/variants", "/vehicle-variants"})
     @Operation(summary = "Xem danh sách phiên bản xe", description = "Khách hàng có thể xem tất cả phiên bản xe")
     public ResponseEntity<List<VehicleVariantDTO>> getAllVehicleVariants() {
         List<VehicleVariant> variants = vehicleService.getAllVariants();
         return ResponseEntity.ok(variants.stream().map(this::toVariantDTO).toList());
     }
     
-    @GetMapping("/vehicle-variants/{variantId}")
+    @GetMapping({"/variants/{variantId}", "/vehicle-variants/{variantId}"})
     @Operation(summary = "Xem chi tiết phiên bản xe", description = "Khách hàng có thể xem chi tiết phiên bản xe")
     public ResponseEntity<VehicleVariantDTO> getVehicleVariantById(@PathVariable Integer variantId) {
         return vehicleService.getVariantById(variantId)
@@ -97,14 +170,14 @@ public class PublicController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/vehicle-colors")
+    @GetMapping({"/colors", "/vehicle-colors"})
     @Operation(summary = "Xem danh sách màu xe", description = "Khách hàng có thể xem tất cả màu xe")
     public ResponseEntity<List<VehicleColorDTO>> getAllVehicleColors() {
         List<VehicleColor> colors = vehicleService.getAllColors();
         return ResponseEntity.ok(colors.stream().map(this::toColorDTO).toList());
     }
     
-    @GetMapping("/vehicle-colors/{colorId}")
+    @GetMapping({"/colors/{colorId}", "/vehicle-colors/{colorId}"})
     @Operation(summary = "Xem chi tiết màu xe", description = "Khách hàng có thể xem chi tiết màu xe")
     public ResponseEntity<VehicleColorDTO> getVehicleColorById(@PathVariable Integer colorId) {
         return vehicleService.getColorById(colorId)
@@ -112,14 +185,14 @@ public class PublicController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/vehicle-inventory")
+    @GetMapping({"/inventory/available", "/vehicle-inventory"})
     @Operation(summary = "Xem kho xe", description = "Khách hàng có thể xem xe có sẵn trong kho")
     public ResponseEntity<List<VehicleInventoryDTO>> getAllInventory() {
         List<VehicleInventory> inventory = vehicleInventoryService.getAllVehicleInventory();
         return ResponseEntity.ok(inventory.stream().map(this::toInventoryDTO).toList());
     }
     
-    @GetMapping("/vehicle-inventory/{inventoryId}")
+    @GetMapping({"/inventory/{inventoryId}", "/vehicle-inventory/{inventoryId}"})
     @Operation(summary = "Xem chi tiết xe trong kho", description = "Khách hàng có thể xem chi tiết xe trong kho")
     public ResponseEntity<VehicleInventoryDTO> getInventoryById(@PathVariable UUID inventoryId) {
         return vehicleInventoryService.getInventoryById(inventoryId)
@@ -166,7 +239,7 @@ public class PublicController {
     
     // ==================== VEHICLE COMPARISON ====================
     
-    @PostMapping("/vehicle-compare")
+    @PostMapping({"/vehicle-compare", "/compare"})
     @Operation(summary = "So sánh xe", description = "Khách hàng có thể so sánh nhiều xe theo các tiêu chí khác nhau")
     public ResponseEntity<?> compareVehicles(@RequestBody VehicleComparisonRequest request) {
         try {
@@ -183,7 +256,7 @@ public class PublicController {
         }
     }
     
-    @GetMapping("/vehicle-compare/quick")
+    @GetMapping({"/vehicle-compare/quick", "/compare/quick"})
     @Operation(summary = "So sánh nhanh xe", description = "Khách hàng có thể so sánh nhanh các xe theo danh sách ID")
     public ResponseEntity<?> quickCompareVehicles(
             @RequestParam List<Integer> variantIds) {
@@ -201,7 +274,7 @@ public class PublicController {
         }
     }
     
-    @GetMapping("/vehicle-compare/available")
+    @GetMapping({"/vehicle-compare/available", "/compare/available"})
     @Operation(summary = "Xe có thể so sánh", description = "Khách hàng có thể xem danh sách xe có thể so sánh")
     public ResponseEntity<List<VehicleVariantDTO>> getAvailableVehiclesForComparison() {
         try {
@@ -212,7 +285,7 @@ public class PublicController {
         }
     }
     
-    @PostMapping("/vehicle-compare/{variantId1}/vs/{variantId2}")
+    @PostMapping({"/vehicle-compare/{variantId1}/vs/{variantId2}", "/compare/{variantId1}/vs/{variantId2}"})
     @Operation(summary = "So sánh 2 xe", description = "Khách hàng có thể so sánh trực tiếp 2 xe cụ thể")
     public ResponseEntity<?> compareTwoVehicles(
             @PathVariable Integer variantId1,
@@ -232,7 +305,7 @@ public class PublicController {
         }
     }
     
-    @GetMapping("/vehicle-compare/criteria")
+    @GetMapping({"/vehicle-compare/criteria", "/compare/criteria"})
     @Operation(summary = "Tiêu chí so sánh", description = "Khách hàng có thể xem danh sách các tiêu chí so sánh có sẵn")
     public ResponseEntity<Map<String, Object>> getComparisonCriteria() {
         Map<String, Object> criteria = new HashMap<>();

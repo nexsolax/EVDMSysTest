@@ -10,11 +10,6 @@ public enum Permission {
     USER_WRITE("users", "write", "Tạo/sửa người dùng"),
     USER_DELETE("users", "delete", "Xóa người dùng"),
     
-    // Role Management
-    ROLE_READ("roles", "read", "Xem danh sách vai trò"),
-    ROLE_WRITE("roles", "write", "Tạo/sửa vai trò"),
-    ROLE_DELETE("roles", "delete", "Xóa vai trò"),
-    
     // Dealer Management
     DEALER_READ("dealers", "read", "Xem danh sách đại lý"),
     DEALER_WRITE("dealers", "write", "Tạo/sửa đại lý"),

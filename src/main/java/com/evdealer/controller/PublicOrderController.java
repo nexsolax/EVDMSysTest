@@ -69,32 +69,31 @@ public class PublicOrderController {
     }
     
     @PutMapping("/{orderId}/cancel")
-    @Operation(summary = "Hủy đơn hàng", description = "Khách vãng lai có thể hủy đơn hàng")
+    @Operation(summary = "Hủy đơn hàng", description = "Khách vãng lai có thể hủy đơn hàng. Hệ thống sẽ tự động cập nhật inventory status về 'available' nếu đã reserved.")
     public ResponseEntity<?> cancelOrder(@PathVariable UUID orderId, @RequestParam(required = false) String reason) {
         try {
-            Order order = orderService.getOrderById(orderId)
-                    .orElseThrow(() -> new RuntimeException("Order not found"));
+            // Use cancelOrder method which handles inventory status update automatically
+            Order cancelledOrder = orderService.cancelOrder(orderId);
             
-            // Update order status to cancelled
-            order.setStatus("cancelled");
+            // Add cancellation reason to notes if provided
             if (reason != null && !reason.trim().isEmpty()) {
-                order.setNotes((order.getNotes() != null ? order.getNotes() + "\n" : "") + 
+                cancelledOrder.setNotes((cancelledOrder.getNotes() != null ? cancelledOrder.getNotes() + "\n" : "") + 
                               "Cancellation reason: " + reason);
+                orderService.updateOrder(orderId, cancelledOrder);
             }
             
-            orderService.updateOrder(orderId, order);
-            
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Order cancelled successfully");
+            response.put("message", "Order cancelled successfully. Inventory status has been updated if applicable.");
             response.put("orderId", orderId);
-            response.put("status", "cancelled");
+            response.put("orderNumber", cancelledOrder.getOrderNumber());
+            response.put("status", cancelledOrder.getStatus());
             response.put("reason", reason);
             
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to cancel order: " + e.getMessage());

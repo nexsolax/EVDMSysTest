@@ -2,6 +2,7 @@ package com.evdealer.controller;
 
 import com.evdealer.entity.InstallmentSchedule;
 import com.evdealer.service.InstallmentScheduleService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,7 +13,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,6 +26,9 @@ public class InstallmentScheduleController {
     
     @Autowired
     private InstallmentScheduleService installmentScheduleService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     @GetMapping
     @Operation(summary = "Get all installment schedules", description = "Retrieve a list of all installment schedules")
@@ -94,63 +100,165 @@ public class InstallmentScheduleController {
     
     @PostMapping
     @Operation(summary = "Create installment schedule", description = "Create a new installment schedule")
-    public ResponseEntity<InstallmentSchedule> createInstallmentSchedule(@RequestBody InstallmentSchedule installmentSchedule) {
+    public ResponseEntity<?> createInstallmentSchedule(@RequestBody InstallmentSchedule installmentSchedule) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo installment schedule
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create installment schedules");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             InstallmentSchedule createdSchedule = installmentScheduleService.createInstallmentSchedule(installmentSchedule);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdSchedule);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create installment schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create installment schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{scheduleId}")
     @Operation(summary = "Update installment schedule", description = "Update an existing installment schedule")
-    public ResponseEntity<InstallmentSchedule> updateInstallmentSchedule(
+    public ResponseEntity<?> updateInstallmentSchedule(
             @PathVariable UUID scheduleId, 
             @RequestBody InstallmentSchedule installmentScheduleDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update installment schedule
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update installment schedules");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             InstallmentSchedule updatedSchedule = installmentScheduleService.updateInstallmentSchedule(scheduleId, installmentScheduleDetails);
             return ResponseEntity.ok(updatedSchedule);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update installment schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update installment schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{scheduleId}/status")
     @Operation(summary = "Update schedule status", description = "Update the status of an installment schedule")
-    public ResponseEntity<InstallmentSchedule> updateScheduleStatus(
+    public ResponseEntity<?> updateScheduleStatus(
             @PathVariable UUID scheduleId, 
             @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update schedule status
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update installment schedule status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             InstallmentSchedule updatedSchedule = installmentScheduleService.updateScheduleStatus(scheduleId, status);
             return ResponseEntity.ok(updatedSchedule);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update schedule status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update schedule status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{scheduleId}/mark-paid")
     @Operation(summary = "Mark schedule as paid", description = "Mark an installment schedule as paid")
-    public ResponseEntity<InstallmentSchedule> markAsPaid(
+    public ResponseEntity<?> markAsPaid(
             @PathVariable UUID scheduleId, 
             @RequestParam LocalDate paidDate,
             @RequestParam BigDecimal paidAmount) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể mark schedule as paid
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can mark installment schedules as paid");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             InstallmentSchedule updatedSchedule = installmentScheduleService.markAsPaid(scheduleId, paidDate, paidAmount);
             return ResponseEntity.ok(updatedSchedule);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to mark schedule as paid: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to mark schedule as paid: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/{scheduleId}")
     @Operation(summary = "Delete installment schedule", description = "Delete an installment schedule")
-    public ResponseEntity<Void> deleteInstallmentSchedule(@PathVariable UUID scheduleId) {
+    public ResponseEntity<?> deleteInstallmentSchedule(@PathVariable UUID scheduleId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa installment schedule
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete installment schedules");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             installmentScheduleService.deleteInstallmentSchedule(scheduleId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Installment schedule deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete installment schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete installment schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

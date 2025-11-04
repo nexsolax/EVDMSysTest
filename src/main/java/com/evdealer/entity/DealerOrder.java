@@ -2,6 +2,7 @@ package com.evdealer.entity;
 
 import com.evdealer.enums.PaymentTerms;
 import com.evdealer.enums.DeliveryTerms;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -92,6 +93,10 @@ public class DealerOrder {
     
     @OneToMany(mappedBy = "dealerOrder", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<DealerOrderItem> items;
+    
+    @OneToMany(mappedBy = "dealerOrder", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "dealerOrder"})
+    private List<DealerQuotation> quotations;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -240,6 +245,14 @@ public class DealerOrder {
     
     public void setItems(List<DealerOrderItem> items) {
         this.items = items;
+    }
+    
+    public List<DealerQuotation> getQuotations() {
+        return quotations;
+    }
+    
+    public void setQuotations(List<DealerQuotation> quotations) {
+        this.quotations = quotations;
     }
     
     public String getNotes() {

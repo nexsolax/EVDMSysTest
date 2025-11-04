@@ -2,6 +2,7 @@ package com.evdealer.controller;
 
 import com.evdealer.entity.PricingPolicy;
 import com.evdealer.service.PricingPolicyService;
+import com.evdealer.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -9,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -19,6 +22,9 @@ public class PricingPolicyController {
     
     @Autowired
     private PricingPolicyService pricingPolicyService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     @GetMapping
     public ResponseEntity<List<PricingPolicy>> getAllPricingPolicies() {
@@ -64,9 +70,35 @@ public class PricingPolicyController {
     }
     
     @GetMapping("/dealer/{dealerId}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByDealer(@PathVariable UUID dealerId) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByDealer(dealerId);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByDealer(@PathVariable UUID dealerId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xem policies của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerId.equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view pricing policies for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByDealer(dealerId);
+            return ResponseEntity.ok(policies);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/scope/{scope}")
@@ -128,42 +160,124 @@ public class PricingPolicyController {
     }
     
     @PostMapping
-    public ResponseEntity<PricingPolicy> createPricingPolicy(@RequestBody PricingPolicy pricingPolicy) {
+    public ResponseEntity<?> createPricingPolicy(@RequestBody PricingPolicy pricingPolicy) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo pricing policy
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create pricing policies");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             PricingPolicy createdPolicy = pricingPolicyService.createPricingPolicy(pricingPolicy);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPolicy);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<PricingPolicy> updatePricingPolicy(@PathVariable UUID id, @RequestBody PricingPolicy pricingPolicyDetails) {
+    public ResponseEntity<?> updatePricingPolicy(@PathVariable UUID id, @RequestBody PricingPolicy pricingPolicyDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update pricing policy
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update pricing policies");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             PricingPolicy updatedPolicy = pricingPolicyService.updatePricingPolicy(id, pricingPolicyDetails);
             return ResponseEntity.ok(updatedPolicy);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{id}/status")
-    public ResponseEntity<PricingPolicy> updatePricingPolicyStatus(@PathVariable UUID id, @RequestParam String status) {
+    public ResponseEntity<?> updatePricingPolicyStatus(@PathVariable UUID id, @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update pricing policy status
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update pricing policy status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             PricingPolicy updatedPolicy = pricingPolicyService.updatePricingPolicyStatus(id, status);
             return ResponseEntity.ok(updatedPolicy);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update pricing policy status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update pricing policy status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePricingPolicy(@PathVariable UUID id) {
+    public ResponseEntity<?> deletePricingPolicy(@PathVariable UUID id) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa pricing policy
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete pricing policies");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             pricingPolicyService.deletePricingPolicy(id);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Pricing policy deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

@@ -90,14 +90,16 @@ public class SecurityConfig {
                                  "/api/vehicle-deliveries/**",
                                  "/api/sales-contracts/**",
                                  "/api/inventory-management/**",
-                                 "/api/product-management/**",
                                  "/api/customer-payments/**",
                                  "/api/dealer-payments/**",
                                  "/api/images/**",
                                  "/api/orders/**",
                                  "/api/customers/**",
                                  "/api/feedbacks/**",
-                                 "/api/appointments/**").authenticated()
+                                 "/api/appointments/**",
+                                 "/api/dealer-orders/**",
+                                 "/api/dealer-quotations/**",
+                                 "/api/dealer-invoices/**").authenticated()
                 .anyRequest().permitAll()
             )
             .sessionManagement(session -> session

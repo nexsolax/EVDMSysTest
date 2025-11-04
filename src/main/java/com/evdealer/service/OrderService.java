@@ -3,6 +3,7 @@ package com.evdealer.service;
 import com.evdealer.dto.OrderRequest;
 import com.evdealer.entity.*;
 import com.evdealer.repository.*;
+import com.evdealer.enums.DeliveryStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,14 +89,30 @@ public class OrderService {
                     .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + request.getQuotationId()));
         }
         
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+        Customer customer = null;
+        if (request.getCustomerId() != null) {
+            customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+        }
         
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getUserId()));
+        // userId is optional
+        User user = null;
+        if (request.getUserId() != null) {
+            user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getUserId()));
+        }
         
-        VehicleInventory inventory = vehicleInventoryRepository.findById(request.getInventoryId())
-                .orElseThrow(() -> new RuntimeException("Vehicle inventory not found with ID: " + request.getInventoryId()));
+        // Validate inventory availability
+        VehicleInventory inventory = null;
+        if (request.getInventoryId() != null) {
+            inventory = vehicleInventoryRepository.findById(request.getInventoryId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle inventory not found with ID: " + request.getInventoryId()));
+            
+            // Validate inventory availability
+            if (!"available".equalsIgnoreCase(inventory.getStatus())) {
+                throw new RuntimeException("Vehicle inventory is not available. Current status: " + inventory.getStatus());
+            }
+        }
         
         // Create order entity
         Order order = new Order();
@@ -128,6 +145,17 @@ public class OrderService {
         order.setNotes(request.getNotes());
         order.setDeliveryDate(request.getDeliveryDate());
         order.setSpecialRequests(request.getSpecialRequests());
+        
+        // Update inventory status when creating order
+        if (inventory != null) {
+            // Set inventory status to "reserved" when order is created
+            inventory.setStatus("reserved");
+            if (customer != null) {
+                inventory.setReservedForCustomer(customer);
+            }
+            inventory.setReservedDate(java.time.LocalDateTime.now());
+            vehicleInventoryRepository.save(inventory);
+        }
         
         return orderRepository.save(order);
     }
@@ -251,6 +279,43 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
         order.setStatus(status);
+        return orderRepository.save(order);
+    }
+    
+    /**
+     * Cancel an order and update inventory status
+     */
+    public Order cancelOrder(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+        
+        // Check if order can be cancelled
+        if ("cancelled".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Order is already cancelled");
+        }
+        
+        if ("delivered".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Cannot cancel a delivered order");
+        }
+        
+        // Update order status
+        order.setStatus("cancelled");
+        order.setDeliveryStatus(DeliveryStatus.CANCELLED);
+        
+        // Update inventory status if order has inventory
+        if (order.getInventory() != null) {
+            VehicleInventory inventory = order.getInventory();
+            
+            // Only revert to available if inventory was reserved or sold for this order
+            if ("reserved".equalsIgnoreCase(inventory.getStatus()) || "sold".equalsIgnoreCase(inventory.getStatus())) {
+                inventory.setStatus("available");
+                inventory.setReservedForCustomer(null);
+                inventory.setReservedDate(null);
+                inventory.setReservedExpiryDate(null);
+                vehicleInventoryRepository.save(inventory);
+            }
+        }
+        
         return orderRepository.save(order);
     }
 }

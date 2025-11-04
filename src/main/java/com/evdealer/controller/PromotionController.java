@@ -3,6 +3,7 @@ package com.evdealer.controller;
 import com.evdealer.dto.PromotionDTO;
 import com.evdealer.entity.Promotion;
 import com.evdealer.service.PromotionService;
+import com.evdealer.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -10,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -20,6 +23,9 @@ public class PromotionController {
     
     @Autowired
     private PromotionService promotionService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     @GetMapping
     public ResponseEntity<List<PromotionDTO>> getAllPromotions() {
@@ -79,42 +85,124 @@ public class PromotionController {
     }
     
     @PostMapping
-    public ResponseEntity<PromotionDTO> createPromotion(@RequestBody Promotion promotion) {
+    public ResponseEntity<?> createPromotion(@RequestBody Promotion promotion) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo promotion
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create promotions");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Promotion createdPromotion = promotionService.createPromotion(promotion);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdPromotion));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{promotionId}")
-    public ResponseEntity<PromotionDTO> updatePromotion(@PathVariable UUID promotionId, @RequestBody Promotion promotionDetails) {
+    public ResponseEntity<?> updatePromotion(@PathVariable UUID promotionId, @RequestBody Promotion promotionDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update promotion
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update promotions");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Promotion updatedPromotion = promotionService.updatePromotion(promotionId, promotionDetails);
             return ResponseEntity.ok(toDTO(updatedPromotion));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{promotionId}/status")
-    public ResponseEntity<PromotionDTO> updatePromotionStatus(@PathVariable UUID promotionId, @RequestParam String status) {
+    public ResponseEntity<?> updatePromotionStatus(@PathVariable UUID promotionId, @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update promotion status
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update promotion status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Promotion updatedPromotion = promotionService.updatePromotionStatus(promotionId, status);
             return ResponseEntity.ok(toDTO(updatedPromotion));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update promotion status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update promotion status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/{promotionId}")
-    public ResponseEntity<Void> deletePromotion(@PathVariable UUID promotionId) {
+    public ResponseEntity<?> deletePromotion(@PathVariable UUID promotionId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa promotion
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete promotions");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             promotionService.deletePromotion(promotionId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Promotion deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 

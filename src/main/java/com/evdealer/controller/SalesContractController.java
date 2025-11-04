@@ -3,6 +3,7 @@ package com.evdealer.controller;
 import com.evdealer.dto.SalesContractDTO;
 import com.evdealer.entity.SalesContract;
 import com.evdealer.service.SalesContractService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,6 +26,9 @@ public class SalesContractController {
     
     @Autowired
     private SalesContractService salesContractService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     @GetMapping
     @Operation(summary = "Lấy danh sách hợp đồng bán hàng", description = "Lấy tất cả hợp đồng bán hàng")
@@ -79,52 +85,169 @@ public class SalesContractController {
     
     @PostMapping
     @Operation(summary = "Tạo hợp đồng bán hàng mới", description = "Tạo hợp đồng bán hàng mới")
-    public ResponseEntity<SalesContractDTO> createContract(@RequestBody SalesContract contract) {
+    public ResponseEntity<?> createContract(@RequestBody SalesContract contract) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo sales contract
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create sales contracts");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             SalesContract createdContract = salesContractService.createContract(contract);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdContract));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{contractId}")
-    public ResponseEntity<SalesContractDTO> updateContract(@PathVariable UUID contractId, @RequestBody SalesContract contractDetails) {
+    public ResponseEntity<?> updateContract(@PathVariable UUID contractId, @RequestBody SalesContract contractDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update sales contract
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update sales contracts");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             SalesContract updatedContract = salesContractService.updateContract(contractId, contractDetails);
             return ResponseEntity.ok(toDTO(updatedContract));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{contractId}/status")
-    public ResponseEntity<SalesContractDTO> updateContractStatus(@PathVariable UUID contractId, @RequestParam String status) {
+    public ResponseEntity<?> updateContractStatus(@PathVariable UUID contractId, @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update contract status
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update sales contract status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             SalesContract updatedContract = salesContractService.updateContractStatus(contractId, status);
             return ResponseEntity.ok(toDTO(updatedContract));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update sales contract status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update sales contract status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{contractId}/sign")
-    public ResponseEntity<SalesContractDTO> signContract(@PathVariable UUID contractId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate signedDate) {
+    public ResponseEntity<?> signContract(@PathVariable UUID contractId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate signedDate) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Lấy contract hiện tại để kiểm tra ownership
+            SalesContract existingContract = salesContractService.getContractById(contractId)
+                .orElseThrow(() -> new RuntimeException("Sales contract not found"));
+            
+            // Kiểm tra phân quyền: ADMIN, EVM_STAFF hoặc user tạo contract
+            if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent()) {
+                    UUID currentUserId = currentUserOpt.get().getUserId();
+                    // User chỉ có thể sign contract của chính mình (nếu contract có user)
+                    if (existingContract.getUser() != null && !existingContract.getUser().getUserId().equals(currentUserId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only sign your own contracts");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                } else {
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error", "Access denied. Only admin, EVM staff or the contract creator can sign contracts");
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                }
+            }
+            
             SalesContract updatedContract = salesContractService.signContract(contractId, signedDate);
             return ResponseEntity.ok(toDTO(updatedContract));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to sign sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to sign sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/{contractId}")
-    public ResponseEntity<Void> deleteContract(@PathVariable UUID contractId) {
+    public ResponseEntity<?> deleteContract(@PathVariable UUID contractId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa sales contract
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete sales contracts");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             salesContractService.deleteContract(contractId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Sales contract deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete sales contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     private SalesContractDTO toDTO(SalesContract c) {

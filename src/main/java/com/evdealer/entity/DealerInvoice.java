@@ -29,6 +29,9 @@ public class DealerInvoice {
     @JoinColumn(name = "evm_staff_id", nullable = true)
     private User evmStaff;
     
+    @Column(name = "quotation_id")
+    private UUID quotationId; // Reference to DealerQuotation if created from quotation
+    
     @Column(name = "invoice_date", nullable = false)
     private LocalDate invoiceDate;
     
@@ -196,6 +199,14 @@ public class DealerInvoice {
     
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    public UUID getQuotationId() {
+        return quotationId;
+    }
+    
+    public void setQuotationId(UUID quotationId) {
+        this.quotationId = quotationId;
     }
 
     @Override

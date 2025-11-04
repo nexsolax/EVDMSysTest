@@ -6,6 +6,7 @@ import com.evdealer.entity.DealerOrder;
 import com.evdealer.entity.DealerOrderItem;
 import com.evdealer.service.DealerOrderService;
 import com.evdealer.service.DealerOrderItemService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -33,85 +34,322 @@ public class DealerOrderController {
     @Autowired
     private DealerOrderItemService dealerOrderItemService;
     
+    @Autowired
+    private SecurityUtils securityUtils;
+    
     @GetMapping
     @Operation(summary = "Lấy danh sách đơn hàng đại lý", description = "Lấy tất cả đơn hàng đại lý")
-    public ResponseEntity<List<DealerOrder>> getAllDealerOrders() {
-        List<DealerOrder> orders = dealerOrderService.getAllDealerOrders();
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getAllDealerOrders() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getAllDealerOrders();
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{dealerOrderId}")
-    public ResponseEntity<DealerOrder> getDealerOrderById(@PathVariable UUID dealerOrderId) {
-        return dealerOrderService.getDealerOrderById(dealerOrderId)
-                .map(order -> ResponseEntity.ok(order))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getDealerOrderById(@PathVariable UUID dealerOrderId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            DealerOrder order = dealerOrderService.getDealerOrderById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Kiểm tra dealer user chỉ có thể xem order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (order.getDealer() != null && !order.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view orders for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
     }
     
     @GetMapping("/order-number/{orderNumber}")
-    public ResponseEntity<DealerOrder> getDealerOrderByOrderNumber(@PathVariable String orderNumber) {
-        return dealerOrderService.getDealerOrderByOrderNumber(orderNumber)
-                .map(order -> ResponseEntity.ok(order))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getDealerOrderByOrderNumber(@PathVariable String orderNumber) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            DealerOrder order = dealerOrderService.getDealerOrderByOrderNumber(orderNumber)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Kiểm tra dealer user chỉ có thể xem order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (order.getDealer() != null && !order.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view orders for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
     }
     
     @GetMapping("/evm-staff/{evmStaffId}")
-    public ResponseEntity<List<DealerOrder>> getDealerOrdersByEvmStaff(@PathVariable UUID evmStaffId) {
-        List<DealerOrder> orders = dealerOrderService.getDealerOrdersByEvmStaff(evmStaffId);
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getDealerOrdersByEvmStaff(@PathVariable UUID evmStaffId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getDealerOrdersByEvmStaff(evmStaffId);
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<DealerOrder>> getDealerOrdersByStatus(@PathVariable String status) {
-        List<DealerOrder> orders = dealerOrderService.getDealerOrdersByStatus(status);
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getDealerOrdersByStatus(@PathVariable String status) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getDealerOrdersByStatus(status);
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/date-range")
-    public ResponseEntity<List<DealerOrder>> getDealerOrdersByDateRange(
+    public ResponseEntity<?> getDealerOrdersByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<DealerOrder> orders = dealerOrderService.getDealerOrdersByDateRange(startDate, endDate);
-        return ResponseEntity.ok(orders);
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getDealerOrdersByDateRange(startDate, endDate);
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
     @Operation(summary = "Tạo đơn hàng đại lý mới", description = "Tạo đơn hàng đại lý mới")
-    public ResponseEntity<DealerOrder> createDealerOrder(@RequestBody DealerOrder dealerOrder) {
+    public ResponseEntity<?> createDealerOrder(@RequestBody DealerOrder dealerOrder) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, EVM_STAFF, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only authorized users can create dealer orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerOrder createdOrder = dealerOrderService.createDealerOrder(dealerOrder);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
         }
     }
     
     @PutMapping("/{dealerOrderId}")
-    public ResponseEntity<DealerOrder> updateDealerOrder(@PathVariable UUID dealerOrderId, @RequestBody DealerOrder dealerOrderDetails) {
+    public ResponseEntity<?> updateDealerOrder(@PathVariable UUID dealerOrderId, @RequestBody DealerOrder dealerOrderDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, EVM_STAFF, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only authorized users can update dealer orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            DealerOrder existingOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Kiểm tra dealer user chỉ có thể update order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (existingOrder.getDealer() != null && !existingOrder.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only update orders for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
             DealerOrder updatedOrder = dealerOrderService.updateDealerOrder(dealerOrderId, dealerOrderDetails);
             return ResponseEntity.ok(updatedOrder);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
     
     @PutMapping("/{dealerOrderId}/status")
-    public ResponseEntity<DealerOrder> updateDealerOrderStatus(@PathVariable UUID dealerOrderId, @RequestParam String status) {
+    public ResponseEntity<?> updateDealerOrderStatus(@PathVariable UUID dealerOrderId, @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể update status
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can update order status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerOrder updatedOrder = dealerOrderService.updateDealerOrderStatus(dealerOrderId, status);
             return ResponseEntity.ok(updatedOrder);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update order status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
     
     @DeleteMapping("/{dealerOrderId}")
-    public ResponseEntity<Void> deleteDealerOrder(@PathVariable UUID dealerOrderId) {
+    public ResponseEntity<?> deleteDealerOrder(@PathVariable UUID dealerOrderId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ ADMIN có thể xóa order
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete dealer orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             dealerOrderService.deleteDealerOrder(dealerOrderId);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
     }
     
@@ -121,6 +359,33 @@ public class DealerOrderController {
     @Operation(summary = "Tạo đơn hàng đại lý chi tiết", description = "Tạo đơn hàng đại lý với danh sách xe chi tiết")
     public ResponseEntity<?> createDetailedDealerOrder(@RequestBody CreateDealerOrderRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, EVM_STAFF, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only authorized users can create dealer orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể tạo order cho dealer của mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!request.getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only create orders for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
             CreateDealerOrderResponse response = dealerOrderService.createDetailedDealerOrder(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
@@ -136,20 +401,75 @@ public class DealerOrderController {
     
     @GetMapping("/{dealerOrderId}/items")
     @Operation(summary = "Lấy chi tiết xe trong đơn hàng", description = "Lấy danh sách xe trong đơn hàng đại lý")
-    public ResponseEntity<List<DealerOrderItem>> getDealerOrderItems(@PathVariable UUID dealerOrderId) {
-        List<DealerOrderItem> items = dealerOrderItemService.getItemsByDealerOrderId(dealerOrderId);
-        return ResponseEntity.ok(items);
+    public ResponseEntity<?> getDealerOrderItems(@PathVariable UUID dealerOrderId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xem items của order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                DealerOrder order = dealerOrderService.getDealerOrderById(dealerOrderId)
+                    .orElseThrow(() -> new RuntimeException("Dealer order not found"));
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!order.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view items for orders of your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            List<DealerOrderItem> items = dealerOrderItemService.getItemsByDealerOrderId(dealerOrderId);
+            return ResponseEntity.ok(items);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get items: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
     }
     
     @PostMapping("/{dealerOrderId}/items")
     @Operation(summary = "Thêm xe vào đơn hàng", description = "Thêm xe mới vào đơn hàng đại lý")
     public ResponseEntity<?> addItemToDealerOrder(@PathVariable UUID dealerOrderId, @RequestBody DealerOrderItem item) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, EVM_STAFF, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only authorized users can add items to orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             // Set dealer order
             DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
                 .orElseThrow(() -> new RuntimeException("Dealer order not found"));
-            item.setDealerOrder(dealerOrder);
             
+            // Kiểm tra dealer user chỉ có thể thêm items cho order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only add items to orders of your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            item.setDealerOrder(dealerOrder);
             DealerOrderItem createdItem = dealerOrderItemService.createDealerOrderItem(item);
             
             // Recalculate totals
@@ -167,6 +487,36 @@ public class DealerOrderController {
     @Operation(summary = "Cập nhật xe trong đơn hàng", description = "Cập nhật thông tin xe trong đơn hàng đại lý")
     public ResponseEntity<?> updateDealerOrderItem(@PathVariable UUID dealerOrderId, @PathVariable UUID itemId, @RequestBody DealerOrderItem itemDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, EVM_STAFF, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only authorized users can update items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể update items của order của dealer mình
+            DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Dealer order not found"));
+            
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only update items for orders of your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
             DealerOrderItem updatedItem = dealerOrderItemService.updateDealerOrderItem(itemId, itemDetails);
             
             // Recalculate totals
@@ -184,6 +534,36 @@ public class DealerOrderController {
     @Operation(summary = "Xóa xe khỏi đơn hàng", description = "Xóa xe khỏi đơn hàng đại lý")
     public ResponseEntity<?> deleteDealerOrderItem(@PathVariable UUID dealerOrderId, @PathVariable UUID itemId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, EVM_STAFF, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only authorized users can delete items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Kiểm tra dealer user chỉ có thể xóa items của order của dealer mình
+            DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Dealer order not found"));
+            
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only delete items for orders of your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
             dealerOrderItemService.deleteDealerOrderItem(itemId);
             
             // Recalculate totals
@@ -199,8 +579,34 @@ public class DealerOrderController {
     
     @PostMapping("/{dealerOrderId}/approve")
     @Operation(summary = "Duyệt đơn hàng", description = "Duyệt đơn hàng đại lý")
-    public ResponseEntity<?> approveDealerOrder(@PathVariable UUID dealerOrderId, @RequestParam @Parameter(description = "ID người duyệt") UUID approvedBy) {
+    public ResponseEntity<?> approveDealerOrder(@PathVariable UUID dealerOrderId, @RequestParam(required = false) @Parameter(description = "ID người duyệt") UUID approvedBy) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể duyệt
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can approve orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Sử dụng current user nếu không có approvedBy
+            if (approvedBy == null) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent()) {
+                    approvedBy = currentUserOpt.get().getUserId();
+                } else {
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error", "Cannot determine approver. Please provide approvedBy parameter");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+                }
+            }
+            
             DealerOrder approvedOrder = dealerOrderService.approveDealerOrder(dealerOrderId, approvedBy);
             return ResponseEntity.ok(approvedOrder);
         } catch (RuntimeException e) {
@@ -214,6 +620,20 @@ public class DealerOrderController {
     @Operation(summary = "Từ chối đơn hàng", description = "Từ chối đơn hàng đại lý")
     public ResponseEntity<?> rejectDealerOrder(@PathVariable UUID dealerOrderId, @RequestParam @Parameter(description = "Lý do từ chối") String rejectionReason) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ EVM_STAFF hoặc ADMIN có thể từ chối
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can reject orders");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             DealerOrder rejectedOrder = dealerOrderService.rejectDealerOrder(dealerOrderId, rejectionReason);
             return ResponseEntity.ok(rejectedOrder);
         } catch (RuntimeException e) {
@@ -227,6 +647,29 @@ public class DealerOrderController {
     @Operation(summary = "Lấy tóm tắt đơn hàng", description = "Lấy thông tin tóm tắt đơn hàng đại lý")
     public ResponseEntity<?> getDealerOrderSummary(@PathVariable UUID dealerOrderId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            DealerOrder order = dealerOrderService.getDealerOrderById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+            // Kiểm tra dealer user chỉ có thể xem summary của order của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (order.getDealer() != null && !order.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view summary for orders of your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
             Map<String, Object> summary = dealerOrderService.getDealerOrderSummary(dealerOrderId);
             return ResponseEntity.ok(summary);
         } catch (RuntimeException e) {
@@ -238,23 +681,166 @@ public class DealerOrderController {
     
     @GetMapping("/pending-approval")
     @Operation(summary = "Lấy đơn hàng chờ duyệt", description = "Lấy danh sách đơn hàng chờ duyệt")
-    public ResponseEntity<List<DealerOrder>> getPendingApprovalOrders() {
-        List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("PENDING");
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getPendingApprovalOrders() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("PENDING");
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/approved")
     @Operation(summary = "Lấy đơn hàng đã duyệt", description = "Lấy danh sách đơn hàng đã duyệt")
-    public ResponseEntity<List<DealerOrder>> getApprovedOrders() {
-        List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("APPROVED");
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getApprovedOrders() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("APPROVED");
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/rejected")
     @Operation(summary = "Lấy đơn hàng bị từ chối", description = "Lấy danh sách đơn hàng bị từ chối")
-    public ResponseEntity<List<DealerOrder>> getRejectedOrders() {
-        List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("REJECTED");
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<?> getRejectedOrders() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("REJECTED");
+            
+            // Filter theo dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    orders = orders.stream()
+                        .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
+                        .collect(java.util.stream.Collectors.toList());
+                }
+            }
+            
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    // ==================== NEW: DEALER ORDER REQUEST FLOW ====================
+    
+    @PostMapping("/{dealerOrderId}/request-quotation")
+    @Operation(summary = "Đại lý gửi yêu cầu báo giá", description = "Khi đại lý hết xe, quản lý đại lý sẽ tạo request từ DealerOrder để yêu cầu hãng báo giá")
+    public ResponseEntity<?> requestQuotationFromFactory(@PathVariable UUID dealerOrderId, @RequestParam(required = false) String notes) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: Chỉ DEALER_MANAGER, DEALER_STAFF hoặc ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only dealer users can request quotations");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
+            
+            // Kiểm tra dealer user chỉ có thể request quotation cho dealer của mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only request quotations for your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            // Validate order is approved
+            if (!"APPROVED".equals(dealerOrder.getApprovalStatus())) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Order must be approved before requesting quotation. Current status: " + dealerOrder.getApprovalStatus());
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            // Update order status to indicate it's waiting for quotation
+            dealerOrder.setStatus("WAITING_FOR_QUOTATION");
+            if (notes != null && !notes.trim().isEmpty()) {
+                dealerOrder.setNotes((dealerOrder.getNotes() != null ? dealerOrder.getNotes() + "\n" : "") + 
+                    "Request for quotation: " + notes);
+            }
+            dealerOrderService.updateDealerOrder(dealerOrderId, dealerOrder);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Request for quotation sent successfully. Factory will create quotation based on this order.");
+            response.put("dealerOrderId", dealerOrderId);
+            response.put("dealerOrderNumber", dealerOrder.getDealerOrderNumber());
+            response.put("status", dealerOrder.getStatus());
+            response.put("totalAmount", dealerOrder.getTotalAmount());
+            response.put("totalQuantity", dealerOrder.getTotalQuantity());
+            response.put("nextStep", "Factory staff should create quotation using: POST /api/dealer-quotations/from-order/" + dealerOrderId);
+            
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to request quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
     }
 }
 

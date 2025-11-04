@@ -3,6 +3,7 @@ package com.evdealer.controller;
 import com.evdealer.dto.DealerRequest;
 import com.evdealer.entity.Dealer;
 import com.evdealer.service.DealerService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -22,6 +25,9 @@ public class DealerController {
     @Autowired
     private DealerService dealerService;
     
+    @Autowired
+    private SecurityUtils securityUtils;
+    
     @GetMapping
     public ResponseEntity<List<Dealer>> getAllDealers() {
         List<Dealer> dealers = dealerService.getAllDealers();
@@ -29,10 +35,41 @@ public class DealerController {
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<Dealer> getDealerById(@PathVariable UUID id) {
-        return dealerService.getDealerById(id)
-                .map(dealer -> ResponseEntity.ok(dealer))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getDealerById(@PathVariable UUID id) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            Dealer dealer = dealerService.getDealerById(id)
+                .orElseThrow(() -> new RuntimeException("Dealer not found"));
+            
+            // Dealer user chỉ có thể xem thông tin của dealer mình
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    if (!dealer.getDealerId().equals(userDealerId)) {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. You can only view information of your own dealer");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                }
+            }
+            
+            return ResponseEntity.ok(dealer);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/code/{dealerCode}")
@@ -94,53 +131,175 @@ public class DealerController {
     
     @PostMapping
     @Operation(summary = "Tạo đại lý mới", description = "Tạo đại lý mới")
-    public ResponseEntity<Dealer> createDealer(@RequestBody Dealer dealer) {
+    public ResponseEntity<?> createDealer(@RequestBody Dealer dealer) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo đại lý
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create dealers");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Dealer createdDealer = dealerService.createDealer(dealer);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdDealer);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PostMapping("/dto")
     @Operation(summary = "Tạo đại lý mới từ DTO", description = "Tạo đại lý mới từ DealerRequest DTO")
-    public ResponseEntity<Dealer> createDealerFromRequest(@RequestBody DealerRequest request) {
+    public ResponseEntity<?> createDealerFromRequest(@RequestBody DealerRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo đại lý
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create dealers");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Dealer createdDealer = dealerService.createDealerFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdDealer);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<Dealer> updateDealer(@PathVariable UUID id, @RequestBody Dealer dealerDetails) {
+    public ResponseEntity<?> updateDealer(@PathVariable UUID id, @RequestBody Dealer dealerDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Kiểm tra phân quyền: ADMIN, EVM_STAFF hoặc dealer user của chính dealer đó
+            Dealer existingDealer = dealerService.getDealerById(id)
+                .orElseThrow(() -> new RuntimeException("Dealer not found"));
+            
+            if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
+                // Kiểm tra dealer user chỉ có thể update dealer của mình
+                if (securityUtils.isDealerUser()) {
+                    var currentUserOpt = securityUtils.getCurrentUser();
+                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                        if (!existingDealer.getDealerId().equals(userDealerId)) {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Access denied. You can only update your own dealer information");
+                            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                        }
+                    } else {
+                        Map<String, String> error = new HashMap<>();
+                        error.put("error", "Access denied. Only admin, EVM staff or dealer users can update dealers");
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                    }
+                } else {
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error", "Access denied. Only admin, EVM staff or dealer users can update dealers");
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+                }
+            }
+            
             Dealer updatedDealer = dealerService.updateDealer(id, dealerDetails);
             return ResponseEntity.ok(updatedDealer);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{id}/status")
-    public ResponseEntity<Dealer> updateDealerStatus(@PathVariable UUID id, @RequestParam String status) {
+    public ResponseEntity<?> updateDealerStatus(@PathVariable UUID id, @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update status
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update dealer status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             Dealer updatedDealer = dealerService.updateDealerStatus(id, status);
             return ResponseEntity.ok(updatedDealer);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update dealer status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update dealer status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDealer(@PathVariable UUID id) {
+    public ResponseEntity<?> deleteDealer(@PathVariable UUID id) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa đại lý
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete dealers");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             dealerService.deleteDealer(id);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Dealer deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

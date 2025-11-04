@@ -44,6 +44,9 @@ public class QuotationRequest {
     @Schema(description = "Notes", example = "test")
     private String notes;
     
+    @Schema(description = "Order ID (optional - link quotation to existing order)", example = "e913b770-4755-4375-9744-ff97ff827c7a")
+    private UUID orderId;
+    
     // Constructors
     public QuotationRequest() {}
     
@@ -134,5 +137,13 @@ public class QuotationRequest {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public UUID getOrderId() {
+        return orderId;
+    }
+    
+    public void setOrderId(UUID orderId) {
+        this.orderId = orderId;
     }
 }

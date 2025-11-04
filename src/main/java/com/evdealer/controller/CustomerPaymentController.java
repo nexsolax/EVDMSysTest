@@ -2,6 +2,7 @@ package com.evdealer.controller;
 
 import com.evdealer.entity.CustomerPayment;
 import com.evdealer.service.CustomerPaymentService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,7 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -22,6 +25,9 @@ public class CustomerPaymentController {
     
     @Autowired
     private CustomerPaymentService customerPaymentService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     @GetMapping
     @Operation(summary = "Get all customer payments", description = "Retrieve a list of all customer payments")
@@ -99,49 +105,131 @@ public class CustomerPaymentController {
     
     @PostMapping
     @Operation(summary = "Create customer payment", description = "Create a new customer payment")
-    public ResponseEntity<CustomerPayment> createCustomerPayment(@RequestBody CustomerPayment customerPayment) {
+    public ResponseEntity<?> createCustomerPayment(@RequestBody CustomerPayment customerPayment) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo customer payment
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create customer payments");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             CustomerPayment createdPayment = customerPaymentService.createCustomerPayment(customerPayment);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdPayment);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create customer payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create customer payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{paymentId}")
     @Operation(summary = "Update customer payment", description = "Update an existing customer payment")
-    public ResponseEntity<CustomerPayment> updateCustomerPayment(
+    public ResponseEntity<?> updateCustomerPayment(
             @PathVariable UUID paymentId, 
             @RequestBody CustomerPayment customerPaymentDetails) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update customer payment
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update customer payments");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             CustomerPayment updatedPayment = customerPaymentService.updateCustomerPayment(paymentId, customerPaymentDetails);
             return ResponseEntity.ok(updatedPayment);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update customer payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update customer payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/{paymentId}/status")
     @Operation(summary = "Update payment status", description = "Update the status of a customer payment")
-    public ResponseEntity<CustomerPayment> updatePaymentStatus(
+    public ResponseEntity<?> updatePaymentStatus(
             @PathVariable UUID paymentId, 
             @RequestParam String status) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update payment status
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update payment status");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             CustomerPayment updatedPayment = customerPaymentService.updatePaymentStatus(paymentId, status);
             return ResponseEntity.ok(updatedPayment);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update payment status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update payment status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/{paymentId}")
     @Operation(summary = "Delete customer payment", description = "Delete a customer payment")
-    public ResponseEntity<Void> deleteCustomerPayment(@PathVariable UUID paymentId) {
+    public ResponseEntity<?> deleteCustomerPayment(@PathVariable UUID paymentId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa customer payment
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete customer payments");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             customerPaymentService.deleteCustomerPayment(paymentId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Customer payment deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete customer payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete customer payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

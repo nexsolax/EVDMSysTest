@@ -1,11 +1,17 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.CustomerPayment;
+import com.evdealer.entity.Order;
+import com.evdealer.entity.VehicleInventory;
+import com.evdealer.enums.PaymentStatus;
 import com.evdealer.repository.CustomerPaymentRepository;
+import com.evdealer.repository.OrderRepository;
+import com.evdealer.repository.VehicleInventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +23,12 @@ public class CustomerPaymentService {
     
     @Autowired
     private CustomerPaymentRepository customerPaymentRepository;
+    
+    @Autowired
+    private OrderRepository orderRepository;
+    
+    @Autowired
+    private VehicleInventoryRepository vehicleInventoryRepository;
     
     public List<CustomerPayment> getAllCustomerPayments() {
         try {
@@ -67,7 +79,15 @@ public class CustomerPaymentService {
         if (customerPaymentRepository.existsByPaymentNumber(customerPayment.getPaymentNumber())) {
             throw new RuntimeException("Payment number already exists");
         }
-        return customerPaymentRepository.save(customerPayment);
+        
+        CustomerPayment savedPayment = customerPaymentRepository.save(customerPayment);
+        
+        // Update Order status after payment is created and if status is "completed"
+        if ("completed".equalsIgnoreCase(savedPayment.getStatus()) && savedPayment.getOrder() != null) {
+            updateOrderStatusAfterPayment(savedPayment.getOrder().getOrderId());
+        }
+        
+        return savedPayment;
     }
     
     public CustomerPayment updateCustomerPayment(UUID paymentId, CustomerPayment customerPaymentDetails) {
@@ -100,6 +120,59 @@ public class CustomerPaymentService {
         CustomerPayment customerPayment = customerPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Customer payment not found"));
         customerPayment.setStatus(status);
-        return customerPaymentRepository.save(customerPayment);
+        
+        CustomerPayment savedPayment = customerPaymentRepository.save(customerPayment);
+        
+        // Update Order status after payment status is updated to "completed"
+        if ("completed".equalsIgnoreCase(status) && savedPayment.getOrder() != null) {
+            updateOrderStatusAfterPayment(savedPayment.getOrder().getOrderId());
+        }
+        
+        return savedPayment;
+    }
+    
+    /**
+     * Calculate total paid amount for an order
+     */
+    private BigDecimal calculateTotalPaid(UUID orderId) {
+        List<CustomerPayment> payments = customerPaymentRepository.findByOrderOrderId(orderId);
+        return payments.stream()
+                .filter(p -> "completed".equalsIgnoreCase(p.getStatus()))
+                .map(CustomerPayment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+    
+    /**
+     * Update Order status and Inventory status after payment
+     */
+    private void updateOrderStatusAfterPayment(UUID orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElse(null);
+        
+        if (order == null) {
+            return;
+        }
+        
+        // Calculate total paid amount
+        BigDecimal totalPaid = calculateTotalPaid(orderId);
+        
+        if (order.getTotalAmount() != null && totalPaid.compareTo(order.getTotalAmount()) >= 0) {
+            // Fully paid
+            order.setPaymentStatus(PaymentStatus.PAID);
+            order.setStatus("paid");
+            
+            // Update Inventory status to "sold" if fully paid
+            if (order.getInventory() != null) {
+                VehicleInventory inventory = order.getInventory();
+                inventory.setStatus("sold");
+                vehicleInventoryRepository.save(inventory);
+            }
+        } else if (totalPaid.compareTo(BigDecimal.ZERO) > 0) {
+            // Partially paid
+            order.setPaymentStatus(PaymentStatus.PARTIAL);
+            order.setStatus("confirmed");
+        }
+        
+        orderRepository.save(order);
     }
 }

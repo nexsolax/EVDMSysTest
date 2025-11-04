@@ -8,6 +8,7 @@ import com.evdealer.repository.VehicleVariantRepository;
 import com.evdealer.repository.VehicleInventoryRepository;
 import com.evdealer.service.FileUploadService;
 import com.evdealer.service.ImageUpdateService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,6 +45,9 @@ public class ImageController {
     @Autowired
     private VehicleInventoryRepository vehicleInventoryRepository;
     
+    @Autowired
+    private SecurityUtils securityUtils;
+    
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload hình ảnh", description = "Upload một hình ảnh duy nhất")
     public ResponseEntity<?> uploadImage(
@@ -51,6 +55,20 @@ public class ImageController {
             @Parameter(description = "Danh mục lưu trữ (vehicles, brands, models, variants, colors)") @RequestParam("category") String category) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể upload hình ảnh
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can upload images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             FileUploadService.FileUploadResult result = fileUploadService.uploadImage(file, category);
             return ResponseEntity.ok(result);
         } catch (IOException e) {
@@ -71,6 +89,20 @@ public class ImageController {
             @Parameter(description = "Danh mục lưu trữ") @RequestParam("category") String category) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể upload nhiều hình ảnh
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can upload images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             FileUploadService.FileUploadResult result = fileUploadService.uploadMultipleImages(files, category);
             return ResponseEntity.ok(result);
         } catch (IOException e) {
@@ -91,6 +123,20 @@ public class ImageController {
             @RequestParam(value = "brandId", required = false) Integer brandId) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể upload brand logo
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can upload brand logos");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             String category = "brands";
             
             // If brandId is provided, get brand name and create subfolder
@@ -156,6 +202,20 @@ public class ImageController {
             @RequestParam(value = "modelId", required = false) Integer modelId) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể upload model image
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can upload model images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             FileUploadService.FileUploadResult result = fileUploadService.uploadImage(file, "models");
             
             Map<String, Object> response = new HashMap<>();
@@ -178,6 +238,20 @@ public class ImageController {
             @RequestParam(value = "variantId", required = false) Integer variantId) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể upload variant image
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can upload variant images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             String category = "variants";
             
             // If variantId is provided, get variant name and create subfolder
@@ -229,6 +303,20 @@ public class ImageController {
             @RequestParam(value = "inventoryId", required = false) String inventoryId) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể upload inventory images
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can upload inventory images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             String category = "inventory/" + imageType;
             
             // If inventoryId is provided, get inventory and create subfolder by VIN
@@ -325,6 +413,20 @@ public class ImageController {
             @PathVariable String filename) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể xóa hình ảnh
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can delete images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             boolean deleted = fileUploadService.deleteImage(category, filename);
             
             if (deleted) {
@@ -350,6 +452,20 @@ public class ImageController {
     public ResponseEntity<?> deleteImageCategory(@PathVariable String category) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa toàn bộ danh mục hình ảnh
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete entire image categories");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             boolean deleted = fileUploadService.deleteImageDirectory(category);
             
             if (deleted) {
@@ -455,6 +571,20 @@ public class ImageController {
             @RequestParam("file") MultipartFile newFile) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update hình ảnh
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             // First delete the old image
             boolean deleted = fileUploadService.deleteImage(category, filename);
             if (!deleted) {
@@ -492,6 +622,20 @@ public class ImageController {
             @RequestParam String newFilename) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể rename hình ảnh
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can rename images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             boolean renamed = fileUploadService.renameImage(category, oldFilename, newFilename);
             
             if (renamed) {
@@ -521,6 +665,20 @@ public class ImageController {
             @RequestParam String newCategory) {
         
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể move hình ảnh
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can move images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             boolean moved = fileUploadService.moveImage(oldCategory, filename, newCategory);
             
             if (moved) {
@@ -548,6 +706,20 @@ public class ImageController {
     @Operation(summary = "Xóa nhiều hình ảnh", description = "Xóa nhiều hình ảnh cùng lúc")
     public ResponseEntity<?> bulkDeleteImages(@RequestBody Map<String, Object> request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể bulk delete images
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can bulk delete images");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             @SuppressWarnings("unchecked")
             java.util.List<Map<String, String>> images = (java.util.List<Map<String, String>>) request.get("images");
             

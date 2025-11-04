@@ -13,6 +13,7 @@ import com.evdealer.repository.DealerRepository;
 import com.evdealer.repository.UserRepository;
 import com.evdealer.repository.VehicleVariantRepository;
 import com.evdealer.repository.VehicleColorRepository;
+import com.evdealer.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,8 +49,19 @@ public class DealerOrderService {
     @Autowired
     private DealerOrderItemService dealerOrderItemService;
     
+    @Autowired
+    private SecurityUtils securityUtils;
+    
     public List<DealerOrder> getAllDealerOrders() {
         try {
+            // Filter by dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID dealerId = currentUserOpt.get().getDealer().getDealerId();
+                    return dealerOrderRepository.findByDealerId(dealerId);
+                }
+            }
             return dealerOrderRepository.findAll();
         } catch (Exception e) {
             // Return empty list if there's an issue

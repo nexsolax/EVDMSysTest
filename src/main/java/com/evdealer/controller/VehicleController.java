@@ -9,6 +9,7 @@ import com.evdealer.dto.VehicleVariantRequest;
 import com.evdealer.dto.VehicleBrandRequest;
 import com.evdealer.dto.VehicleColorRequest;
 import com.evdealer.service.VehicleService;
+import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +18,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/vehicles")
@@ -27,6 +30,9 @@ public class VehicleController {
     
     @Autowired
     private VehicleService vehicleService;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
     
     // Vehicle Brand endpoints
     @GetMapping("/brands")
@@ -72,33 +78,95 @@ public class VehicleController {
     
     @PostMapping("/brands")
     @Operation(summary = "Tạo thương hiệu mới", description = "Tạo thương hiệu xe mới")
-    public ResponseEntity<VehicleBrand> createBrand(@RequestBody VehicleBrandRequest request) {
+    public ResponseEntity<?> createBrand(@RequestBody VehicleBrandRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo brand
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create vehicle brands");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleBrand createdBrand = vehicleService.createBrandFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdBrand);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/brands/{brandId}")
     @Operation(summary = "Cập nhật thương hiệu", description = "Cập nhật thông tin thương hiệu")
-    public ResponseEntity<VehicleBrand> updateBrand(@PathVariable Integer brandId, @RequestBody VehicleBrandRequest request) {
+    public ResponseEntity<?> updateBrand(@PathVariable Integer brandId, @RequestBody VehicleBrandRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update brand
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update vehicle brands");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleBrand updatedBrand = vehicleService.updateBrandFromRequest(brandId, request);
             return ResponseEntity.ok(updatedBrand);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/brands/{brandId}")
-    public ResponseEntity<Void> deleteBrand(@PathVariable Integer brandId) {
+    public ResponseEntity<?> deleteBrand(@PathVariable Integer brandId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa brand
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete vehicle brands");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             vehicleService.deleteBrand(brandId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Vehicle brand deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -160,33 +228,95 @@ public class VehicleController {
     
     @PostMapping("/models")
     @Operation(summary = "Tạo mẫu xe mới", description = "Tạo mẫu xe mới")
-    public ResponseEntity<VehicleModel> createModel(@RequestBody VehicleModelRequest request) {
+    public ResponseEntity<?> createModel(@RequestBody VehicleModelRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo model
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create vehicle models");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleModel createdModel = vehicleService.createModelFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdModel);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/models/{modelId}")
     @Operation(summary = "Cập nhật mẫu xe", description = "Cập nhật thông tin mẫu xe")
-    public ResponseEntity<VehicleModel> updateModel(@PathVariable Integer modelId, @RequestBody VehicleModelRequest request) {
+    public ResponseEntity<?> updateModel(@PathVariable Integer modelId, @RequestBody VehicleModelRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update model
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update vehicle models");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleModel updatedModel = vehicleService.updateModelFromRequest(modelId, request);
             return ResponseEntity.ok(updatedModel);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/models/{modelId}")
-    public ResponseEntity<Void> deleteModel(@PathVariable Integer modelId) {
+    public ResponseEntity<?> deleteModel(@PathVariable Integer modelId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa model
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete vehicle models");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             vehicleService.deleteModel(modelId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Vehicle model deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -251,41 +381,95 @@ public class VehicleController {
     
     @PostMapping("/variants")
     @Operation(summary = "Tạo phiên bản xe mới", description = "Tạo phiên bản xe điện mới")
-    public ResponseEntity<VehicleVariant> createVariant(@RequestBody VehicleVariantRequest request) {
+    public ResponseEntity<?> createVariant(@RequestBody VehicleVariantRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo variant
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create vehicle variants");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleVariant createdVariant = vehicleService.createVariantFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdVariant);
         } catch (RuntimeException e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/variants/{variantId}")
     @Operation(summary = "Cập nhật phiên bản xe", description = "Cập nhật thông tin phiên bản xe điện")
-    public ResponseEntity<VehicleVariant> updateVariant(@PathVariable Integer variantId, @RequestBody VehicleVariantRequest request) {
+    public ResponseEntity<?> updateVariant(@PathVariable Integer variantId, @RequestBody VehicleVariantRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update variant
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update vehicle variants");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleVariant updatedVariant = vehicleService.updateVariantFromRequest(variantId, request);
             return ResponseEntity.ok(updatedVariant);
         } catch (RuntimeException e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/variants/{variantId}")
-    public ResponseEntity<Void> deleteVariant(@PathVariable Integer variantId) {
+    public ResponseEntity<?> deleteVariant(@PathVariable Integer variantId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa variant
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete vehicle variants");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             vehicleService.deleteVariant(variantId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Vehicle variant deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -333,33 +517,95 @@ public class VehicleController {
     
     @PostMapping("/colors")
     @Operation(summary = "Tạo màu sắc mới", description = "Tạo màu sắc xe mới")
-    public ResponseEntity<VehicleColor> createColor(@RequestBody VehicleColorRequest request) {
+    public ResponseEntity<?> createColor(@RequestBody VehicleColorRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo color
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can create vehicle colors");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleColor createdColor = vehicleService.createColorFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdColor);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @PutMapping("/colors/{colorId}")
     @Operation(summary = "Cập nhật màu sắc", description = "Cập nhật thông tin màu sắc")
-    public ResponseEntity<VehicleColor> updateColor(@PathVariable Integer colorId, @RequestBody VehicleColorRequest request) {
+    public ResponseEntity<?> updateColor(@PathVariable Integer colorId, @RequestBody VehicleColorRequest request) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update color
+            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin or EVM staff can update vehicle colors");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             VehicleColor updatedColor = vehicleService.updateColorFromRequest(colorId, request);
             return ResponseEntity.ok(updatedColor);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @DeleteMapping("/colors/{colorId}")
-    public ResponseEntity<Void> deleteColor(@PathVariable Integer colorId) {
+    public ResponseEntity<?> deleteColor(@PathVariable Integer colorId) {
         try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xóa color
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can delete vehicle colors");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
             vehicleService.deleteColor(colorId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Vehicle color deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
 }

@@ -1,7 +1,11 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.DealerInvoice;
+import com.evdealer.entity.DealerOrder;
 import com.evdealer.repository.DealerInvoiceRepository;
+import com.evdealer.repository.DealerOrderRepository;
+import com.evdealer.repository.DealerPaymentRepository;
+import com.evdealer.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,8 +22,25 @@ public class DealerInvoiceService {
     @Autowired
     private DealerInvoiceRepository dealerInvoiceRepository;
     
+    @Autowired
+    private DealerOrderRepository dealerOrderRepository;
+    
+    @Autowired
+    private DealerPaymentRepository dealerPaymentRepository;
+    
+    @Autowired
+    private SecurityUtils securityUtils;
+    
     public List<DealerInvoice> getAllInvoices() {
         try {
+            // Filter by dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                    UUID dealerId = currentUserOpt.get().getDealer().getDealerId();
+                    return dealerInvoiceRepository.findByDealerOrderDealerDealerId(dealerId);
+                }
+            }
             return dealerInvoiceRepository.findAll();
         } catch (Exception e) {
             // Return empty list if there's an issue
@@ -69,6 +90,7 @@ public class DealerInvoiceService {
         invoice.setInvoiceNumber(invoiceDetails.getInvoiceNumber());
         invoice.setDealerOrder(invoiceDetails.getDealerOrder());
         invoice.setEvmStaff(invoiceDetails.getEvmStaff());
+        invoice.setQuotationId(invoiceDetails.getQuotationId());
         invoice.setInvoiceDate(invoiceDetails.getInvoiceDate());
         invoice.setDueDate(invoiceDetails.getDueDate());
         invoice.setSubtotal(invoiceDetails.getSubtotal());
@@ -98,29 +120,38 @@ public class DealerInvoiceService {
     
     // Additional methods for new APIs
     public DealerInvoice generateInvoiceFromOrder(UUID dealerOrderId, UUID evmStaffId) {
-        // This would typically involve creating invoice from dealer order
-        // For now, return a basic implementation
+        DealerOrder dealerOrder = dealerOrderRepository.findById(dealerOrderId)
+            .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
+        
+        // Check if invoice already exists
+        List<DealerInvoice> existingInvoices = dealerInvoiceRepository.findByDealerOrderDealerOrderId(dealerOrderId);
+        if (!existingInvoices.isEmpty()) {
+            throw new RuntimeException("Invoice already exists for this dealer order");
+        }
+        
         DealerInvoice invoice = new DealerInvoice();
         invoice.setInvoiceNumber("INV-" + System.currentTimeMillis());
+        invoice.setDealerOrder(dealerOrder);
         invoice.setInvoiceDate(java.time.LocalDate.now());
         invoice.setDueDate(java.time.LocalDate.now().plusDays(30));
-        invoice.setStatus("PENDING");
+        invoice.setStatus("issued");
         invoice.setPaymentTermsDays(30);
-        invoice.setNotes("Generated from dealer order: " + dealerOrderId);
+        invoice.setNotes("Generated from dealer order: " + dealerOrder.getDealerOrderNumber());
         
-        // Initialize required fields
-        invoice.setSubtotal(java.math.BigDecimal.ZERO);
-        invoice.setTaxAmount(java.math.BigDecimal.ZERO);
-        invoice.setDiscountAmount(java.math.BigDecimal.ZERO);
-        invoice.setTotalAmount(java.math.BigDecimal.ZERO);
+        // Calculate amounts from dealer order
+        invoice.setSubtotal(dealerOrder.getTotalAmount());
+        invoice.setTaxAmount(java.math.BigDecimal.ZERO); // Can be calculated if tax rate is known
+        invoice.setDiscountAmount(dealerOrder.getDiscountApplied() != null ? dealerOrder.getDiscountApplied() : java.math.BigDecimal.ZERO);
+        invoice.setTotalAmount(dealerOrder.getTotalAmount().subtract(invoice.getDiscountAmount()));
         
         return dealerInvoiceRepository.save(invoice);
     }
     
     public java.math.BigDecimal calculatePaidAmount(UUID invoiceId) {
-        // This would calculate total paid amount for the invoice
-        // For now, return 0
-        return java.math.BigDecimal.ZERO;
+        return dealerPaymentRepository.findByInvoiceInvoiceId(invoiceId).stream()
+            .filter(payment -> "completed".equals(payment.getStatus()) || "paid".equals(payment.getStatus()))
+            .map(payment -> payment.getAmount())
+            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
     
     public List<DealerInvoice> getInvoicesByDealer(UUID dealerId) {

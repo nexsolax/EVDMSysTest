@@ -32,6 +32,9 @@ public class QuotationService {
     @Autowired
     private VehicleColorRepository vehicleColorRepository;
     
+    @Autowired
+    private OrderRepository orderRepository;
+    
     public List<Quotation> getAllQuotations() {
         try {
             // Use JOIN FETCH to eagerly load relationships
@@ -139,7 +142,20 @@ public class QuotationService {
         quotation.setStatus(normalizeStatus(request.getStatus()));
         quotation.setNotes(request.getNotes());
         
-        return quotationRepository.save(quotation);
+        Quotation savedQuotation = quotationRepository.save(quotation);
+        
+        // Update Order status if orderId is provided
+        if (request.getOrderId() != null) {
+            Order order = orderRepository.findById(request.getOrderId())
+                    .orElse(null);
+            if (order != null) {
+                order.setQuotation(savedQuotation);
+                order.setStatus("quoted");
+                orderRepository.save(order);
+            }
+        }
+        
+        return savedQuotation;
     }
     
     private String generateQuotationNumber() {

@@ -4,11 +4,8 @@ import com.evdealer.dto.UserRequest;
 import com.evdealer.dto.UserUpdateRequest;
 import com.evdealer.entity.Dealer;
 import com.evdealer.entity.User;
-import com.evdealer.entity.UserRole;
 import com.evdealer.repository.DealerRepository;
 import com.evdealer.repository.UserRepository;
-import com.evdealer.repository.UserRoleRepository;
-import com.evdealer.util.RolePermissionManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,16 +22,13 @@ import java.util.UUID;
 public class UserService {
     
     private final UserRepository userRepository;
-    private final UserRoleRepository userRoleRepository;
     private final DealerRepository dealerRepository;
     private final PasswordEncoder passwordEncoder;
     
     public UserService(UserRepository userRepository, 
-                      UserRoleRepository userRoleRepository,
                       DealerRepository dealerRepository,
                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.userRoleRepository = userRoleRepository;
         this.dealerRepository = dealerRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -245,95 +239,6 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         user.setIsActive(false);
         userRepository.save(user);
-    }
-    
-    public List<UserRole> getAllRoles() {
-        return userRoleRepository.findAll();
-    }
-    
-    public Optional<UserRole> getRoleById(Integer roleId) {
-        return userRoleRepository.findById(roleId);
-    }
-    
-    public Optional<UserRole> getRoleByName(String roleName) {
-        return userRoleRepository.findByRoleName(roleName);
-    }
-    
-    public UserRole createRole(UserRole role) {
-        if (userRoleRepository.existsByRoleName(role.getRoleName())) {
-            throw new RuntimeException("Role already exists: " + role.getRoleName());
-        }
-        
-        // Auto-set permissions based on role name if not provided
-        if (role.getPermissions() == null || role.getPermissions().trim().isEmpty()) {
-            role.setPermissions(getPermissionsByRoleName(role.getRoleName()));
-        }
-        
-        return userRoleRepository.save(role);
-    }
-    
-    public UserRole updateRole(Integer roleId, UserRole roleDetails) {
-        UserRole role = userRoleRepository.findById(roleId)
-                .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
-        
-        // Log incoming data for debugging
-        System.out.println("=== ROLE UPDATE DEBUG ===");
-        System.out.println("Role ID: " + roleId);
-        System.out.println("Existing role name: " + role.getRoleName());
-        System.out.println("New role name: " + roleDetails.getRoleName());
-        System.out.println("New description: " + roleDetails.getDescription());
-        System.out.println("=========================");
-        
-        // Check for duplicate role name (excluding current role)
-        if (roleDetails.getRoleName() != null && 
-            !role.getRoleName().equals(roleDetails.getRoleName()) && 
-            userRoleRepository.existsByRoleName(roleDetails.getRoleName())) {
-            throw new RuntimeException("Role name already exists: " + roleDetails.getRoleName());
-        }
-        
-        // Update fields only if they are not null
-        if (roleDetails.getRoleName() != null) {
-            role.setRoleName(roleDetails.getRoleName());
-            // Auto-set permissions based on role name
-            role.setPermissions(getPermissionsByRoleName(roleDetails.getRoleName()));
-        }
-        if (roleDetails.getDescription() != null) {
-            role.setDescription(roleDetails.getDescription());
-        }
-        
-        return userRoleRepository.save(role);
-    }
-    
-    /**
-     * Tự động tạo permissions dựa trên role name
-     */
-    private String getPermissionsByRoleName(String roleName) {
-        if (roleName == null) {
-            return "{}";
-        }
-        
-        return RolePermissionManager.createPermissionsForRole(roleName);
-    }
-    
-    public void deleteRole(Integer roleId) {
-        UserRole role = userRoleRepository.findById(roleId)
-                .orElseThrow(() -> new RuntimeException("Role not found with id: " + roleId));
-        
-        // Check if role is being used by any users
-        // Since User entity no longer has direct role relationship, 
-        // we'll check if any users have this role name as their userType
-        String roleName = role.getRoleName().toUpperCase();
-        try {
-            com.evdealer.enums.UserType userType = com.evdealer.enums.UserType.valueOf(roleName);
-            List<User> usersWithRole = userRepository.findByRoleName(userType);
-            if (!usersWithRole.isEmpty()) {
-                throw new RuntimeException("Cannot delete role. It is being used by " + usersWithRole.size() + " user(s)");
-            }
-        } catch (IllegalArgumentException e) {
-            // Role name doesn't match any UserType enum, so it's safe to delete
-        }
-        
-        userRoleRepository.delete(role);
     }
     
     // Password Management methods
