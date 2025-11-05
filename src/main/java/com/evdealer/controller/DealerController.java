@@ -29,9 +29,26 @@ public class DealerController {
     private SecurityUtils securityUtils;
     
     @GetMapping
+    @Operation(summary = "Lấy danh sách tất cả đại lý", description = "Lấy danh sách tất cả đại lý trong hệ thống")
     public ResponseEntity<List<Dealer>> getAllDealers() {
         List<Dealer> dealers = dealerService.getAllDealers();
         return ResponseEntity.ok(dealers);
+    }
+    
+    @GetMapping("/options")
+    @Operation(summary = "Lấy danh sách đại lý cho dropdown", description = "Lấy danh sách đại lý dạng đơn giản (ID, Name, Code) để hiển thị trong dropdown/select")
+    public ResponseEntity<List<Map<String, Object>>> getDealerOptions() {
+        List<Dealer> dealers = dealerService.getAllDealers();
+        List<Map<String, Object>> options = dealers.stream()
+            .map(dealer -> {
+                Map<String, Object> option = new HashMap<>();
+                option.put("dealerId", dealer.getDealerId());
+                option.put("dealerName", dealer.getDealerName());
+                option.put("dealerCode", dealer.getDealerCode());
+                return option;
+            })
+            .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(options);
     }
     
     @GetMapping("/{id}")

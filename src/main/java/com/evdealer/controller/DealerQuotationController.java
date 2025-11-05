@@ -51,21 +51,8 @@ public class DealerQuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
+            // Service đã xử lý filter theo dealer nếu là dealer user
             List<DealerQuotation> quotations = dealerQuotationService.getAllQuotations();
-            
-            // Filter theo dealer nếu là dealer user
-            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
-                    quotations = quotations.stream()
-                        .filter(quotation -> quotation.getDealerOrder() != null
-                            && quotation.getDealerOrder().getDealer() != null
-                            && quotation.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
-                        .collect(java.util.stream.Collectors.toList());
-                }
-            }
-            
             return ResponseEntity.ok(quotations);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
@@ -448,10 +435,10 @@ public class DealerQuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Kiểm tra phân quyền: Chỉ DEALER_MANAGER, DEALER_STAFF hoặc ADMIN
-            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
+            // Kiểm tra phân quyền: Chỉ DEALER_MANAGER hoặc ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "ADMIN")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only dealer users can accept quotations");
+                error.put("error", "Access denied. Only dealer manager or admin can accept quotations");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
@@ -500,10 +487,10 @@ public class DealerQuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Kiểm tra phân quyền: Chỉ DEALER_MANAGER, DEALER_STAFF hoặc ADMIN
-            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
+            // Kiểm tra phân quyền: Chỉ DEALER_MANAGER hoặc ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "ADMIN")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only dealer users can reject quotations");
+                error.put("error", "Access denied. Only dealer manager or admin can reject quotations");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             

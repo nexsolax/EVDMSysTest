@@ -33,7 +33,7 @@ public class SecurityUtils {
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
                 String userId = (String) request.getAttribute("userId");
-                if (userId != null) {
+                if (userId != null && !userId.isEmpty()) {
                     return Optional.of(userId);
                 }
             }
@@ -41,13 +41,18 @@ public class SecurityUtils {
             // Ignore
         }
         
-        // Try to get from SecurityContext
+        // Try to get from SecurityContext - get username then find user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof String) {
             String username = (String) authentication.getPrincipal();
-            Optional<User> user = userRepository.findByUsername(username);
-            if (user.isPresent()) {
-                return Optional.of(user.get().getUserId().toString());
+            try {
+                Optional<User> user = userRepository.findByUsername(username);
+                if (user.isPresent()) {
+                    return Optional.of(user.get().getUserId().toString());
+                }
+            } catch (Exception e) {
+                // Log error but continue
+                System.out.println("DEBUG getCurrentUserId: Error finding user by username: " + e.getMessage());
             }
         }
         
@@ -62,6 +67,12 @@ public class SecurityUtils {
         if (userIdOpt.isPresent()) {
             try {
                 UUID userId = UUID.fromString(userIdOpt.get());
+                // Try to get user with dealer eagerly loaded
+                Optional<User> userWithDealer = userRepository.findByIdWithDealer(userId);
+                if (userWithDealer.isPresent()) {
+                    return userWithDealer;
+                }
+                // Fallback to regular findById
                 return userRepository.findById(userId);
             } catch (Exception e) {
                 return Optional.empty();
@@ -148,11 +159,18 @@ public class SecurityUtils {
     public boolean hasAnyRole(String... roles) {
         Optional<String> currentRole = getCurrentUserRole();
         if (currentRole.isPresent()) {
+            String roleStr = currentRole.get();
             for (String role : roles) {
-                if (currentRole.get().equalsIgnoreCase(role)) {
+                if (roleStr.equalsIgnoreCase(role)) {
                     return true;
                 }
             }
+        }
+        // Debug: Log khi không có role hoặc không match
+        Optional<User> userOpt = getCurrentUser();
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            System.out.println("DEBUG hasAnyRole: currentRole=" + currentRole.orElse("EMPTY") + ", userType=" + (user.getUserType() != null ? user.getUserType().toString() : "NULL"));
         }
         return false;
     }
@@ -172,10 +190,10 @@ public class SecurityUtils {
     }
     
     /**
-     * Kiểm tra user hiện tại có phải DEALER_MANAGER hoặc DEALER_STAFF không
+     * Kiểm tra user hiện tại có phải DEALER_MANAGER không
      */
     public boolean isDealerUser() {
-        return hasAnyRole("DEALER_MANAGER", "DEALER_STAFF");
+        return hasRole("DEALER_MANAGER");
     }
     
     /**

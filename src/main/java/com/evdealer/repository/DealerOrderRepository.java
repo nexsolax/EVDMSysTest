@@ -14,15 +14,23 @@ import java.util.UUID;
 @Repository
 public interface DealerOrderRepository extends JpaRepository<DealerOrder, UUID> {
     
-    @Query("SELECT do FROM DealerOrder do")
+    @Query("SELECT do FROM DealerOrder do LEFT JOIN FETCH do.dealer")
     List<DealerOrder> findAllWithDetails();
     
     Optional<DealerOrder> findByDealerOrderNumber(String dealerOrderNumber);
     
+    @Query("SELECT do FROM DealerOrder do LEFT JOIN FETCH do.dealer d LEFT JOIN FETCH do.evmStaff e WHERE do.dealerOrderId = :dealerOrderId")
+    Optional<DealerOrder> findByIdWithDetails(@Param("dealerOrderId") UUID dealerOrderId);
+    
+    // Query to get dealer_id directly from dealer_orders table
+    @Query(value = "SELECT dealer_id FROM dealer_orders WHERE dealer_order_id = :dealerOrderId", nativeQuery = true)
+    Optional<UUID> findDealerIdByOrderId(@Param("dealerOrderId") UUID dealerOrderId);
+    
     @Query("SELECT do FROM DealerOrder do WHERE do.evmStaff.userId = :evmStaffId")
     List<DealerOrder> findByEvmStaffUserId(@Param("evmStaffId") UUID evmStaffId);
     
-    List<DealerOrder> findByStatus(String status);
+    @Query("SELECT do FROM DealerOrder do LEFT JOIN FETCH do.dealer WHERE do.status = :status")
+    List<DealerOrder> findByStatus(@Param("status") String status);
     
     @Query("SELECT do FROM DealerOrder do WHERE do.orderDate BETWEEN :startDate AND :endDate")
     List<DealerOrder> findByOrderDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
@@ -33,9 +41,10 @@ public interface DealerOrderRepository extends JpaRepository<DealerOrder, UUID> 
     boolean existsByDealerOrderNumber(String dealerOrderNumber);
     
     // New methods for improved dealer order management
-    List<DealerOrder> findByApprovalStatus(String approvalStatus);
+    @Query("SELECT do FROM DealerOrder do LEFT JOIN FETCH do.dealer WHERE do.approvalStatus = :approvalStatus")
+    List<DealerOrder> findByApprovalStatus(@Param("approvalStatus") String approvalStatus);
     
-    @Query("SELECT do FROM DealerOrder do WHERE do.dealer.dealerId = :dealerId")
+    @Query("SELECT do FROM DealerOrder do LEFT JOIN FETCH do.dealer WHERE do.dealer.dealerId = :dealerId")
     List<DealerOrder> findByDealerId(@Param("dealerId") UUID dealerId);
     
     @Query("SELECT do FROM DealerOrder do WHERE do.dealer.dealerId = :dealerId AND do.approvalStatus = :approvalStatus")

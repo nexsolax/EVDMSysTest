@@ -33,19 +33,35 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
     
+    @Transactional(readOnly = true)
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        // Use findAllWithDetails to eagerly load dealer relationship
+        return userRepository.findAllWithDetails();
     }
     
     public List<User> getActiveUsers() {
         return userRepository.findByIsActiveTrue();
     }
     
+    @Transactional(readOnly = true)
     public Optional<User> getUserById(UUID userId) {
+        // Use findByIdWithDealer to eagerly load dealer relationship
+        Optional<User> userWithDealer = userRepository.findByIdWithDealer(userId);
+        if (userWithDealer.isPresent()) {
+            return userWithDealer;
+        }
+        // Fallback to regular findById
         return userRepository.findById(userId);
     }
     
+    @Transactional(readOnly = true)
     public Optional<User> getUserByUsername(String username) {
+        // Use findByUsernameWithDealer to eagerly load dealer relationship
+        Optional<User> userWithDealer = userRepository.findByUsernameWithDealer(username);
+        if (userWithDealer.isPresent()) {
+            return userWithDealer;
+        }
+        // Fallback to regular findByUsername
         return userRepository.findByUsername(username);
     }
     
@@ -85,6 +101,13 @@ public class UserService {
         }
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("Email already exists: " + user.getEmail());
+        }
+        
+        // Validate dealer requirement: Non-admin users must have dealer
+        if (user.getUserType() != null && user.getUserType() != com.evdealer.enums.UserType.ADMIN) {
+            if (user.getDealer() == null) {
+                throw new RuntimeException("Dealer is required for non-admin users. Please set dealer before creating user");
+            }
         }
         
         // Hash password before saving
@@ -130,11 +153,39 @@ public class UserService {
         user.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         // Note: User entity doesn't have notes field, so we skip it
         
-        // Set dealer if provided
-        if (request.getDealerId() != null) {
-            Dealer dealer = dealerRepository.findById(request.getDealerId())
+        // Validate dealer requirement: Non-admin users must have dealer
+        com.evdealer.enums.UserType userType = request.getUserType() != null ? request.getUserType() : com.evdealer.enums.UserType.DEALER_STAFF;
+        if (userType != com.evdealer.enums.UserType.ADMIN) {
+            // Non-admin users must have dealer
+            Dealer dealer = null;
+            
+            // Try to get dealer by ID first
+            if (request.getDealerId() != null) {
+                dealer = dealerRepository.findById(request.getDealerId())
                     .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + request.getDealerId()));
+            } 
+            // Try to get dealer by name if ID not provided
+            else if (request.getDealerName() != null && !request.getDealerName().trim().isEmpty()) {
+                dealer = dealerRepository.findByDealerName(request.getDealerName().trim())
+                    .orElseThrow(() -> new RuntimeException("Dealer not found with name: " + request.getDealerName()));
+            }
+            
+            if (dealer == null) {
+                throw new RuntimeException("Dealer is required for non-admin users. Please provide dealerId or dealerName");
+            }
+            
             user.setDealer(dealer);
+        } else {
+            // Admin users can optionally have dealer, but it's not required
+            if (request.getDealerId() != null) {
+                Dealer dealer = dealerRepository.findById(request.getDealerId())
+                    .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + request.getDealerId()));
+                user.setDealer(dealer);
+            } else if (request.getDealerName() != null && !request.getDealerName().trim().isEmpty()) {
+                Dealer dealer = dealerRepository.findByDealerName(request.getDealerName().trim())
+                    .orElseThrow(() -> new RuntimeException("Dealer not found with name: " + request.getDealerName()));
+                user.setDealer(dealer);
+            }
         }
         
         // Set user type and status
@@ -148,8 +199,10 @@ public class UserService {
         return userRepository.save(user);
     }
     
+    @Transactional
     public User updateUser(UUID userId, UserUpdateRequest userUpdateRequest) {
-        User user = userRepository.findById(userId)
+        // Use findByIdWithDealer to eagerly load dealer relationship
+        User user = userRepository.findByIdWithDealer(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
         
         // Log incoming data for debugging
@@ -210,12 +263,39 @@ public class UserService {
         if (userUpdateRequest.getStatus() != null) {
             user.setStatus(userUpdateRequest.getStatus());
         }
-        if (userUpdateRequest.getDealerId() != null) {
-            // Find dealer by ID and set it
-            Dealer dealer = dealerRepository.findById(userUpdateRequest.getDealerId())
-                    .orElseThrow(() -> new RuntimeException("Dealer not found with id: " + userUpdateRequest.getDealerId()));
-            user.setDealer(dealer);
+        // Update dealer if provided
+        if (userUpdateRequest.getDealerId() != null || (userUpdateRequest.getDealerName() != null && !userUpdateRequest.getDealerName().trim().isEmpty())) {
+            Dealer dealer = null;
+            
+            // Try to get dealer by ID first
+            if (userUpdateRequest.getDealerId() != null) {
+                dealer = dealerRepository.findById(userUpdateRequest.getDealerId())
+                    .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + userUpdateRequest.getDealerId()));
+            } 
+            // Try to get dealer by name if ID not provided
+            else if (userUpdateRequest.getDealerName() != null && !userUpdateRequest.getDealerName().trim().isEmpty()) {
+                dealer = dealerRepository.findByDealerName(userUpdateRequest.getDealerName().trim())
+                    .orElseThrow(() -> new RuntimeException("Dealer not found with name: " + userUpdateRequest.getDealerName()));
+            }
+            
+            // Validate: If updating to non-admin role, dealer is required
+            com.evdealer.enums.UserType newUserType = userUpdateRequest.getUserType() != null ? userUpdateRequest.getUserType() : user.getUserType();
+            if (newUserType != com.evdealer.enums.UserType.ADMIN && dealer == null && user.getDealer() == null) {
+                throw new RuntimeException("Dealer is required for non-admin users. Please provide dealerId or dealerName");
+            }
+            
+            if (dealer != null) {
+                user.setDealer(dealer);
+            }
         }
+        
+        // Validate dealer requirement after update if user type changed to non-admin
+        if (userUpdateRequest.getUserType() != null && userUpdateRequest.getUserType() != com.evdealer.enums.UserType.ADMIN) {
+            if (user.getDealer() == null) {
+                throw new RuntimeException("Dealer is required for non-admin users. Please provide dealerId or dealerName");
+            }
+        }
+        
         if (userUpdateRequest.getIsActive() != null) {
             user.setIsActive(userUpdateRequest.getIsActive());
         }

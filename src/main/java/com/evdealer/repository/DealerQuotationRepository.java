@@ -18,9 +18,11 @@ public interface DealerQuotationRepository extends JpaRepository<DealerQuotation
     
     boolean existsByQuotationNumber(String quotationNumber);
     
-    List<DealerQuotation> findByDealerDealerId(UUID dealerId);
+    @Query("SELECT DISTINCT q FROM DealerQuotation q LEFT JOIN FETCH q.dealer LEFT JOIN FETCH q.evmStaff LEFT JOIN FETCH q.dealerOrder do LEFT JOIN FETCH do.dealer WHERE q.dealer.dealerId = :dealerId")
+    List<DealerQuotation> findByDealerDealerId(@Param("dealerId") UUID dealerId);
     
-    List<DealerQuotation> findByDealerOrderDealerOrderId(UUID dealerOrderId);
+    @Query("SELECT DISTINCT q FROM DealerQuotation q LEFT JOIN FETCH q.dealer LEFT JOIN FETCH q.evmStaff LEFT JOIN FETCH q.dealerOrder do LEFT JOIN FETCH do.dealer WHERE q.dealerOrder.dealerOrderId = :dealerOrderId")
+    List<DealerQuotation> findByDealerOrderDealerOrderId(@Param("dealerOrderId") UUID dealerOrderId);
     
     List<DealerQuotation> findByStatus(String status);
     
@@ -33,6 +35,12 @@ public interface DealerQuotationRepository extends JpaRepository<DealerQuotation
     
     @Query("SELECT q FROM DealerQuotation q WHERE q.dealer.dealerId = :dealerId AND q.status = :status")
     List<DealerQuotation> findByDealerAndStatus(@Param("dealerId") UUID dealerId, @Param("status") String status);
+    
+    @Query("SELECT DISTINCT q FROM DealerQuotation q LEFT JOIN FETCH q.dealer LEFT JOIN FETCH q.evmStaff LEFT JOIN FETCH q.dealerOrder do LEFT JOIN FETCH do.dealer")
+    List<DealerQuotation> findAllWithDetails();
+    
+    @Query("SELECT DISTINCT q FROM DealerQuotation q LEFT JOIN FETCH q.dealer LEFT JOIN FETCH q.evmStaff LEFT JOIN FETCH q.dealerOrder do LEFT JOIN FETCH do.dealer WHERE q.quotationId = :quotationId")
+    Optional<DealerQuotation> findByIdWithDetails(@Param("quotationId") UUID quotationId);
     
     long countByStatus(String status);
 }

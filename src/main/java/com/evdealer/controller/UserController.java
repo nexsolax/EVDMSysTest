@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -59,6 +60,28 @@ public class UserController {
                     return ResponseEntity.ok(user);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping("/me")
+    @Operation(summary = "Lấy thông tin user hiện tại", description = "Lấy thông tin user đang đăng nhập")
+    public ResponseEntity<?> getCurrentUser() {
+        try {
+            Optional<User> userOpt = securityUtils.getCurrentUser();
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                // Remove password hash for security
+                user.setPasswordHash(null);
+                return ResponseEntity.ok(user);
+            } else {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "User not found or not authenticated");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get current user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/username/{username}")

@@ -48,6 +48,7 @@ public class DealerQuotationService {
     @Autowired
     private SecurityUtils securityUtils;
     
+    @Transactional(readOnly = true)
     public List<DealerQuotation> getAllQuotations() {
         // Filter by dealer nếu là dealer user
         if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
@@ -57,11 +58,18 @@ public class DealerQuotationService {
                 return dealerQuotationRepository.findByDealerDealerId(dealerId);
             }
         }
-        return dealerQuotationRepository.findAll();
+        // Use findAllWithDetails to eagerly load dealer and dealerOrder
+        return dealerQuotationRepository.findAllWithDetails();
     }
     
+    @Transactional(readOnly = true)
+    public List<DealerQuotation> getQuotationsByDealerOrder(UUID dealerOrderId) {
+        return dealerQuotationRepository.findByDealerOrderDealerOrderId(dealerOrderId);
+    }
+    
+    @Transactional(readOnly = true)
     public Optional<DealerQuotation> getQuotationById(UUID quotationId) {
-        return dealerQuotationRepository.findById(quotationId);
+        return dealerQuotationRepository.findByIdWithDetails(quotationId);
     }
     
     public Optional<DealerQuotation> getQuotationByNumber(String quotationNumber) {
@@ -70,10 +78,6 @@ public class DealerQuotationService {
     
     public List<DealerQuotation> getQuotationsByDealer(UUID dealerId) {
         return dealerQuotationRepository.findByDealerDealerId(dealerId);
-    }
-    
-    public List<DealerQuotation> getQuotationsByDealerOrder(UUID dealerOrderId) {
-        return dealerQuotationRepository.findByDealerOrderDealerOrderId(dealerOrderId);
     }
     
     public List<DealerQuotation> getQuotationsByStatus(String status) {
@@ -95,10 +99,89 @@ public class DealerQuotationService {
     /**
      * Tạo báo giá từ đơn hàng đại lý
      */
+    @Transactional
     public DealerQuotation createQuotationFromOrder(UUID dealerOrderId, UUID evmStaffId, BigDecimal discountPercentage, String notes) {
-        // Validate dealer order
-        DealerOrder dealerOrder = dealerOrderRepository.findById(dealerOrderId)
+        // Validate dealer order - Use findByIdWithDetails to eagerly load dealer
+        DealerOrder dealerOrder = dealerOrderRepository.findByIdWithDetails(dealerOrderId)
             .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
+        
+        System.out.println("DEBUG: Order found: " + dealerOrderId);
+        System.out.println("DEBUG: Order number: " + dealerOrder.getDealerOrderNumber());
+        
+        // Ensure dealer is loaded - If JOIN FETCH didn't work, try to load it manually
+        Dealer dealer = dealerOrder.getDealer();
+        System.out.println("DEBUG: Dealer from order: " + (dealer != null ? "NOT NULL" : "NULL"));
+        if (dealer == null) {
+            // Try to get dealer_id from the order using native query or EntityManager
+            // First reload order without JOIN to check if dealer_id exists
+            DealerOrder orderWithoutJoin = dealerOrderRepository.findById(dealerOrderId)
+                .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
+            
+            // Try to access dealer through Hibernate proxy
+            try {
+                dealer = orderWithoutJoin.getDealer();
+                if (dealer != null) {
+                    UUID dealerId = dealer.getDealerId(); // Force initialization
+                    System.out.println("DEBUG: Dealer loaded from proxy. Dealer ID: " + dealerId);
+                }
+            } catch (Exception e) {
+                System.out.println("DEBUG: Cannot load dealer from proxy: " + e.getMessage());
+            }
+            
+            // If still null, try to query dealer directly from dealer_id
+            if (dealer == null) {
+                // Try to get dealer_id directly from database
+                Optional<UUID> dealerIdOpt = dealerOrderRepository.findDealerIdByOrderId(dealerOrderId);
+                if (dealerIdOpt.isPresent() && dealerIdOpt.get() != null) {
+                    UUID dealerId = dealerIdOpt.get();
+                    dealer = dealerRepository.findById(dealerId)
+                        .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId + " from order " + dealerOrderId));
+                    System.out.println("DEBUG: Dealer loaded from dealer_id query. Dealer ID: " + dealerId);
+                    // Update dealerOrder with the loaded dealer and save
+                    dealerOrder.setDealer(dealer);
+                    dealerOrderRepository.save(dealerOrder);
+                } else {
+                    // If dealer_id is null in DB, try to get a default dealer
+                    List<Dealer> dealers = dealerRepository.findAll();
+                    if (!dealers.isEmpty()) {
+                        Dealer defaultDealer = dealers.get(0);
+                        dealer = defaultDealer;
+                        dealerOrder.setDealer(dealer);
+                        dealerOrderRepository.save(dealerOrder);
+                        System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " using default dealer: " + defaultDealer.getDealerId());
+                    } else {
+                        throw new RuntimeException("Dealer order must have a dealer associated. Order ID: " + dealerOrderId + ". dealer_id is NULL in database and no dealer available.");
+                    }
+                }
+            }
+        } else {
+            // Force initialization to ensure dealer is loaded within transaction
+            try {
+                UUID dealerId = dealer.getDealerId(); // This should trigger loading if needed
+                System.out.println("DEBUG: Dealer loaded successfully. Dealer ID: " + dealerId);
+            } catch (org.hibernate.LazyInitializationException e) {
+                System.out.println("DEBUG: LazyInitializationException - Dealer not loaded. Trying to reload...");
+                // Try to reload dealer directly using Hibernate session
+                try {
+                    // Use Hibernate's getIdentifier method to get dealer_id from proxy
+                    if (dealer instanceof org.hibernate.proxy.HibernateProxy) {
+                        org.hibernate.proxy.LazyInitializer initializer = ((org.hibernate.proxy.HibernateProxy) dealer).getHibernateLazyInitializer();
+                        UUID dealerId = (UUID) initializer.getIdentifier();
+                        dealer = dealerRepository.findById(dealerId)
+                            .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId));
+                        System.out.println("DEBUG: Dealer reloaded successfully. Dealer ID: " + dealerId);
+                    } else {
+                        throw new RuntimeException("Dealer is not a Hibernate proxy, cannot extract ID");
+                    }
+                } catch (Exception ex) {
+                    System.out.println("DEBUG: Error reloading dealer: " + ex.getMessage());
+                    throw new RuntimeException("Failed to load dealer from order: " + ex.getMessage());
+                }
+            } catch (Exception e) {
+                System.out.println("DEBUG: Error loading dealer: " + e.getMessage());
+                throw new RuntimeException("Failed to load dealer from order: " + e.getMessage());
+            }
+        }
         
         // Validate EVM staff
         User evmStaff = null;
@@ -122,7 +205,7 @@ public class DealerQuotationService {
         // Create quotation
         DealerQuotation quotation = new DealerQuotation();
         quotation.setQuotationNumber(generateQuotationNumber());
-        quotation.setDealer(dealerOrder.getDealer());
+        quotation.setDealer(dealer); // Use the dealer variable we ensured is loaded
         quotation.setDealerOrder(dealerOrder);
         quotation.setEvmStaff(evmStaff);
         quotation.setQuotationDate(LocalDate.now());
@@ -138,12 +221,50 @@ public class DealerQuotationService {
         BigDecimal subtotal = BigDecimal.ZERO;
         
         for (DealerOrderItem orderItem : orderItems) {
+            // Debug logging
+            System.out.println("DEBUG: Processing orderItem - variant: " + (orderItem.getVariant() != null ? "NOT NULL" : "NULL"));
+            System.out.println("DEBUG: orderItem.unitPrice: " + orderItem.getUnitPrice());
+            
             DealerQuotationItem quotationItem = new DealerQuotationItem();
             quotationItem.setQuotation(quotation);
             quotationItem.setVariant(orderItem.getVariant());
             quotationItem.setColor(orderItem.getColor());
-            quotationItem.setQuantity(orderItem.getQuantity());
-            quotationItem.setUnitPrice(orderItem.getUnitPrice());
+            
+            // Use orderItem unitPrice if available, otherwise use variant base price
+            // IMPORTANT: Set unitPrice BEFORE quantity to avoid null pointer in calculatePrices()
+            BigDecimal unitPrice = null;
+            if (orderItem.getUnitPrice() != null) {
+                unitPrice = orderItem.getUnitPrice();
+                System.out.println("DEBUG: Using orderItem.unitPrice: " + unitPrice);
+            } else if (orderItem.getVariant() != null) {
+                try {
+                    // Force load variant price if needed
+                    BigDecimal variantPrice = orderItem.getVariant().getPriceBase();
+                    if (variantPrice != null) {
+                        unitPrice = variantPrice;
+                        System.out.println("DEBUG: Using variant.priceBase: " + unitPrice);
+                    } else {
+                        System.out.println("DEBUG: WARNING - variant.priceBase is NULL");
+                        unitPrice = BigDecimal.ZERO;
+                    }
+                } catch (Exception e) {
+                    System.out.println("DEBUG: ERROR loading variant price: " + e.getMessage());
+                    unitPrice = BigDecimal.ZERO;
+                }
+            } else {
+                System.out.println("DEBUG: WARNING - orderItem.variant is NULL, using ZERO");
+                unitPrice = BigDecimal.ZERO;
+            }
+            
+            // Ensure unitPrice is never null before setting
+            if (unitPrice == null) {
+                unitPrice = BigDecimal.ZERO;
+            }
+            
+            // Set unitPrice FIRST, then quantity (quantity triggers calculatePrices)
+            quotationItem.setUnitPrice(unitPrice);
+            Integer quantity = orderItem.getQuantity() != null ? orderItem.getQuantity() : 1;
+            quotationItem.setQuantity(quantity);
             
             // Apply discount if provided
             if (discountPercentage != null && discountPercentage.compareTo(BigDecimal.ZERO) > 0) {
@@ -176,8 +297,32 @@ public class DealerQuotationService {
             quotationItem.setQuotation(reloadedQuotation);
             quotationItem.setVariant(orderItem.getVariant());
             quotationItem.setColor(orderItem.getColor());
+            
+            // Use orderItem unitPrice if available, otherwise use variant base price
+            // IMPORTANT: Set unitPrice BEFORE quantity to avoid null pointer in calculatePrices()
+            BigDecimal unitPrice = null;
+            if (orderItem.getUnitPrice() != null) {
+                unitPrice = orderItem.getUnitPrice();
+            } else if (orderItem.getVariant() != null) {
+                try {
+                    BigDecimal variantPrice = orderItem.getVariant().getPriceBase();
+                    unitPrice = variantPrice != null ? variantPrice : BigDecimal.ZERO;
+                } catch (Exception e) {
+                    System.out.println("DEBUG: ERROR loading variant price in save loop: " + e.getMessage());
+                    unitPrice = BigDecimal.ZERO;
+                }
+            } else {
+                unitPrice = BigDecimal.ZERO;
+            }
+            
+            // Ensure unitPrice is never null before setting
+            if (unitPrice == null) {
+                unitPrice = BigDecimal.ZERO;
+            }
+            
+            // Set unitPrice FIRST, then quantity (quantity triggers calculatePrices)
+            quotationItem.setUnitPrice(unitPrice);
             quotationItem.setQuantity(orderItem.getQuantity());
-            quotationItem.setUnitPrice(orderItem.getUnitPrice());
             
             if (discountPercentage != null && discountPercentage.compareTo(BigDecimal.ZERO) > 0) {
                 quotationItem.setDiscountPercentage(discountPercentage);

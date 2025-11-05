@@ -31,6 +31,7 @@ public class DealerInvoiceService {
     @Autowired
     private SecurityUtils securityUtils;
     
+    @Transactional(readOnly = true)
     public List<DealerInvoice> getAllInvoices() {
         try {
             // Filter by dealer nếu là dealer user
@@ -41,8 +42,11 @@ public class DealerInvoiceService {
                     return dealerInvoiceRepository.findByDealerOrderDealerDealerId(dealerId);
                 }
             }
-            return dealerInvoiceRepository.findAll();
+            // Use findAllWithDetails to eagerly load dealerOrder
+            return dealerInvoiceRepository.findAllWithDetails();
         } catch (Exception e) {
+            System.err.println("Error fetching all invoices: " + e.getMessage());
+            e.printStackTrace();
             // Return empty list if there's an issue
             return new java.util.ArrayList<>();
         }
@@ -52,6 +56,7 @@ public class DealerInvoiceService {
         return dealerInvoiceRepository.findByStatus(status);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerInvoice> getInvoicesByDealerOrder(UUID dealerOrderId) {
         return dealerInvoiceRepository.findByDealerOrderDealerOrderId(dealerOrderId);
     }
@@ -68,8 +73,9 @@ public class DealerInvoiceService {
         return dealerInvoiceRepository.findOverdueInvoices();
     }
     
+    @Transactional(readOnly = true)
     public Optional<DealerInvoice> getInvoiceById(UUID invoiceId) {
-        return dealerInvoiceRepository.findById(invoiceId);
+        return dealerInvoiceRepository.findByIdWithDetails(invoiceId);
     }
     
     public Optional<DealerInvoice> getInvoiceByNumber(String invoiceNumber) {

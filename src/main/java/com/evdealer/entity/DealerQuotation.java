@@ -38,7 +38,7 @@ public class DealerQuotation {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dealer_order_id", nullable = true)
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "items", "quotations", "evmStaff"})
     private DealerOrder dealerOrder;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -95,6 +95,8 @@ public class DealerQuotation {
     private String notes;
     
     @OneToMany(mappedBy = "quotation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "quotation"})
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<DealerQuotationItem> items;
     
     @CreationTimestamp

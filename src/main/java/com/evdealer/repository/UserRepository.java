@@ -15,12 +15,19 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     
-    @Query("SELECT u FROM User u")
+    @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.dealer")
     List<User> findAllWithDetails();
     
     Optional<User> findByUsername(String username);
     
     Optional<User> findByEmail(String email);
+    
+    // Query to get user with dealer eagerly loaded
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.dealer WHERE u.userId = :userId")
+    Optional<User> findByIdWithDealer(@Param("userId") UUID userId);
+    
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.dealer WHERE u.username = :username")
+    Optional<User> findByUsernameWithDealer(@Param("username") String username);
     
     @Query("SELECT u FROM User u WHERE u.status = com.evdealer.enums.UserStatus.ACTIVE")
     List<User> findByIsActiveTrue();

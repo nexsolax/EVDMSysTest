@@ -34,6 +34,9 @@ public interface DealerRepository extends JpaRepository<Dealer, UUID> {
     @Query("SELECT d FROM Dealer d WHERE d.dealerName LIKE %:name%")
     List<Dealer> findByDealerNameContaining(@Param("name") String name);
     
+    @Query("SELECT d FROM Dealer d WHERE d.dealerName = :dealerName")
+    Optional<Dealer> findByDealerName(@Param("dealerName") String dealerName);
+    
     @Query("SELECT d FROM Dealer d WHERE d.contactPerson LIKE %:contactPerson%")
     List<Dealer> findByContactPersonContaining(@Param("contactPerson") String contactPerson);
     

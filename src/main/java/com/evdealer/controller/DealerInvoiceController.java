@@ -51,21 +51,8 @@ public class DealerInvoiceController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
+            // Service đã xử lý filter theo dealer nếu là dealer user
             List<DealerInvoice> invoices = dealerInvoiceService.getAllInvoices();
-            
-            // Filter theo dealer nếu là dealer user
-            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
-                    invoices = invoices.stream()
-                        .filter(invoice -> invoice.getDealerOrder() != null 
-                            && invoice.getDealerOrder().getDealer() != null
-                            && invoice.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
-                        .collect(java.util.stream.Collectors.toList());
-                }
-            }
-            
             return ResponseEntity.ok(invoices);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();

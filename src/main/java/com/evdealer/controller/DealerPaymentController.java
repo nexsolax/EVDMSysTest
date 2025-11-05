@@ -421,10 +421,10 @@ public class DealerPaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, ADMIN
-            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
+            // Kiểm tra phân quyền: DEALER_MANAGER, ADMIN
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "ADMIN")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only dealer users or admin can process payments");
+                error.put("error", "Access denied. Only dealer manager or admin can process payments");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
@@ -437,9 +437,13 @@ public class DealerPaymentController {
             
             UUID invoiceId = UUID.fromString(paymentRequest.get("invoiceId").toString());
             BigDecimal amount = new BigDecimal(paymentRequest.get("amount").toString());
-            String paymentType = paymentRequest.getOrDefault("paymentType", "BANK_TRANSFER").toString();
+            // Field name là paymentMethod (không phải paymentType)
+            String paymentMethod = paymentRequest.getOrDefault("paymentMethod", paymentRequest.getOrDefault("paymentType", "BANK_TRANSFER")).toString();
             String referenceNumber = paymentRequest.getOrDefault("referenceNumber", "").toString();
             String notes = paymentRequest.getOrDefault("notes", "").toString();
+            // Parse paymentDate nếu có
+            LocalDate paymentDate = paymentRequest.containsKey("paymentDate") ? 
+                LocalDate.parse(paymentRequest.get("paymentDate").toString()) : LocalDate.now();
             
             // Validate invoice exists
             DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
@@ -484,9 +488,9 @@ public class DealerPaymentController {
             DealerPayment payment = new DealerPayment();
             payment.setInvoice(invoice);
             payment.setAmount(amount);
-            payment.setPaymentType(paymentType);
-            payment.setPaymentDate(LocalDate.now());
-            payment.setStatus("COMPLETED");
+            payment.setPaymentType(paymentMethod); // Lưu paymentMethod vào paymentType field
+            payment.setPaymentDate(paymentDate);
+            payment.setStatus("completed"); // Status phải là lowercase
             payment.setNotes(notes);
             payment.setReferenceNumber(referenceNumber);
             payment.setPaymentNumber("PAY-" + System.currentTimeMillis());
@@ -497,16 +501,21 @@ public class DealerPaymentController {
             // Update invoice status if fully paid
             BigDecimal newPaidAmount = paidAmount.add(amount);
             if (newPaidAmount.compareTo(invoice.getTotalAmount()) >= 0) {
-                invoice.setStatus("PAID");
+                invoice.setStatus("paid"); // Status phải là lowercase
+                dealerInvoiceService.updateInvoice(invoiceId, invoice);
+            } else if (newPaidAmount.compareTo(BigDecimal.ZERO) > 0) {
+                invoice.setStatus("partially_paid"); // Status phải là lowercase
                 dealerInvoiceService.updateInvoice(invoiceId, invoice);
             }
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Payment processed successfully");
-            response.put("paymentId", savedPayment.getPaymentId());
+            response.put("dealerPaymentId", savedPayment.getPaymentId());
+            response.put("paymentNumber", savedPayment.getPaymentNumber());
             response.put("invoiceId", invoiceId);
             response.put("amount", amount);
-            response.put("paymentType", paymentType);
+            response.put("paymentMethod", paymentMethod); // Trả về paymentMethod (không phải paymentType)
+            response.put("paymentDate", paymentDate.toString());
             response.put("status", savedPayment.getStatus());
             response.put("remainingBalance", invoice.getTotalAmount().subtract(newPaidAmount));
             response.put("isFullyPaid", newPaidAmount.compareTo(invoice.getTotalAmount()) >= 0);
@@ -549,7 +558,7 @@ public class DealerPaymentController {
             DealerPayment payment = dealerPaymentService.getDealerPaymentById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
             
-            if (!"COMPLETED".equals(payment.getStatus())) {
+            if (!"completed".equals(payment.getStatus())) { // Status phải là lowercase
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Cannot refund payment that is not completed. Current status: " + payment.getStatus());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -561,7 +570,7 @@ public class DealerPaymentController {
             refund.setAmount(payment.getAmount().negate()); // Negative amount for refund
             refund.setPaymentType(payment.getPaymentType());
             refund.setPaymentDate(LocalDate.now());
-            refund.setStatus("REFUNDED");
+            refund.setStatus("refunded"); // Status phải là lowercase
             refund.setNotes("Refund for payment " + paymentId + (reason != null ? ". Reason: " + reason : ""));
             refund.setReferenceNumber("REF-" + System.currentTimeMillis());
             refund.setPaymentNumber("REF-" + System.currentTimeMillis());

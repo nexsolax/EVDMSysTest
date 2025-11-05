@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface DealerOrderItemRepository extends JpaRepository<DealerOrderItem, UUID> {
     
-    @Query("SELECT doi FROM DealerOrderItem doi WHERE doi.dealerOrder.dealerOrderId = :dealerOrderId")
+    @Query("SELECT DISTINCT doi FROM DealerOrderItem doi LEFT JOIN FETCH doi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH doi.color WHERE doi.dealerOrder.dealerOrderId = :dealerOrderId")
     List<DealerOrderItem> findByDealerOrderId(@Param("dealerOrderId") UUID dealerOrderId);
     
     @Query("SELECT doi FROM DealerOrderItem doi WHERE doi.variant.variantId = :variantId")

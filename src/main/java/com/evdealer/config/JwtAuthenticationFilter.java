@@ -10,10 +10,10 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.lang.NonNull;
 import org.slf4j.Logger;
@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Collections;
 
-@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
@@ -36,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, 
                                   @NonNull FilterChain filterChain) throws ServletException, IOException {
         
+        logger.info("JWT Filter: Processing request to {}", request.getRequestURI());
         final String authorizationHeader = request.getHeader("Authorization");
         
         String username = null;
@@ -43,12 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         boolean invalidToken = false;
         
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            logger.info("JWT Filter: Found Bearer token");
             final String raw = authorizationHeader.substring(7);
             final String token = raw == null ? null : raw.trim();
             if (token != null && !token.isEmpty()) {
                 jwt = token;
+                logger.info("JWT Filter: Extracting username from token...");
                 try {
                     username = jwtUtil.extractUsername(jwt);
+                    logger.info("JWT Filter: Username extracted: {}", username);
                 } catch (ExpiredJwtException e) {
                     invalidToken = true;
                     logger.warn("JWT expired: " + e.getMessage());
@@ -67,18 +70,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 } catch (Exception e) {
                     invalidToken = true;
                     logger.warn("JWT token extraction failed: " + e.getMessage());
+                    e.printStackTrace();
                 }
             } else {
                 // Bearer header nhưng không có token
                 invalidToken = true;
                 logger.warn("Authorization header has Bearer prefix but empty token");
             }
+        } else {
+            logger.info("JWT Filter: No Authorization header found");
         }
         
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        if (username != null) {
+            logger.info("JWT Filter: Validating token for user: {}", username);
             if (jwtUtil.validateToken(jwt)) {
                 String role = jwtUtil.getRoleFromToken(jwt);
                 String userId = jwtUtil.getUserIdFromToken(jwt);
+                
+                logger.info("JWT validated successfully for user: {}, role: {}, userId: {}", username, role, userId);
                 
                 UsernamePasswordAuthenticationToken authToken = 
                     new UsernamePasswordAuthenticationToken(
@@ -93,15 +102,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Add user info to request attributes for easy access
                 request.setAttribute("userId", userId);
                 request.setAttribute("userRole", role);
+                
+                logger.info("Authentication set in SecurityContext for user: {}, role: {}", username, role);
+            } else {
+                logger.warn("JWT token validation failed for user: {}", username);
+                invalidToken = true;
             }
+        } else if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            logger.warn("JWT Filter: Authorization header present but username extraction failed");
+            invalidToken = true;
         }
         
         // Nếu client gửi Bearer nhưng token không hợp lệ → trả 401 thay vì âm thầm bỏ qua
         if (invalidToken) {
+            logger.warn("JWT Filter: Invalid token, returning 401");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
         
+        // Log authentication status before continuing
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            logger.info("JWT Filter: Authentication present in SecurityContext: {}", auth.getName());
+        } else {
+            logger.warn("JWT Filter: No authentication in SecurityContext after processing");
+        }
+        
+        logger.info("JWT Filter: Continuing filter chain");
         filterChain.doFilter(request, response);
     }
 }

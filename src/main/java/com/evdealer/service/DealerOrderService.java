@@ -52,6 +52,7 @@ public class DealerOrderService {
     @Autowired
     private SecurityUtils securityUtils;
     
+    @Transactional(readOnly = true)
     public List<DealerOrder> getAllDealerOrders() {
         try {
             // Filter by dealer nếu là dealer user
@@ -59,18 +60,24 @@ public class DealerOrderService {
                 var currentUserOpt = securityUtils.getCurrentUser();
                 if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
                     UUID dealerId = currentUserOpt.get().getDealer().getDealerId();
+                    // Use findByDealerId which already has LEFT JOIN FETCH
                     return dealerOrderRepository.findByDealerId(dealerId);
                 }
             }
-            return dealerOrderRepository.findAll();
+            // Use findAllWithDetails which already has LEFT JOIN FETCH for dealer
+            return dealerOrderRepository.findAllWithDetails();
         } catch (Exception e) {
-            // Return empty list if there's an issue
+            // Log error and return empty list
+            System.err.println("Error fetching dealer orders: " + e.getMessage());
+            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
     
+    @Transactional(readOnly = true)
     public Optional<DealerOrder> getDealerOrderById(UUID dealerOrderId) {
-        return dealerOrderRepository.findById(dealerOrderId);
+        // Use findByIdWithDetails to eagerly load dealer and evmStaff
+        return dealerOrderRepository.findByIdWithDetails(dealerOrderId);
     }
     
     public Optional<DealerOrder> getDealerOrderByOrderNumber(String orderNumber) {
@@ -81,8 +88,16 @@ public class DealerOrderService {
         return dealerOrderRepository.findByEvmStaffUserId(evmStaffId);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerOrder> getDealerOrdersByStatus(String status) {
-        return dealerOrderRepository.findByStatus(status);
+        try {
+            List<DealerOrder> orders = dealerOrderRepository.findByStatus(status);
+            return orders;
+        } catch (Exception e) {
+            System.err.println("Error fetching orders by status: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to get orders by status: " + e.getMessage(), e);
+        }
     }
     
     public List<DealerOrder> getDealerOrdersByDateRange(LocalDate startDate, LocalDate endDate) {
@@ -156,8 +171,20 @@ public class DealerOrderService {
             dealerOrder.setEvmStaff(evmStaff);
             dealerOrder.setOrderDate(request.getOrderDate());
             dealerOrder.setExpectedDeliveryDate(request.getExpectedDeliveryDate());
-            dealerOrder.setOrderType(request.getOrderType());
-            dealerOrder.setPriority(request.getPriority());
+            
+            // Validate and uppercase orderType
+            String orderType = request.getOrderType() != null ? request.getOrderType().toUpperCase() : "PURCHASE";
+            if (!orderType.matches("PURCHASE|RESERVE|SAMPLE")) {
+                throw new RuntimeException("Invalid orderType: " + orderType + ". Must be PURCHASE, RESERVE, or SAMPLE");
+            }
+            dealerOrder.setOrderType(orderType);
+            
+            // Validate and uppercase priority
+            String priority = request.getPriority() != null ? request.getPriority().toUpperCase() : "NORMAL";
+            if (!priority.matches("LOW|NORMAL|HIGH|URGENT")) {
+                throw new RuntimeException("Invalid priority: " + priority + ". Must be LOW, NORMAL, HIGH, or URGENT");
+            }
+            dealerOrder.setPriority(priority);
             if (request.getPaymentTerms() != null) {
                 dealerOrder.setPaymentTerms(request.getPaymentTerms());
             }
@@ -247,7 +274,8 @@ public class DealerOrderService {
     }
     
     public DealerOrder approveDealerOrder(UUID dealerOrderId, UUID approvedBy) {
-        DealerOrder dealerOrder = dealerOrderRepository.findById(dealerOrderId)
+        // Use findByIdWithDetails to eagerly load dealer and evmStaff
+        DealerOrder dealerOrder = dealerOrderRepository.findByIdWithDetails(dealerOrderId)
             .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
         
         if (!"PENDING".equals(dealerOrder.getApprovalStatus())) {
@@ -314,8 +342,16 @@ public class DealerOrderService {
         return summary;
     }
     
+    @Transactional(readOnly = true)
     public List<DealerOrder> getOrdersByApprovalStatus(String approvalStatus) {
-        return dealerOrderRepository.findByApprovalStatus(approvalStatus);
+        try {
+            List<DealerOrder> orders = dealerOrderRepository.findByApprovalStatus(approvalStatus);
+            return orders;
+        } catch (Exception e) {
+            System.err.println("Error fetching orders by approval status: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to get orders by approval status: " + e.getMessage(), e);
+        }
     }
     
     private String generateOrderNumber() {

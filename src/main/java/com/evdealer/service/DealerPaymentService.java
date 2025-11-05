@@ -18,39 +18,47 @@ public class DealerPaymentService {
     @Autowired
     private DealerPaymentRepository dealerPaymentRepository;
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getAllDealerPayments() {
         try {
-            return dealerPaymentRepository.findAll();
+            return dealerPaymentRepository.findAllWithDetails();
         } catch (Exception e) {
             // Return empty list if there's an issue
             return new java.util.ArrayList<>();
         }
     }
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByStatus(String status) {
         return dealerPaymentRepository.findByStatus(status);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByInvoice(UUID invoiceId) {
         return dealerPaymentRepository.findByInvoiceInvoiceId(invoiceId);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByDateRange(LocalDate startDate, LocalDate endDate) {
         return dealerPaymentRepository.findByPaymentDateBetween(startDate, endDate);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByType(String paymentType) {
         return dealerPaymentRepository.findByPaymentType(paymentType);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByReferenceNumber(String referenceNumber) {
         return dealerPaymentRepository.findByReferenceNumber(referenceNumber);
     }
     
+    @Transactional(readOnly = true)
     public Optional<DealerPayment> getPaymentById(UUID paymentId) {
-        return dealerPaymentRepository.findById(paymentId);
+        return dealerPaymentRepository.findByIdWithDetails(paymentId);
     }
     
+    @Transactional(readOnly = true)
     public Optional<DealerPayment> getPaymentByNumber(String paymentNumber) {
         return dealerPaymentRepository.findByPaymentNumber(paymentNumber);
     }
@@ -97,6 +105,7 @@ public class DealerPaymentService {
         return dealerPaymentRepository.findById(paymentId);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByDealer(UUID dealerId) {
         return dealerPaymentRepository.findByInvoiceDealerOrderDealerDealerId(dealerId);
     }

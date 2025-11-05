@@ -46,6 +46,9 @@ public class UserUpdateRequest {
     @Schema(description = "Dealer ID", example = "78fe7eb0-ceb8-4793-a8af-187a3fe26f67")
     private UUID dealerId;
     
+    @Schema(description = "Dealer Name (alternative to dealerId)", example = "EV Đại lý 1 test")
+    private String dealerName;
+    
     @Schema(description = "Is active", example = "true")
     private Boolean isActive;
     
@@ -158,6 +161,14 @@ public class UserUpdateRequest {
     
     public void setDealerId(UUID dealerId) {
         this.dealerId = dealerId;
+    }
+    
+    public String getDealerName() {
+        return dealerName;
+    }
+    
+    public void setDealerName(String dealerName) {
+        this.dealerName = dealerName;
     }
     
     public Boolean getIsActive() {

@@ -14,7 +14,7 @@ import java.util.UUID;
 @Repository
 public interface DealerInvoiceRepository extends JpaRepository<DealerInvoice, UUID> {
     
-    @Query("SELECT di FROM DealerInvoice di")
+    @Query("SELECT DISTINCT di FROM DealerInvoice di LEFT JOIN FETCH di.dealerOrder do LEFT JOIN FETCH do.dealer LEFT JOIN FETCH di.evmStaff")
     List<DealerInvoice> findAllWithDetails();
     
     Optional<DealerInvoice> findByInvoiceNumber(String invoiceNumber);
@@ -23,8 +23,11 @@ public interface DealerInvoiceRepository extends JpaRepository<DealerInvoice, UU
     
     List<DealerInvoice> findByStatus(String status);
     
-    @Query("SELECT di FROM DealerInvoice di WHERE di.dealerOrder.dealerOrderId = :dealerOrderId")
+    @Query("SELECT DISTINCT di FROM DealerInvoice di LEFT JOIN FETCH di.dealerOrder do LEFT JOIN FETCH do.dealer LEFT JOIN FETCH di.evmStaff WHERE di.dealerOrder.dealerOrderId = :dealerOrderId")
     List<DealerInvoice> findByDealerOrderDealerOrderId(@Param("dealerOrderId") UUID dealerOrderId);
+    
+    @Query("SELECT DISTINCT di FROM DealerInvoice di LEFT JOIN FETCH di.dealerOrder do LEFT JOIN FETCH do.dealer LEFT JOIN FETCH di.evmStaff WHERE di.invoiceId = :invoiceId")
+    Optional<DealerInvoice> findByIdWithDetails(@Param("invoiceId") UUID invoiceId);
     
     @Query("SELECT di FROM DealerInvoice di WHERE di.evmStaff.userId = :evmStaffId")
     List<DealerInvoice> findByEvmStaffUserId(@Param("evmStaffId") UUID evmStaffId);
@@ -40,7 +43,7 @@ public interface DealerInvoiceRepository extends JpaRepository<DealerInvoice, UU
     List<DealerInvoice> findByDueDateBetween(LocalDate startDate, LocalDate endDate);
     
     // Additional methods for new APIs
-    @Query("SELECT di FROM DealerInvoice di WHERE di.dealerOrder.dealer.dealerId = :dealerId")
+    @Query("SELECT DISTINCT di FROM DealerInvoice di LEFT JOIN FETCH di.dealerOrder do LEFT JOIN FETCH do.dealer LEFT JOIN FETCH di.evmStaff WHERE do.dealer.dealerId = :dealerId")
     List<DealerInvoice> findByDealerOrderDealerDealerId(@Param("dealerId") UUID dealerId);
     
     @Query("SELECT di FROM DealerInvoice di WHERE di.dealerOrder.dealer.dealerId = :dealerId AND di.status = :status")

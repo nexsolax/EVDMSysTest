@@ -11,6 +11,8 @@ import com.evdealer.repository.VehicleColorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,6 +35,9 @@ public class VehicleInventoryService {
     
     @Autowired
     private com.evdealer.repository.WarehouseRepository warehouseRepository;
+    
+    @PersistenceContext
+    private EntityManager entityManager;
     
     public List<VehicleInventory> getAllVehicleInventory() {
         try {
@@ -127,19 +132,31 @@ public class VehicleInventoryService {
             throw new RuntimeException("VIN already exists: " + request.getVin());
         }
         
-        // Get VehicleVariant
+        // Get VehicleVariant - ensure it's managed
         VehicleVariant variant = vehicleVariantRepository.findById(request.getVariantId())
                 .orElseThrow(() -> new RuntimeException("Variant not found with id: " + request.getVariantId()));
+        // Ensure variant is managed in persistence context
+        if (!entityManager.contains(variant)) {
+            variant = entityManager.merge(variant);
+        }
         
-        // Get VehicleColor
+        // Get VehicleColor - ensure it's managed
         VehicleColor color = vehicleColorRepository.findById(request.getColorId())
                 .orElseThrow(() -> new RuntimeException("Color not found with id: " + request.getColorId()));
+        // Ensure color is managed in persistence context
+        if (!entityManager.contains(color)) {
+            color = entityManager.merge(color);
+        }
         
-        // Get Warehouse if provided
+        // Get Warehouse if provided - ensure it's managed
         com.evdealer.entity.Warehouse warehouse = null;
         if (request.getWarehouseId() != null) {
             warehouse = warehouseRepository.findById(request.getWarehouseId())
                     .orElseThrow(() -> new RuntimeException("Warehouse not found with id: " + request.getWarehouseId()));
+            // Ensure warehouse is managed in persistence context
+            if (!entityManager.contains(warehouse)) {
+                warehouse = entityManager.merge(warehouse);
+            }
         }
         
         // Create VehicleInventory entity
@@ -147,6 +164,12 @@ public class VehicleInventoryService {
         inventory.setVariant(variant);
         inventory.setColor(color);
         inventory.setWarehouse(warehouse);  // Set warehouse if provided
+        
+        // Debug: Verify relationships are set
+        System.out.println("DEBUG: Setting relationships - variant: " + (variant != null ? variant.getVariantId() : "null") + 
+                         ", color: " + (color != null ? color.getColorId() : "null") + 
+                         ", warehouse: " + (warehouse != null ? warehouse.getWarehouseId() : "null"));
+        
         inventory.setVin(request.getVin().trim());
         inventory.setChassisNumber(request.getChassisNumber());
         inventory.setManufacturingDate(request.getManufacturingDate());
@@ -168,7 +191,30 @@ public class VehicleInventoryService {
             inventory.setStatus(VehicleStatus.AVAILABLE.getValue());
         }
         
-        return vehicleInventoryRepository.save(inventory);
+        // Save inventory and flush to ensure relationships are persisted
+        VehicleInventory savedInventory = vehicleInventoryRepository.save(inventory);
+        
+        // Debug: Check relationships before flush
+        System.out.println("DEBUG: Before flush - variant: " + (savedInventory.getVariant() != null ? savedInventory.getVariant().getVariantId() : "null") + 
+                         ", color: " + (savedInventory.getColor() != null ? savedInventory.getColor().getColorId() : "null") + 
+                         ", warehouse: " + (savedInventory.getWarehouse() != null ? savedInventory.getWarehouse().getWarehouseId() : "null"));
+        
+        entityManager.flush(); // Force immediate persistence to database
+        entityManager.clear(); // Clear persistence context to force reload from database
+        
+        // Reload with relationships to ensure variant, color, and warehouse are loaded
+        Optional<VehicleInventory> reloaded = vehicleInventoryRepository.findByIdWithRelationships(savedInventory.getInventoryId());
+        
+        // Debug: Check relationships after reload
+        if (reloaded.isPresent()) {
+            VehicleInventory reloadedInventory = reloaded.get();
+            System.out.println("DEBUG: After reload - variant: " + (reloadedInventory.getVariant() != null ? reloadedInventory.getVariant().getVariantId() : "null") + 
+                             ", color: " + (reloadedInventory.getColor() != null ? reloadedInventory.getColor().getColorId() : "null") + 
+                             ", warehouse: " + (reloadedInventory.getWarehouse() != null ? reloadedInventory.getWarehouse().getWarehouseId() : "null"));
+            return reloadedInventory;
+        }
+        
+        return savedInventory;
     }
     
     public VehicleInventory updateVehicleInventory(UUID inventoryId, VehicleInventory vehicleInventoryDetails) {
@@ -251,7 +297,14 @@ public class VehicleInventoryService {
             inventory.setStatus(normalizedStatus.getValue());
         }
         
-        return vehicleInventoryRepository.save(inventory);
+        // Save inventory and flush to ensure relationships are persisted
+        VehicleInventory savedInventory = vehicleInventoryRepository.save(inventory);
+        entityManager.flush(); // Force immediate persistence to database
+        entityManager.refresh(savedInventory); // Refresh from database
+        
+        // Reload with relationships to ensure variant, color, and warehouse are loaded
+        return vehicleInventoryRepository.findByIdWithRelationships(savedInventory.getInventoryId())
+                .orElse(savedInventory);
     }
     
     public void deleteVehicleInventory(UUID inventoryId) {

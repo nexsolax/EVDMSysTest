@@ -2,6 +2,7 @@ package com.evdealer.entity;
 
 import com.evdealer.enums.UserType;
 import com.evdealer.enums.UserStatus;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -51,6 +52,7 @@ public class User {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dealer_id", nullable = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Dealer dealer;
     
     @Enumerated(EnumType.STRING)

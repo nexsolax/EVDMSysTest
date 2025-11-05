@@ -93,7 +93,9 @@ public class DealerOrderItemService {
         dealerOrderItemRepository.delete(item);
     }
     
+    @Transactional(readOnly = true)
     public List<DealerOrderItem> getItemsByDealerOrderId(UUID dealerOrderId) {
+        // findByDealerOrderId already uses LEFT JOIN FETCH for variant and color
         return dealerOrderItemRepository.findByDealerOrderId(dealerOrderId);
     }
     

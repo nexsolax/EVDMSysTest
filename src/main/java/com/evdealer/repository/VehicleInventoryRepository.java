@@ -24,19 +24,21 @@ public interface VehicleInventoryRepository extends JpaRepository<VehicleInvento
     @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.inventoryId = :inventoryId")
     Optional<VehicleInventory> findByIdWithRelationships(@Param("inventoryId") UUID inventoryId);
     
-    Optional<VehicleInventory> findByVin(String vin);
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.vin = :vin")
+    Optional<VehicleInventory> findByVin(@Param("vin") String vin);
     
     boolean existsByVin(String vin);
     
-    List<VehicleInventory> findByStatus(String status);
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.status = :status")
+    List<VehicleInventory> findByStatus(@Param("status") String status);
     
-    @Query("SELECT vi FROM VehicleInventory vi WHERE vi.variant.variantId = :variantId")
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.variant.variantId = :variantId")
     List<VehicleInventory> findByVariantVariantId(@Param("variantId") Integer variantId);
     
-    @Query("SELECT vi FROM VehicleInventory vi WHERE vi.color.colorId = :colorId")
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.color.colorId = :colorId")
     List<VehicleInventory> findByColorColorId(@Param("colorId") Integer colorId);
     
-    @Query("SELECT vi FROM VehicleInventory vi WHERE vi.warehouse.warehouseId = :warehouseId")
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.warehouse.warehouseId = :warehouseId")
     List<VehicleInventory> findByWarehouseWarehouseId(@Param("warehouseId") UUID warehouseId);
     
     List<VehicleInventory> findByWarehouseLocation(String warehouseLocation);
@@ -50,10 +52,10 @@ public interface VehicleInventoryRepository extends JpaRepository<VehicleInvento
     @Query("SELECT vi FROM VehicleInventory vi WHERE vi.arrivalDate BETWEEN :startDate AND :endDate")
     List<VehicleInventory> findByArrivalDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
-    @Query("SELECT vi FROM VehicleInventory vi WHERE vi.vin LIKE %:vin%")
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.vin LIKE %:vin%")
     List<VehicleInventory> findByVinContaining(@Param("vin") String vin);
     
-    @Query("SELECT vi FROM VehicleInventory vi WHERE vi.chassisNumber LIKE %:chassisNumber%")
+    @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.chassisNumber LIKE %:chassisNumber%")
     List<VehicleInventory> findByChassisNumberContaining(@Param("chassisNumber") String chassisNumber);
     
     // Additional method for dealer order items

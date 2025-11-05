@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QMVPmGE3cvhur7LK30STNh18CdoheZ6s0Wp96IhULMkkVK39K4p6gYw1leVKihv
+\restrict 5hQjc2CTTuXORkehdB4H4s9zyaN2YwSTd9ru7oPqRGBf4grRiPdKKynWN4gq2yU
 
 -- Dumped from database version 18.0
 -- Dumped by pg_dump version 18.0
@@ -1120,6 +1120,7 @@ COPY public.customer_payments (payment_id, order_id, customer_id, payment_number
 --
 
 COPY public.customers (customer_id, first_name, last_name, email, phone, date_of_birth, address, city, province, postal_code, credit_score, preferred_contact_method, notes, created_at, updated_at) FROM stdin;
+6efed33b-816a-491c-9eca-8a6efe55ad75	Nguyen	Van A	nguyenvana@example.com	0912345678	1990-01-15	123 Duong ABC, Phuong 1, Quan 1	Ho Chi Minh	Ho Chi Minh	700000	750	email	Khach hang mac dinh cho cac don hang khong co thong tin khach hang	2025-11-05 12:02:38.652854	2025-11-05 12:02:38.652854
 \.
 
 
@@ -1162,6 +1163,9 @@ COPY public.dealer_installment_schedules (schedule_id, amount, created_at, due_d
 
 COPY public.dealer_invoices (invoice_id, invoice_number, dealer_order_id, evm_staff_id, invoice_date, due_date, subtotal, tax_amount, discount_amount, total_amount, status, payment_terms_days, notes, created_at, updated_at, quotation_id) FROM stdin;
 c3f451ff-60cd-42b7-aac0-87dfe80e2275	TEST-INVOICE-001	e31c5e36-4bd6-4708-b4c8-fa59d161a5b8	\N	2025-10-29	2025-11-28	1000000000.00	0.00	0.00	1000000000.00	issued	30	\N	2025-10-29 16:58:33.656844	2025-10-29 16:58:33.656844	\N
+0fc49651-2013-4fb9-a5e1-a5c8452706ad	INV-1762340153877	8cdf0263-d3d2-43e1-afe5-d09875203278	6f2431b7-10c9-4d61-b612-33e11b923752	2025-11-05	2025-12-05	1127000000.00	0.00	0.00	1127000000.00	paid	30	Generated from quotation: DQ-1762340153790	2025-11-05 10:55:53.882093	2025-11-05 17:55:53.964309	60ce0f89-8aab-493c-a11d-fa3d077960d6
+d3bb7eb2-c6f1-4be7-8791-43918d2c932b	INV-1762340180607	8cdf0263-d3d2-43e1-afe5-d09875203278	6f2431b7-10c9-4d61-b612-33e11b923752	2025-11-05	2025-12-05	1127000000.00	0.00	0.00	1127000000.00	issued	30	Generated from quotation: DQ-1762340180553	2025-11-05 10:56:20.611761	2025-11-05 10:56:20.611761	fd3e0e86-f1b8-46c0-a648-6e41bed3bd00
+19708271-0ec3-47a7-a066-0f53a1e6e802	INV-1762340250827	8cdf0263-d3d2-43e1-afe5-d09875203278	6f2431b7-10c9-4d61-b612-33e11b923752	2025-11-05	2025-12-05	1127000000.00	0.00	0.00	1127000000.00	paid	30	Generated from quotation: DQ-1762340250766	2025-11-05 10:57:30.832359	2025-11-05 17:57:30.898303	bd4f437d-4847-454d-abb1-b0807c77e750
 \.
 
 
@@ -1170,6 +1174,7 @@ c3f451ff-60cd-42b7-aac0-87dfe80e2275	TEST-INVOICE-001	e31c5e36-4bd6-4708-b4c8-fa
 --
 
 COPY public.dealer_order_items (item_id, created_at, discount_amount, discount_percentage, final_price, notes, quantity, status, total_price, unit_price, updated_at, color_id, dealer_order_id, variant_id) FROM stdin;
+0f63f6e6-8585-4e49-81a8-9f1acb682614	2025-11-05 09:57:33.268096	0.00	\N	1127000000.00	\N	1	CONFIRMED	1127000000.00	1127000000.00	2025-11-05 17:18:46.117157	10	8cdf0263-d3d2-43e1-afe5-d09875203278	51
 \.
 
 
@@ -1178,7 +1183,8 @@ COPY public.dealer_order_items (item_id, created_at, discount_amount, discount_p
 --
 
 COPY public.dealer_orders (dealer_order_id, dealer_order_number, evm_staff_id, order_date, expected_delivery_date, total_quantity, total_amount, status, priority, notes, created_at, updated_at, approved_at, approved_by, rejection_reason, dealer_id, order_type, approval_status, payment_terms, delivery_terms, discount_applied, discount_reason) FROM stdin;
-e31c5e36-4bd6-4708-b4c8-fa59d161a5b8	TEST-DEALER-ORDER-001	\N	2025-10-29	\N	1	1000000000.00	pending	normal	\N	2025-10-29 16:58:33.656844	2025-10-29 16:58:33.656844	\N	\N	\N	\N	PURCHASE	APPROVED	NET_30	FOB_FACTORY	0.00	\N
+8cdf0263-d3d2-43e1-afe5-d09875203278	DO-1762336653242	\N	2025-11-05	2025-12-05	1	1127000000.00	WAITING_FOR_QUOTATION	NORMAL	Test - Buoc 12	2025-11-05 09:57:33.254102	2025-11-05 17:25:24.216104	2025-11-05 10:18:46.125114	6f2431b7-10c9-4d61-b612-33e11b923752	\N	42a9c22c-5817-438c-9aea-859a99c33f2f	PURCHASE	APPROVED	NET_30	FOB_FACTORY	0.00	\N
+e31c5e36-4bd6-4708-b4c8-fa59d161a5b8	TEST-DEALER-ORDER-001	\N	2025-10-29	\N	1	1000000000.00	WAITING_FOR_QUOTATION	normal	\N	2025-10-29 16:58:33.656844	2025-11-05 17:34:00.59353	\N	\N	\N	42a9c22c-5817-438c-9aea-859a99c33f2f	PURCHASE	APPROVED	NET_30	FOB_FACTORY	0.00	\N
 \.
 
 
@@ -1187,6 +1193,8 @@ e31c5e36-4bd6-4708-b4c8-fa59d161a5b8	TEST-DEALER-ORDER-001	\N	2025-10-29	\N	1	10
 --
 
 COPY public.dealer_payments (payment_id, invoice_id, payment_number, payment_date, amount, payment_type, reference_number, status, notes, created_at) FROM stdin;
+31b8fc5c-d518-4df0-8a56-bb0c7cef3d5f	0fc49651-2013-4fb9-a5e1-a5c8452706ad	PAY-1762340153957	2025-11-05	1127000000.00	BANK_TRANSFER	TX1762340153	completed	Test payment	2025-11-05 10:55:53.959093
+9cf90746-61c1-4ba0-bfff-272bf0bc6582	19708271-0ec3-47a7-a066-0f53a1e6e802	PAY-1762340250890	2025-11-05	1127000000.00	BANK_TRANSFER	TX1762340250	completed	Test payment	2025-11-05 10:57:30.894362
 \.
 
 
@@ -1195,6 +1203,9 @@ COPY public.dealer_payments (payment_id, invoice_id, payment_number, payment_dat
 --
 
 COPY public.dealer_quotation_items (item_id, quotation_id, variant_id, color_id, quantity, unit_price, discount_percentage, discount_amount, total_price, notes, created_at, updated_at) FROM stdin;
+c2020e44-2046-4afd-9429-395fc343f396	60ce0f89-8aab-493c-a11d-fa3d077960d6	51	10	1	1127000000.00	0.00	0.00	1127000000.00	\N	2025-11-05 10:55:53.818092	2025-11-05 10:55:53.818092
+65e79ecc-c58b-4b28-b594-fb25cad912c7	fd3e0e86-f1b8-46c0-a648-6e41bed3bd00	51	10	1	1127000000.00	0.00	0.00	1127000000.00	\N	2025-11-05 10:56:20.562762	2025-11-05 10:56:20.562762
+2badf012-d996-4cf8-a283-bc2c8771b341	bd4f437d-4847-454d-abb1-b0807c77e750	51	10	1	1127000000.00	0.00	0.00	1127000000.00	\N	2025-11-05 10:57:30.777033	2025-11-05 10:57:30.777033
 \.
 
 
@@ -1203,6 +1214,9 @@ COPY public.dealer_quotation_items (item_id, quotation_id, variant_id, color_id,
 --
 
 COPY public.dealer_quotations (quotation_id, quotation_number, dealer_id, dealer_order_id, evm_staff_id, quotation_date, validity_days, expiry_date, subtotal, tax_amount, discount_amount, discount_percentage, total_amount, status, payment_terms, delivery_terms, expected_delivery_date, accepted_at, rejected_at, rejection_reason, notes, created_at, updated_at) FROM stdin;
+60ce0f89-8aab-493c-a11d-fa3d077960d6	DQ-1762340153790	42a9c22c-5817-438c-9aea-859a99c33f2f	8cdf0263-d3d2-43e1-afe5-d09875203278	6f2431b7-10c9-4d61-b612-33e11b923752	2025-11-05	30	2025-12-05	1127000000.00	0.00	0.00	0.00	1127000000.00	converted	NET_30	FOB_FACTORY	2025-12-05	2025-11-05 10:55:53.877092	\N	\N	\N	2025-11-05 10:55:53.795094	2025-11-05 17:55:53.875958
+fd3e0e86-f1b8-46c0-a648-6e41bed3bd00	DQ-1762340180553	42a9c22c-5817-438c-9aea-859a99c33f2f	8cdf0263-d3d2-43e1-afe5-d09875203278	6f2431b7-10c9-4d61-b612-33e11b923752	2025-11-05	30	2025-12-05	1127000000.00	0.00	0.00	0.00	1127000000.00	converted	NET_30	FOB_FACTORY	2025-12-05	2025-11-05 10:56:20.607759	\N	\N	\N	2025-11-05 10:56:20.556762	2025-11-05 17:56:20.607456
+bd4f437d-4847-454d-abb1-b0807c77e750	DQ-1762340250766	42a9c22c-5817-438c-9aea-859a99c33f2f	8cdf0263-d3d2-43e1-afe5-d09875203278	6f2431b7-10c9-4d61-b612-33e11b923752	2025-11-05	30	2025-12-05	1127000000.00	0.00	0.00	0.00	1127000000.00	converted	NET_30	FOB_FACTORY	2025-12-05	2025-11-05 10:57:30.82736	\N	\N	\N	2025-11-05 10:57:30.773034	2025-11-05 17:57:30.826458
 \.
 
 
@@ -1250,7 +1264,7 @@ COPY public.installment_schedules (schedule_id, plan_id, installment_number, due
 --
 
 COPY public.orders (order_id, order_number, quotation_id, customer_id, user_id, inventory_id, order_date, status, total_amount, deposit_amount, balance_amount, payment_method, notes, created_at, updated_at, delivery_date, special_requests, order_type, payment_status, delivery_status, fulfillment_status, fulfillment_method, fulfillment_reference_id) FROM stdin;
-6dfe1afc-b82f-4d18-8954-bfca67a311d7	TEST-ORDER-001	\N	\N	\N	\N	2025-10-29	pending	1000000000.00	\N	\N	\N	\N	2025-10-29 16:58:33.656844	2025-10-29 16:58:33.656844	\N	\N	RETAIL	PENDING	PENDING	IN_PROGRESS	DEALER_ORDER	c3f451ff-60cd-42b7-aac0-87dfe80e2275
+6dfe1afc-b82f-4d18-8954-bfca67a311d7	TEST-ORDER-001	\N	6efed33b-816a-491c-9eca-8a6efe55ad75	\N	\N	2025-10-29	pending	1000000000.00	\N	\N	\N	\N	2025-10-29 16:58:33.656844	2025-11-05 19:02:38.818256	\N	\N	RETAIL	PENDING	PENDING	IN_PROGRESS	DEALER_ORDER	c3f451ff-60cd-42b7-aac0-87dfe80e2275
 \.
 
 
@@ -1278,18 +1292,18 @@ COPY public.promotions (promotion_id, variant_id, title, description, discount_p
 --
 
 COPY public.quotations (quotation_id, quotation_number, customer_id, user_id, variant_id, color_id, quotation_date, total_price, discount_amount, final_price, validity_days, status, notes, created_at, updated_at) FROM stdin;
-e13dea70-2661-4527-ab52-13284fa3eff9	QT-2024-001	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	1	1	2025-10-14	1200000000.00	20000000.00	1180000000.00	7	pending	Báo giá Tesla Model 3 Standard Range màu trắng	2025-10-14 23:14:45.443104	2025-10-20 19:13:56.50184
-869777a2-80ac-4996-a9cb-d7707d4d678b	QT-2024-002	23c800a2-5903-4b5e-bb41-c86e0e4a5107	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	6	4	2025-10-14	800000000.00	0.00	800000000.00	7	pending	Báo giá BYD Atto 3 Standard màu xanh dương	2025-10-14 23:15:14.855996	2025-10-20 19:14:01.794677
-2cf9b2c9-db82-40fc-9629-fcee4ddf0c8d	QT-2024-003	bc295b71-4784-42bb-8711-573b48d28101	52b27bc0-f457-4f96-bcaf-d20daadf9f56	8	1	2025-10-14	350000000.00	0.00	350000000.00	7	pending	Báo giá VinFast VF 5 Standard màu trắng	2025-10-14 23:15:14.855996	2025-10-20 19:14:07.461984
-9910249d-a3bd-4e4d-a22b-c04225da94a5	QT-2024-004	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	\N	\N	2024-02-18	1900000000.00	100000000.00	1800000000.00	7	pending	Báo giá cho khách hàng Nguyễn Thị Thu	2025-10-14 23:18:22.035186	2025-10-20 19:14:12.781567
-d3ad4833-c0b2-49dd-b40c-6040853e5772	QT-2024-005	e9c41a60-f600-4188-80fb-55fbc60ae128	52b27bc0-f457-4f96-bcaf-d20daadf9f56	11	\N	2024-02-20	2300000000.00	100000000.00	2200000000.00	7	pending	Báo giá cho khách hàng Phạm Văn Đức	2025-10-14 23:18:22.035186	2025-10-20 19:14:17.873351
-5dfe0c7a-0d44-467f-b815-79adedd33f2c	QT-2024-006	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	\N	1	2024-02-22	1250000000.00	50000000.00	1200000000.00	7	pending	Báo giá cho khách hàng Trần Thị Mai	2025-10-14 23:18:22.035186	2025-10-20 19:14:23.335086
-e22ada09-2477-41df-ac3a-85058b3fe516	QT-2024-007	e9c41a60-f600-4188-80fb-55fbc60ae128	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	21	1	2024-03-01	2500000000.00	100000000.00	2400000000.00	7	pending	Báo giá cho Tesla Model S Plaid	2025-10-14 23:46:18.12036	2025-10-20 19:14:28.313952
-9b82e51f-30a5-4237-9a21-a7223926c08b	QT-2024-008	23c800a2-5903-4b5e-bb41-c86e0e4a5107	52b27bc0-f457-4f96-bcaf-d20daadf9f56	22	3	2024-03-02	2800000000.00	150000000.00	2650000000.00	7	pending	Báo giá cho Tesla Model X Plaid	2025-10-14 23:46:18.12036	2025-10-20 19:14:35.110954
-9bd78eb4-3700-48e3-8e72-84a09aaa3c9e	QT-2024-010	2d374584-fb65-472d-83a5-c1136f26bc38	52b27bc0-f457-4f96-bcaf-d20daadf9f56	24	\N	2024-03-04	2000000000.00	100000000.00	1900000000.00	7	pending	Báo giá cho BMW iX3 xDrive30	2025-10-14 23:46:18.12036	2025-10-20 19:14:40.314095
-81661b71-7b3c-43bb-8171-0cd6af2762fc	QT-2024-009	80ff5c2e-f596-4638-9f14-733ae515bbeb	bdfccab5-9e07-49c7-bb2a-9b2f69521eeb	23	1	2024-03-03	1200000000.00	50000000.00	1150000000.00	7	pending	Báo giá cho BYD Atto 3 Extended Range	2025-10-14 23:46:18.12036	2025-10-20 19:14:47.996452
-e913b770-4755-4375-9744-ff97ff827c7a	QUO-20251023-3448	78fe7eb0-ceb8-4793-a8af-187a3fe26f67	6f2431b7-10c9-4d61-b612-33e11b923752	1	1	2025-10-23	1200000000.00	0.00	1200000000.00	7	accepted	test	2025-10-23 10:31:25.24992	2025-10-23 10:31:25.24992
-0565564e-0656-4716-a799-a57c5f7bb17c	QUO-20251023-7976	78fe7eb0-ceb8-4793-a8af-187a3fe26f67	6f2431b7-10c9-4d61-b612-33e11b923752	1	1	2025-10-23	1200000000.00	0.00	1200000000.00	7	accepted	test	2025-10-23 10:36:28.973223	2025-10-23 10:36:28.973223
+0565564e-0656-4716-a799-a57c5f7bb17c	QUO-20251023-7976	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2025-10-23	1200000000.00	0.00	1200000000.00	7	accepted	Updated by system	2025-10-23 10:36:28.973223	2025-11-05 19:07:37.689035
+2cf9b2c9-db82-40fc-9629-fcee4ddf0c8d	QT-2024-003	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2025-10-14	350000000.00	0.00	350000000.00	7	pending	Updated by system	2025-10-14 23:15:14.855996	2025-11-05 19:07:37.723869
+5dfe0c7a-0d44-467f-b815-79adedd33f2c	QT-2024-006	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-02-22	1250000000.00	0.00	1200000000.00	7	pending	Updated by system	2025-10-14 23:18:22.035186	2025-11-05 19:07:37.751053
+81661b71-7b3c-43bb-8171-0cd6af2762fc	QT-2024-009	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-03-03	1200000000.00	0.00	1150000000.00	7	pending	Updated by system	2025-10-14 23:46:18.12036	2025-11-05 19:07:37.781335
+869777a2-80ac-4996-a9cb-d7707d4d678b	QT-2024-002	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2025-10-14	800000000.00	0.00	800000000.00	7	pending	Updated by system	2025-10-14 23:15:14.855996	2025-11-05 19:07:37.809724
+9910249d-a3bd-4e4d-a22b-c04225da94a5	QT-2024-004	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-02-18	1900000000.00	0.00	1800000000.00	7	pending	Updated by system	2025-10-14 23:18:22.035186	2025-11-05 19:07:37.836467
+9b82e51f-30a5-4237-9a21-a7223926c08b	QT-2024-008	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-03-02	2800000000.00	0.00	2650000000.00	7	pending	Updated by system	2025-10-14 23:46:18.12036	2025-11-05 19:07:37.871949
+9bd78eb4-3700-48e3-8e72-84a09aaa3c9e	QT-2024-010	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-03-04	2000000000.00	0.00	1900000000.00	7	pending	Updated by system	2025-10-14 23:46:18.12036	2025-11-05 19:07:37.900681
+d3ad4833-c0b2-49dd-b40c-6040853e5772	QT-2024-005	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-02-20	2300000000.00	0.00	2200000000.00	7	pending	Updated by system	2025-10-14 23:18:22.035186	2025-11-05 19:07:37.927578
+e13dea70-2661-4527-ab52-13284fa3eff9	QT-2024-001	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2025-10-14	1200000000.00	0.00	1180000000.00	7	pending	Updated by system	2025-10-14 23:14:45.443104	2025-11-05 19:07:37.957283
+e22ada09-2477-41df-ac3a-85058b3fe516	QT-2024-007	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2024-03-01	2500000000.00	0.00	2400000000.00	7	pending	Updated by system	2025-10-14 23:46:18.12036	2025-11-05 19:07:37.985692
+e913b770-4755-4375-9744-ff97ff827c7a	QUO-20251023-3448	6efed33b-816a-491c-9eca-8a6efe55ad75	2100e9a4-1cb3-484b-8646-0d51827c0cd1	53	10	2025-10-23	1200000000.00	0.00	1200000000.00	7	accepted	Updated by system	2025-10-23 10:31:25.24992	2025-11-05 19:07:38.015433
 \.
 
 
@@ -1323,7 +1337,11 @@ COPY public.test_drive_schedules (schedule_id, created_at, notes, preferred_date
 
 COPY public.users (user_id, username, email, password_hash, first_name, last_name, phone, address, date_of_birth, profile_image_url, profile_image_path, is_active, created_at, updated_at, dealer_id, user_type, status, last_login) FROM stdin;
 6f2431b7-10c9-4d61-b612-33e11b923752	admin	admin@evdealer.com	$2a$10$twGkmusRXuBWmxF7.j04n.jt7BMv2W1TgcVNGiZNLAlJ68vGWU7Ne	Test	Administrator	0123456789	System Address	\N	\N	\N	t	2025-10-16 10:16:03.680024	2025-10-29 16:15:11.727302	\N	ADMIN	ACTIVE	\N
-2563a80e-b726-476a-b1a5-072a5d40908f	manager	manager@evdealer.com	$2a$10$3wclfmXQcRYQuZm.0NVZx.opfgL.qDboHUyU2LaXlKFw/8/yH6sxi	Manager	Toan	0987654321	\N	\N	\N	\N	t	2025-11-04 06:18:09.870708	2025-11-04 13:30:42.288958	\N	DEALER_MANAGER	ACTIVE	\N
+b8d7f644-9610-4742-a4e1-f422468bcf1a	testuser20251105175323	testuser20251105175323@example.com	$2a$10$hqIlrhCdFP0qwF4ta2mE1OPfFJdm6P77/FlBnHzUxUhSCZE4Q3kFO	Test	User	\N	\N	\N	\N	\N	t	2025-11-05 10:53:23.584908	2025-11-05 10:53:23.584908	42a9c22c-5817-438c-9aea-859a99c33f2f	DEALER_STAFF	ACTIVE	\N
+5f64711c-89be-46b3-a76a-eca15877fc62	testuser20251105175722	testuser20251105175722@example.com	$2a$10$FOj6WZS53f7Kjy26Wx1a5uV16dumONNg6HzgzzUkafzMqTky9gPpi	Test	User	\N	\N	\N	\N	\N	t	2025-11-05 10:57:22.280911	2025-11-05 10:57:22.280911	42a9c22c-5817-438c-9aea-859a99c33f2f	DEALER_STAFF	ACTIVE	\N
+2100e9a4-1cb3-484b-8646-0d51827c0cd1	tester0120251105180805	tester0120251105180805@example.com	$2a$10$Uo0ilpaS7lsQO//IW.gaAuo.h6owm0ghKP8e0pSHGOYDrYr3Li33a	Tester	02	\N	\N	\N	\N	\N	t	2025-11-05 11:08:06.030839	2025-11-05 18:08:06.13884	42a9c22c-5817-438c-9aea-859a99c33f2f	DEALER_STAFF	ACTIVE	\N
+2563a80e-b726-476a-b1a5-072a5d40908f	manager	manager@evdealer.com	$2a$10$3wclfmXQcRYQuZm.0NVZx.opfgL.qDboHUyU2LaXlKFw/8/yH6sxi	Manager	Toan	0987654321	\N	\N	\N	\N	t	2025-11-04 06:18:09.870708	2025-11-05 18:11:04.344755	42a9c22c-5817-438c-9aea-859a99c33f2f	DEALER_MANAGER	ACTIVE	\N
+bc065596-34c1-4f3a-96b1-2f4ee217d4d3	tester0120251105181239	tester0120251105181239@example.com	$2a$10$pHKQHsx.UFUXbfmTfZj/Sum/jeeKwEtIERsP430oaD5LNtxI3J5CO	Tester	02	\N	\N	\N	\N	\N	t	2025-11-05 11:12:39.437225	2025-11-05 18:12:39.572303	42a9c22c-5817-438c-9aea-859a99c33f2f	DEALER_STAFF	ACTIVE	\N
 \.
 
 
@@ -1333,6 +1351,7 @@ COPY public.users (user_id, username, email, password_hash, first_name, last_nam
 
 COPY public.vehicle_brands (brand_id, brand_name, country, founded_year, brand_logo_url, brand_logo_path, is_active, created_at) FROM stdin;
 8	Tesla test	USA	2003	/uploads/brands/tesla_test/91a75456-b195-45a7-82d9-19c535c14972.png	brands/tesla_test/91a75456-b195-45a7-82d9-19c535c14972.png	t	2025-11-03 07:37:12.466565
+9	BYD	China	2003	/uploads/brands/byd/54391b19-8ed3-4384-b936-62ad35be4693.jpg	brands/byd/54391b19-8ed3-4384-b936-62ad35be4693.jpg	t	2025-11-05 04:24:41.091735
 \.
 
 
@@ -1351,6 +1370,14 @@ COPY public.vehicle_colors (color_id, color_name, color_code, color_swatch_url, 
 --
 
 COPY public.vehicle_deliveries (delivery_id, order_id, inventory_id, customer_id, delivery_date, delivery_time, delivery_address, delivery_contact_name, delivery_contact_phone, delivery_status, delivery_notes, delivered_by, delivery_confirmation_date, customer_signature_url, customer_signature_path, created_at, updated_at, actual_delivery_date, condition, notes, scheduled_delivery_date, dealer_order_id, dealer_order_item_id) FROM stdin;
+4bfc691c-ca3d-4f52-95e3-e3dd4be0c0e9	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:35:02.268236	2025-11-05 10:35:02.268236	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+0573a038-41ce-415b-9d8c-b4055cb23489	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:35:31.502033	2025-11-05 10:35:31.502033	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+3881b9ce-a138-48a6-be94-243dba961ca7	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:53:34.014558	2025-11-05 10:53:34.014558	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+7cf96cbb-f08a-4ac9-87ea-79c98752b6a1	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:54:20.788618	2025-11-05 10:54:20.788618	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+160d9612-5972-43b8-a45b-b5ca22208317	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:54:47.67989	2025-11-05 10:54:47.67989	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+baafb916-680c-47c2-a17d-5c51aa202a91	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:55:26.467934	2025-11-05 10:55:26.467934	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+21d90f1a-ff1f-48bd-8405-1f959b446f78	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:55:53.993093	2025-11-05 10:55:53.993093	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
+ad343fe9-04b9-4719-8b4a-26d2fdab150a	\N	\N	\N	2025-12-05	\N	Dia chi dai ly	\N	\N	scheduled	\N	\N	\N	\N	\N	2025-11-05 10:57:30.938361	2025-11-05 10:57:30.938361	\N	\N	Giao hang trong gio hanh chinh	2025-12-05	8cdf0263-d3d2-43e1-afe5-d09875203278	0f63f6e6-8585-4e49-81a8-9f1acb682614
 \.
 
 
@@ -1361,6 +1388,7 @@ COPY public.vehicle_deliveries (delivery_id, order_id, inventory_id, customer_id
 COPY public.vehicle_inventory (inventory_id, variant_id, color_id, warehouse_id, warehouse_location, vin, chassis_number, manufacturing_date, arrival_date, status, cost_price, selling_price, vehicle_images, interior_images, exterior_images, created_at, updated_at, reserved_for_dealer, reserved_for_customer, condition, reserved_date, reserved_expiry_date) FROM stdin;
 cde0fcc0-8b99-4018-bb4a-661453dcb567	51	10	f9e3d37d-b23d-4c21-9666-4636667bdd7c	\N	1HGBH41JXMN109188	\N	\N	\N	available	\N	\N	\N	\N	\N	2025-11-03 12:59:52.966529	2025-11-04 13:06:08.400843	\N	\N	NEW	\N	\N
 561f7afa-912e-46f5-8c9c-092a19656752	51	9	f9e3d37d-b23d-4c21-9666-4636667bdd7c	\N	1HGBH41JXMN109189	\N	\N	\N	available	\N	\N	\N	\N	\N	2025-11-04 06:09:35.627478	2025-11-04 13:11:51.118553	\N	\N	NEW	\N	\N
+0a72dd3b-e918-4fc8-abb6-86d9c387b614	53	10	f9e3d37d-b23d-4c21-9666-4636667bdd7c	Warehouse A, Bay 1	1HGBH41JXMN739720	CH739720	2025-01-15	\N	available	1000000000.00	1200000000.00	\N	\N	\N	2025-11-05 09:04:48.710974	2025-11-05 09:04:48.710974	\N	\N	NEW	\N	\N
 \.
 
 
@@ -1369,6 +1397,7 @@ cde0fcc0-8b99-4018-bb4a-661453dcb567	51	10	f9e3d37d-b23d-4c21-9666-4636667bdd7c	
 --
 
 COPY public.vehicle_models (model_id, brand_id, model_name, model_year, vehicle_type, description, specifications, model_image_url, model_image_path, is_active, created_at) FROM stdin;
+28	9	BYD SEALION 6	2025	SUV	Đây là mẫu SUV hạng C sử dụng công nghệ DM-i Super Hybrid độc quyền của BYD, mang đến trải nghiệm vận hành êm ái, tiết kiệm nhiên liệu và khả năng di chuyển thuần điện lên đến 100 km	\N	\N	\N	t	2025-11-05 04:30:09.149027
 25	8	Tesla Model 3	2017	SEDAN	Tesla Model 3 nổi bật với hiệu suất mạnh mẽ, phạm vi hoạt động tốt và chi phí vận hành tiết kiệm, là mẫu xe điện phổ biến trên thị trường hiện nay.	\N	\N	\N	t	2025-11-03 07:49:42.193365
 \.
 
@@ -1379,6 +1408,8 @@ COPY public.vehicle_models (model_id, brand_id, model_name, model_year, vehicle_
 
 COPY public.vehicle_variants (variant_id, model_id, variant_name, battery_capacity, range_km, power_kw, acceleration_0_100, top_speed, charging_time_fast, charging_time_slow, price_base, variant_image_url, variant_image_path, is_active, created_at) FROM stdin;
 51	25	Model 3 Long Range RWD	60.00	554	202.00	6.10	225	30	600	1127000000.00	/uploads/variants/model_3_long_range_rwd/78108c48-4feb-40c7-8a8f-9ea4aeac170a.jpg	variants/model_3_long_range_rwd/78108c48-4feb-40c7-8a8f-9ea4aeac170a.jpg	t	2025-11-03 10:42:19.164582
+53	28	Dynamic	18.30	100	159.00	7.90	180	30	240	839000000.00	/uploads/variants/3270439e-8346-48b5-94e1-479e902281d6.jpg	variants/3270439e-8346-48b5-94e1-479e902281d6.jpg	t	2025-11-05 05:02:49.865792
+55	28	Dynamic test	888.00	888	888.00	88.00	88	88	88	8888.00	/uploads/variants/428cf9c0-fd67-428e-8c2c-d3bfa9d2bc69.png	variants/428cf9c0-fd67-428e-8c2c-d3bfa9d2bc69.png	t	2025-11-05 08:04:43.97702
 \.
 
 
@@ -1395,7 +1426,7 @@ f9e3d37d-b23d-4c21-9666-4636667bdd7c	Kho 1	W001	1/1a abc	HCM	HCM	70000	098765432
 -- Name: vehicle_brands_brand_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_brands_brand_id_seq', 8, true);
+SELECT pg_catalog.setval('public.vehicle_brands_brand_id_seq', 9, true);
 
 
 --
@@ -1409,14 +1440,14 @@ SELECT pg_catalog.setval('public.vehicle_colors_color_id_seq', 10, true);
 -- Name: vehicle_models_model_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_models_model_id_seq', 27, true);
+SELECT pg_catalog.setval('public.vehicle_models_model_id_seq', 28, true);
 
 
 --
 -- Name: vehicle_variants_variant_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.vehicle_variants_variant_id_seq', 51, true);
+SELECT pg_catalog.setval('public.vehicle_variants_variant_id_seq', 55, true);
 
 
 --
@@ -3313,5 +3344,5 @@ ALTER TABLE ONLY public.vehicle_variants
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QMVPmGE3cvhur7LK30STNh18CdoheZ6s0Wp96IhULMkkVK39K4p6gYw1leVKihv
+\unrestrict 5hQjc2CTTuXORkehdB4H4s9zyaN2YwSTd9ru7oPqRGBf4grRiPdKKynWN4gq2yU
 

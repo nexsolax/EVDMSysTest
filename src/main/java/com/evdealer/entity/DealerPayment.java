@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -19,6 +20,7 @@ public class DealerPayment {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "invoice_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "items", "quotations", "evmStaff", "dealerOrder"})
     private DealerInvoice invoice;
     
     @Column(name = "payment_number", nullable = false, unique = true, length = 100)

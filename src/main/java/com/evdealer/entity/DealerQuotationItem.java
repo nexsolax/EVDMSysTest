@@ -80,6 +80,13 @@ public class DealerQuotationItem {
     
     // Calculate prices based on quantity, unit price, and discount
     public void calculatePrices() {
+        // Guard against null values
+        if (unitPrice == null) {
+            unitPrice = BigDecimal.ZERO;
+        }
+        if (quantity == null) {
+            quantity = 1;
+        }
         BigDecimal baseTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
         
         if (discountPercentage != null && discountPercentage.compareTo(BigDecimal.ZERO) > 0) {

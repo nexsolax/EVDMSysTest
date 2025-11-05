@@ -2,6 +2,7 @@ package com.evdealer.entity;
 
 import com.evdealer.enums.PaymentTerms;
 import com.evdealer.enums.DeliveryTerms;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -35,10 +36,12 @@ public class DealerOrder {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dealer_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Dealer dealer;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evm_staff_id", nullable = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "dealer"})
     private User evmStaff;
     
     @Column(name = "order_date", nullable = false)
@@ -54,7 +57,7 @@ public class DealerOrder {
     private BigDecimal totalAmount;
     
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "PENDING"; // PENDING, APPROVED, REJECTED, CONFIRMED, IN_PRODUCTION, READY_FOR_DELIVERY, DELIVERED, CANCELLED
+    private String status = "PENDING"; // PENDING, APPROVED, REJECTED, CONFIRMED, WAITING_FOR_QUOTATION, IN_PRODUCTION, READY_FOR_DELIVERY, DELIVERED, CANCELLED
     
     @Column(name = "priority", length = 20, nullable = false)
     private String priority = "NORMAL"; // LOW, NORMAL, HIGH, URGENT
@@ -92,10 +95,13 @@ public class DealerOrder {
     private String discountReason;
     
     @OneToMany(mappedBy = "dealerOrder", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "dealerOrder"})
+    @JsonIgnore // Ignore items trong default serialization để tránh lazy loading exception
     private List<DealerOrderItem> items;
     
     @OneToMany(mappedBy = "dealerOrder", fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "dealerOrder"})
+    @JsonIgnore // Ignore quotations trong default serialization để tránh lazy loading exception
     private List<DealerQuotation> quotations;
     
     @CreationTimestamp

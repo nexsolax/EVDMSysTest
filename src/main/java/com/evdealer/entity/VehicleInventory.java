@@ -2,6 +2,8 @@ package com.evdealer.entity;
 
 import com.evdealer.enums.VehicleCondition;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -291,9 +293,30 @@ public class VehicleInventory {
     public LocalDateTime getReservedExpiryDate() {
         return reservedExpiryDate;
     }
-    
+
     public void setReservedExpiryDate(LocalDateTime reservedExpiryDate) {
         this.reservedExpiryDate = reservedExpiryDate;
+    }
+
+    // Helper getters to expose foreign key IDs in JSON response
+    // These are not persisted fields but computed from relationships
+    // Always include these fields in JSON, even if null
+    @JsonProperty("variantId")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public Integer getVariantId() {
+        return variant != null ? variant.getVariantId() : null;
+    }
+
+    @JsonProperty("colorId")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public Integer getColorId() {
+        return color != null ? color.getColorId() : null;
+    }
+
+    @JsonProperty("warehouseId")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public UUID getWarehouseId() {
+        return warehouse != null ? warehouse.getWarehouseId() : null;
     }
 
     @Override

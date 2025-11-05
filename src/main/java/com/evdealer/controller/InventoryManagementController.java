@@ -47,28 +47,32 @@ public class InventoryManagementController {
 
     @GetMapping("/status/{status}")
     @Operation(summary = "Get inventory by status", description = "Retrieve inventory by status")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByStatus(@PathVariable String status) {
+    public ResponseEntity<List<VehicleInventory>> getInventoryByStatus(
+            @PathVariable @Parameter(description = "Status value", example = "available") String status) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus(status);
         return ResponseEntity.ok(inventory);
     }
 
     @GetMapping("/warehouse/{warehouseId}")
     @Operation(summary = "Get inventory by warehouse", description = "Retrieve inventory for a specific warehouse")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByWarehouse(@PathVariable UUID warehouseId) {
+    public ResponseEntity<List<VehicleInventory>> getInventoryByWarehouse(
+            @PathVariable @Parameter(description = "Warehouse ID") UUID warehouseId) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByWarehouse(warehouseId);
         return ResponseEntity.ok(inventory);
     }
 
     @GetMapping("/variant/{variantId}")
     @Operation(summary = "Get inventory by variant", description = "Retrieve inventory for a specific vehicle variant")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByVariant(@PathVariable Integer variantId) {
+    public ResponseEntity<List<VehicleInventory>> getInventoryByVariant(
+            @PathVariable @Parameter(description = "Variant ID", example = "1") Integer variantId) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByVariant(variantId);
         return ResponseEntity.ok(inventory);
     }
 
     @GetMapping("/color/{colorId}")
     @Operation(summary = "Get inventory by color", description = "Retrieve inventory for a specific color")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByColor(@PathVariable Integer colorId) {
+    public ResponseEntity<List<VehicleInventory>> getInventoryByColor(
+            @PathVariable @Parameter(description = "Color ID", example = "1") Integer colorId) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByColor(colorId);
         return ResponseEntity.ok(inventory);
     }
@@ -76,8 +80,8 @@ public class InventoryManagementController {
     @GetMapping("/date-range")
     @Operation(summary = "Get inventory by date range", description = "Retrieve inventory within a date range")
     public ResponseEntity<List<VehicleInventory>> getInventoryByDateRange(
-            @RequestParam LocalDate startDate,
-            @RequestParam LocalDate endDate) {
+            @RequestParam @Parameter(description = "Start date", example = "2024-01-01") LocalDate startDate,
+            @RequestParam @Parameter(description = "End date", example = "2024-12-31") LocalDate endDate) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByArrivalDateRange(startDate, endDate);
         return ResponseEntity.ok(inventory);
     }
@@ -92,7 +96,8 @@ public class InventoryManagementController {
 
     @GetMapping("/vin/{vin}")
     @Operation(summary = "Get inventory by VIN", description = "Retrieve inventory by VIN number")
-    public ResponseEntity<VehicleInventory> getInventoryByVin(@PathVariable String vin) {
+    public ResponseEntity<VehicleInventory> getInventoryByVin(
+            @PathVariable @Parameter(description = "VIN number", example = "1HGBH41JXMN109186") String vin) {
         return vehicleInventoryService.getInventoryByVin(vin)
                 .map(inventory -> ResponseEntity.ok(inventory))
                 .orElse(ResponseEntity.notFound().build());
@@ -100,7 +105,7 @@ public class InventoryManagementController {
 
     @PostMapping
     @Operation(summary = "Create inventory", description = "Create a new inventory item")
-    public ResponseEntity<?> createVehicleInventory(@RequestBody VehicleInventory inventory) {
+    public ResponseEntity<?> createVehicleInventory(@RequestBody VehicleInventoryRequest request) {
         try {
             // Kiểm tra authentication
             if (!securityUtils.getCurrentUser().isPresent()) {
@@ -116,7 +121,7 @@ public class InventoryManagementController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            VehicleInventory createdInventory = vehicleInventoryService.createVehicleInventory(inventory);
+            VehicleInventory createdInventory = vehicleInventoryService.createVehicleInventoryFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdInventory);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -133,7 +138,7 @@ public class InventoryManagementController {
     @Operation(summary = "Update inventory", description = "Update an existing inventory item")
     public ResponseEntity<?> updateVehicleInventory(
             @PathVariable UUID inventoryId, 
-            @RequestBody VehicleInventory inventoryDetails) {
+            @RequestBody VehicleInventoryRequest request) {
         try {
             // Kiểm tra authentication
             if (!securityUtils.getCurrentUser().isPresent()) {
@@ -149,7 +154,7 @@ public class InventoryManagementController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            VehicleInventory updatedInventory = vehicleInventoryService.updateVehicleInventory(inventoryId, inventoryDetails);
+            VehicleInventory updatedInventory = vehicleInventoryService.updateVehicleInventoryFromRequest(inventoryId, request);
             return ResponseEntity.ok(updatedInventory);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -165,8 +170,8 @@ public class InventoryManagementController {
     @PutMapping("/{inventoryId}/status")
     @Operation(summary = "Update inventory status", description = "Update the status of an inventory item")
     public ResponseEntity<?> updateInventoryStatus(
-            @PathVariable UUID inventoryId, 
-            @RequestParam String status) {
+            @PathVariable @Parameter(description = "Inventory ID") UUID inventoryId, 
+            @RequestParam @Parameter(description = "Status value", example = "available") String status) {
         try {
             // Kiểm tra authentication
             if (!securityUtils.getCurrentUser().isPresent()) {
@@ -197,7 +202,8 @@ public class InventoryManagementController {
 
     @PutMapping("/{inventoryId}/mark-sold")
     @Operation(summary = "Mark as sold", description = "Mark an inventory item as sold")
-    public ResponseEntity<?> markAsSold(@PathVariable UUID inventoryId) {
+    public ResponseEntity<?> markAsSold(
+            @PathVariable @Parameter(description = "Inventory ID") UUID inventoryId) {
         try {
             // Kiểm tra authentication
             if (!securityUtils.getCurrentUser().isPresent()) {
@@ -228,7 +234,8 @@ public class InventoryManagementController {
 
     @PutMapping("/{inventoryId}/mark-reserved")
     @Operation(summary = "Mark as reserved", description = "Mark an inventory item as reserved")
-    public ResponseEntity<?> markAsReserved(@PathVariable UUID inventoryId) {
+    public ResponseEntity<?> markAsReserved(
+            @PathVariable @Parameter(description = "Inventory ID") UUID inventoryId) {
         try {
             // Kiểm tra authentication
             if (!securityUtils.getCurrentUser().isPresent()) {
@@ -259,7 +266,8 @@ public class InventoryManagementController {
 
     @DeleteMapping("/{inventoryId}")
     @Operation(summary = "Delete inventory", description = "Delete an inventory item")
-    public ResponseEntity<?> deleteVehicleInventory(@PathVariable UUID inventoryId) {
+    public ResponseEntity<?> deleteVehicleInventory(
+            @PathVariable @Parameter(description = "Inventory ID") UUID inventoryId) {
         try {
             // Kiểm tra authentication
             if (!securityUtils.getCurrentUser().isPresent()) {
@@ -292,7 +300,8 @@ public class InventoryManagementController {
 
     @GetMapping("/search")
     @Operation(summary = "Search inventory", description = "Search for inventory by VIN, chassis number, or other criteria")
-    public ResponseEntity<List<VehicleInventory>> searchInventory(@RequestParam String keyword) {
+    public ResponseEntity<List<VehicleInventory>> searchInventory(
+            @RequestParam @Parameter(description = "Search keyword", example = "1HGBH41JXMN109186") String keyword) {
         List<VehicleInventory> inventory = vehicleInventoryService.searchByVin(keyword);
         return ResponseEntity.ok(inventory);
     }
@@ -372,7 +381,8 @@ public class InventoryManagementController {
     
     @PostMapping("/validate-status")
     @Operation(summary = "Validate status value", description = "Check if a status value is valid")
-    public ResponseEntity<Map<String, Object>> validateStatus(@RequestParam String status) {
+    public ResponseEntity<Map<String, Object>> validateStatus(
+            @RequestParam @Parameter(description = "Status value to validate", example = "available") String status) {
         boolean isValid = vehicleInventoryService.isValidStatus(status);
         Map<String, Object> result = new HashMap<>();
         result.put("status", status);
@@ -385,7 +395,8 @@ public class InventoryManagementController {
     
     @GetMapping("/warehouse-location/{location}")
     @Operation(summary = "Get inventory by warehouse location", description = "Retrieve vehicle inventory for a specific warehouse location")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByWarehouseLocation(@PathVariable String location) {
+    public ResponseEntity<List<VehicleInventory>> getInventoryByWarehouseLocation(
+            @PathVariable @Parameter(description = "Warehouse location", example = "Warehouse A, Bay 1") String location) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByWarehouseLocation(location);
         return ResponseEntity.ok(inventory);
     }
@@ -410,14 +421,16 @@ public class InventoryManagementController {
     
     @GetMapping("/search/vin")
     @Operation(summary = "Search inventory by VIN", description = "Search vehicle inventory by VIN")
-    public ResponseEntity<List<VehicleInventory>> searchByVin(@RequestParam String vin) {
+    public ResponseEntity<List<VehicleInventory>> searchByVin(
+            @RequestParam @Parameter(description = "VIN number", example = "1HGBH41JXMN109186") String vin) {
         List<VehicleInventory> inventory = vehicleInventoryService.searchByVin(vin);
         return ResponseEntity.ok(inventory);
     }
     
     @GetMapping("/search/chassis")
     @Operation(summary = "Search inventory by chassis number", description = "Search vehicle inventory by chassis number")
-    public ResponseEntity<List<VehicleInventory>> searchByChassisNumber(@RequestParam String chassisNumber) {
+    public ResponseEntity<List<VehicleInventory>> searchByChassisNumber(
+            @RequestParam @Parameter(description = "Chassis number", example = "CH123456789") String chassisNumber) {
         List<VehicleInventory> inventory = vehicleInventoryService.searchByChassisNumber(chassisNumber);
         return ResponseEntity.ok(inventory);
     }
@@ -455,7 +468,7 @@ public class InventoryManagementController {
     @PutMapping(value = "/{inventoryId}/update-from-request", consumes = "application/json")
     @Operation(summary = "Update inventory from request", description = "Update an existing inventory item using VehicleInventoryRequest")
     public ResponseEntity<?> updateVehicleInventoryFromRequest(
-            @PathVariable UUID inventoryId, 
+            @PathVariable @Parameter(description = "Inventory ID") UUID inventoryId, 
             @RequestBody VehicleInventoryRequest request) {
         try {
             if (!securityUtils.getCurrentUser().isPresent()) {

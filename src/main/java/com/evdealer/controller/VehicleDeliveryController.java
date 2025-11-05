@@ -11,6 +11,9 @@ import com.evdealer.service.DealerOrderService;
 import com.evdealer.service.DealerOrderItemService;
 import com.evdealer.service.DealerService;
 import com.evdealer.util.SecurityUtils;
+import com.evdealer.repository.DealerOrderRepository;
+import com.evdealer.repository.DealerRepository;
+import java.util.Optional;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +49,12 @@ public class VehicleDeliveryController {
     
     @Autowired
     private SecurityUtils securityUtils;
+    
+    @Autowired
+    private DealerOrderRepository dealerOrderRepository;
+    
+    @Autowired
+    private DealerRepository dealerRepository;
     
     @GetMapping
     public ResponseEntity<?> getAllDeliveries() {
@@ -536,7 +545,7 @@ public class VehicleDeliveryController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            // Validate dealer order exists and is approved
+            // Validate dealer order exists and is approved - Use findByIdWithDetails to load dealer
             DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
                 .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
             
@@ -546,9 +555,46 @@ public class VehicleDeliveryController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
+            // Fix: Nếu order không có dealer, tự động set từ dealer_id trong DB hoặc current user
+            if (dealerOrder.getDealer() == null) {
+                // Try to get dealer_id from DB
+                Optional<UUID> dealerIdOpt = dealerOrderRepository.findDealerIdByOrderId(dealerOrderId);
+                if (dealerIdOpt.isPresent() && dealerIdOpt.get() != null) {
+                    UUID dealerId = dealerIdOpt.get();
+                    Dealer dealer = dealerRepository.findById(dealerId)
+                        .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId));
+                    dealerOrder.setDealer(dealer);
+                    dealerOrderRepository.save(dealerOrder);
+                    System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " from database");
+                } else {
+                    // Try to get from current user if available
+                    var currentUserOpt = securityUtils.getCurrentUser();
+                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
+                        dealerOrder.setDealer(currentUserOpt.get().getDealer());
+                        dealerOrderRepository.save(dealerOrder);
+                        System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " from current user");
+                    } else {
+                        // Try to get default dealer (first available dealer)
+                        List<Dealer> dealers = dealerService.getAllDealers();
+                        if (!dealers.isEmpty()) {
+                            Dealer defaultDealer = dealers.get(0);
+                            dealerOrder.setDealer(defaultDealer);
+                            dealerOrderRepository.save(dealerOrder);
+                            System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " using default dealer: " + defaultDealer.getDealerId());
+                        } else {
+                            Map<String, String> error = new HashMap<>();
+                            error.put("error", "Dealer order must have a dealer associated. Order ID: " + dealerOrderId + ". dealer_id is NULL in database and no dealer available.");
+                            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+                        }
+                    }
+                }
+            }
+            
             // Extract delivery details
             LocalDate scheduledDeliveryDate = LocalDate.parse(deliveryRequest.get("scheduledDeliveryDate").toString());
-            String deliveryAddress = deliveryRequest.getOrDefault("deliveryAddress", dealerOrder.getDealer().getAddress()).toString();
+            String deliveryAddress = deliveryRequest.containsKey("deliveryAddress") ? 
+                deliveryRequest.get("deliveryAddress").toString() : 
+                (dealerOrder.getDealer().getAddress() != null ? dealerOrder.getDealer().getAddress() : "");
             String notes = deliveryRequest.getOrDefault("notes", "").toString();
             UUID deliveredBy = deliveryRequest.containsKey("deliveredBy") ? UUID.fromString(deliveryRequest.get("deliveredBy").toString()) : null;
             
@@ -561,8 +607,9 @@ public class VehicleDeliveryController {
                 delivery.setDealerOrder(dealerOrder);
                 delivery.setDealerOrderItem(item);
                 delivery.setScheduledDeliveryDate(scheduledDeliveryDate);
+                delivery.setDeliveryDate(scheduledDeliveryDate); // Set delivery_date từ scheduledDeliveryDate
                 delivery.setDeliveryAddress(deliveryAddress);
-                delivery.setDeliveryStatus("SCHEDULED");
+                delivery.setDeliveryStatus("scheduled"); // Status phải là lowercase
                 delivery.setNotes(notes);
                 delivery.setCreatedAt(LocalDateTime.now());
                 
@@ -580,10 +627,11 @@ public class VehicleDeliveryController {
             response.put("message", "Deliveries created successfully for dealer order");
             response.put("dealerOrderId", dealerOrderId);
             response.put("dealerOrderNumber", dealerOrder.getDealerOrderNumber());
-            response.put("dealerName", dealerOrder.getDealer().getDealerName());
+            response.put("dealerName", dealerOrder.getDealer() != null ? dealerOrder.getDealer().getDealerName() : "N/A");
             response.put("deliveryCount", createdDeliveries.size());
             response.put("scheduledDeliveryDate", scheduledDeliveryDate);
-            response.put("deliveries", createdDeliveries);
+            // Don't include deliveries in response to avoid lazy loading issues
+            // response.put("deliveries", createdDeliveries);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
             

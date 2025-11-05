@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -26,14 +27,18 @@ public class DealerOrderItem {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dealer_order_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "items", "quotations", "dealer", "evmStaff"})
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private DealerOrder dealerOrder;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "variant_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private VehicleVariant variant;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "color_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private VehicleColor color;
     
     @Column(name = "quantity", nullable = false)

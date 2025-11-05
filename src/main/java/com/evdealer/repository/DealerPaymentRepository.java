@@ -14,26 +14,35 @@ import java.util.UUID;
 @Repository
 public interface DealerPaymentRepository extends JpaRepository<DealerPayment, UUID> {
     
-    @Query("SELECT dp FROM DealerPayment dp")
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer")
     List<DealerPayment> findAllWithDetails();
     
-    Optional<DealerPayment> findByPaymentNumber(String paymentNumber);
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentNumber = :paymentNumber")
+    Optional<DealerPayment> findByPaymentNumber(@Param("paymentNumber") String paymentNumber);
     
     boolean existsByPaymentNumber(String paymentNumber);
     
-    List<DealerPayment> findByStatus(String status);
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.status = :status")
+    List<DealerPayment> findByStatus(@Param("status") String status);
     
-    List<DealerPayment> findByInvoiceInvoiceId(UUID invoiceId);
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.invoice.invoiceId = :invoiceId")
+    List<DealerPayment> findByInvoiceInvoiceId(@Param("invoiceId") UUID invoiceId);
     
-    List<DealerPayment> findByPaymentDateBetween(LocalDate startDate, LocalDate endDate);
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentDate BETWEEN :startDate AND :endDate")
+    List<DealerPayment> findByPaymentDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
-    List<DealerPayment> findByPaymentType(String paymentType);
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentType = :paymentType")
+    List<DealerPayment> findByPaymentType(@Param("paymentType") String paymentType);
     
-    List<DealerPayment> findByReferenceNumber(String referenceNumber);
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.referenceNumber = :referenceNumber")
+    List<DealerPayment> findByReferenceNumber(@Param("referenceNumber") String referenceNumber);
     
     // Additional methods for new APIs
-    @Query("SELECT dp FROM DealerPayment dp WHERE dp.invoice.dealerOrder.dealer.dealerId = :dealerId")
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE do.dealer.dealerId = :dealerId")
     List<DealerPayment> findByInvoiceDealerOrderDealerDealerId(@Param("dealerId") UUID dealerId);
+    
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentId = :paymentId")
+    Optional<DealerPayment> findByIdWithDetails(@Param("paymentId") UUID paymentId);
     
     long countByStatus(String status);
 }
