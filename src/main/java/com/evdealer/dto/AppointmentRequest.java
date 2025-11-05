@@ -34,20 +34,11 @@ public class AppointmentRequest {
     @Schema(description = "Location", example = "Showroom District 1")
     private String location;
     
-    @Schema(description = "Status", example = "pending", allowableValues = {"pending", "confirmed", "completed", "cancelled"})
+    @Schema(description = "Status", example = "pending", allowableValues = {"pending", "scheduled", "confirmed", "completed", "cancelled"})
     private String status;
     
     @Schema(description = "Notes", example = "Customer prefers morning appointment")
     private String notes;
-    
-    @Schema(description = "Customer name (if not registered)", example = "John Doe")
-    private String customerName;
-    
-    @Schema(description = "Customer phone (if not registered)", example = "0123456789")
-    private String customerPhone;
-    
-    @Schema(description = "Customer email (if not registered)", example = "john@example.com")
-    private String customerEmail;
     
     // Constructors
     public AppointmentRequest() {}
@@ -137,29 +128,5 @@ public class AppointmentRequest {
     
     public void setNotes(String notes) {
         this.notes = notes;
-    }
-    
-    public String getCustomerName() {
-        return customerName;
-    }
-    
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
-    }
-    
-    public String getCustomerPhone() {
-        return customerPhone;
-    }
-    
-    public void setCustomerPhone(String customerPhone) {
-        this.customerPhone = customerPhone;
-    }
-    
-    public String getCustomerEmail() {
-        return customerEmail;
-    }
-    
-    public void setCustomerEmail(String customerEmail) {
-        this.customerEmail = customerEmail;
     }
 }

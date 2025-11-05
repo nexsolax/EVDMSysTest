@@ -2,8 +2,6 @@ package com.evdealer.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.math.BigDecimal;
-
 @Schema(description = "Vehicle color request DTO for color management")
 public class VehicleColorRequest {
     
@@ -13,23 +11,14 @@ public class VehicleColorRequest {
     @Schema(description = "Color code", example = "#FFFFFF")
     private String colorCode;
     
-    @Schema(description = "Color type", example = "standard", allowableValues = {"standard", "premium", "special"})
-    private String colorType;
+    @Schema(description = "Color swatch URL", example = "/uploads/colors/white-swatch.jpg")
+    private String colorSwatchUrl;
     
-    @Schema(description = "Price adjustment", example = "0")
-    private BigDecimal priceAdjustment;
+    @Schema(description = "Color swatch path", example = "colors/white-swatch.jpg")
+    private String colorSwatchPath;
     
-    @Schema(description = "Description", example = "Premium white color with multi-coat finish")
-    private String description;
-    
-    @Schema(description = "Image URL", example = "https://example.com/white-color.jpg")
-    private String imageUrl;
-    
-    @Schema(description = "Is available", example = "true")
-    private Boolean isAvailable;
-    
-    @Schema(description = "Notes", example = "Most popular color choice")
-    private String notes;
+    @Schema(description = "Is active", example = "true")
+    private Boolean isActive;
     
     // Constructors
     public VehicleColorRequest() {}
@@ -56,51 +45,27 @@ public class VehicleColorRequest {
         this.colorCode = colorCode;
     }
     
-    public String getColorType() {
-        return colorType;
+    public String getColorSwatchUrl() {
+        return colorSwatchUrl;
     }
     
-    public void setColorType(String colorType) {
-        this.colorType = colorType;
+    public void setColorSwatchUrl(String colorSwatchUrl) {
+        this.colorSwatchUrl = colorSwatchUrl;
     }
     
-    public BigDecimal getPriceAdjustment() {
-        return priceAdjustment;
+    public String getColorSwatchPath() {
+        return colorSwatchPath;
     }
     
-    public void setPriceAdjustment(BigDecimal priceAdjustment) {
-        this.priceAdjustment = priceAdjustment;
+    public void setColorSwatchPath(String colorSwatchPath) {
+        this.colorSwatchPath = colorSwatchPath;
     }
     
-    public String getDescription() {
-        return description;
+    public Boolean getIsActive() {
+        return isActive;
     }
     
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
-    public String getImageUrl() {
-        return imageUrl;
-    }
-    
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-    
-    public Boolean getIsAvailable() {
-        return isAvailable;
-    }
-    
-    public void setIsAvailable(Boolean isAvailable) {
-        this.isAvailable = isAvailable;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 }

@@ -39,9 +39,6 @@ public class UserRequest {
     @Schema(description = "Is active", example = "true")
     private Boolean isActive;
     
-    @Schema(description = "Notes (not stored in User entity currently)", example = "Sales representative for District 1")
-    private String notes;
-    
     // Constructors
     public UserRequest() {}
     
@@ -141,13 +138,5 @@ public class UserRequest {
     
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
     }
 }

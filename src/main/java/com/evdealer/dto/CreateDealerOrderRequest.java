@@ -1,5 +1,7 @@
 package com.evdealer.dto;
 
+import com.evdealer.enums.PaymentTerms;
+import com.evdealer.enums.DeliveryTerms;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -28,6 +30,12 @@ public class CreateDealerOrderRequest {
     @Schema(description = "Độ ưu tiên", example = "NORMAL", allowableValues = {"LOW", "NORMAL", "HIGH", "URGENT"})
     private String priority = "NORMAL";
     
+    @Schema(description = "Payment terms", example = "NET_30", allowableValues = {"NET_15", "NET_30", "NET_45", "NET_60", "CASH_ON_DELIVERY", "ADVANCE_PAYMENT"})
+    private PaymentTerms paymentTerms;
+    
+    @Schema(description = "Delivery terms", example = "FOB_FACTORY", allowableValues = {"FOB_FACTORY", "FOB_DESTINATION", "EX_WORKS", "CIF", "DDP"})
+    private DeliveryTerms deliveryTerms;
+    
     @Schema(description = "Ghi chú đơn hàng")
     private String notes;
     
@@ -55,6 +63,12 @@ public class CreateDealerOrderRequest {
     
     public String getPriority() { return priority; }
     public void setPriority(String priority) { this.priority = priority; }
+    
+    public PaymentTerms getPaymentTerms() { return paymentTerms; }
+    public void setPaymentTerms(PaymentTerms paymentTerms) { this.paymentTerms = paymentTerms; }
+    
+    public DeliveryTerms getDeliveryTerms() { return deliveryTerms; }
+    public void setDeliveryTerms(DeliveryTerms deliveryTerms) { this.deliveryTerms = deliveryTerms; }
     
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

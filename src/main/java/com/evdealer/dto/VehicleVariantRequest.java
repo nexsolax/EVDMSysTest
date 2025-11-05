@@ -33,24 +33,11 @@ public class VehicleVariantRequest {
     private String variantName;
     
     @Schema(description = "Giá bán cơ bản (VND)", example = "1200000000", required = true)
-    @JsonProperty("basePrice")
     private BigDecimal basePrice;
-    
-    @Schema(description = "Loại động cơ (luôn là 'electric' cho xe điện)", example = "electric", defaultValue = "electric")
-    private String engineType;
-    
-    @Schema(description = "Loại hộp số (AUTOMATIC cho xe điện)", example = "AUTOMATIC")
-    private String transmission;
-    
-    @Schema(description = "Loại nhiên liệu (ELECTRIC cho xe điện)", example = "ELECTRIC")
-    private String fuelType;
     
     @Schema(description = "Công suất động cơ điện (kW)", example = "283")
     @JsonProperty("powerKw")
     private Integer powerKw;
-    
-    @Schema(description = "Mô-men xoắn (Nm)", example = "440")
-    private Integer torque;
     
     @Schema(description = "Thời gian tăng tốc 0-100 km/h (giây)", example = "6.1")
     @JsonProperty("acceleration0100")
@@ -64,7 +51,7 @@ public class VehicleVariantRequest {
     private Integer rangeKm;
     
     @Schema(description = "Dung lượng pin (kWh) - đặc trưng của xe điện", example = "75")
-    private Integer batteryCapacity;
+    private BigDecimal batteryCapacity;
     
     @Schema(description = "Thời gian sạc nhanh (phút) - đặc trưng của xe điện", example = "30")
     private Integer chargingTimeFast;
@@ -72,29 +59,8 @@ public class VehicleVariantRequest {
     @Schema(description = "Thời gian sạc chậm (phút) - đặc trưng của xe điện", example = "600")
     private Integer chargingTimeSlow;
     
-    @Schema(description = "Weight (kg)", example = "1847")
-    private Integer weight;
-    
-    @Schema(description = "Length (mm)", example = "4694")
-    private Integer length;
-    
-    @Schema(description = "Width (mm)", example = "1850")
-    private Integer width;
-    
-    @Schema(description = "Height (mm)", example = "1443")
-    private Integer height;
-    
-    @Schema(description = "Wheelbase (mm)", example = "2875")
-    private Integer wheelbase;
-    
-    @Schema(description = "Mô tả về phiên bản xe điện", example = "Phiên bản tầm xa với pin mở rộng 75kWh, phạm vi hoạt động 560km")
-    private String description;
-    
     @Schema(description = "Is active", example = "true")
     private Boolean isActive;
-    
-    @Schema(description = "Notes", example = "Most popular variant")
-    private String notes;
     
     @Schema(description = "Variant image URL", example = "/uploads/variants/model3/image.jpg")
     private String variantImageUrl;
@@ -154,12 +120,10 @@ public class VehicleVariantRequest {
         }
     }
     
-    public String getEngineType() {
-        return engineType;
-    }
-    
-    public void setEngineType(String engineType) {
-        this.engineType = engineType;
+    // Support for alternative field name "priceBase"
+    @JsonProperty("priceBase")
+    public void setPriceBase(Object priceBase) {
+        setBasePrice(priceBase);
     }
     
     public Integer getPowerKw() {
@@ -168,14 +132,6 @@ public class VehicleVariantRequest {
     
     public void setPowerKw(Integer powerKw) {
         this.powerKw = powerKw;
-    }
-    
-    public Integer getTorque() {
-        return torque;
-    }
-    
-    public void setTorque(Integer torque) {
-        this.torque = torque;
     }
     
     public BigDecimal getAcceleration0100() {
@@ -202,12 +158,26 @@ public class VehicleVariantRequest {
         this.rangeKm = rangeKm;
     }
     
-    public Integer getBatteryCapacity() {
+    public BigDecimal getBatteryCapacity() {
         return batteryCapacity;
     }
     
-    public void setBatteryCapacity(Integer batteryCapacity) {
-        this.batteryCapacity = batteryCapacity;
+    public void setBatteryCapacity(Object batteryCapacity) {
+        if (batteryCapacity == null) {
+            this.batteryCapacity = null;
+        } else if (batteryCapacity instanceof BigDecimal) {
+            this.batteryCapacity = (BigDecimal) batteryCapacity;
+        } else if (batteryCapacity instanceof Number) {
+            this.batteryCapacity = BigDecimal.valueOf(((Number) batteryCapacity).doubleValue());
+        } else if (batteryCapacity instanceof String) {
+            try {
+                this.batteryCapacity = new BigDecimal((String) batteryCapacity);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid batteryCapacity format: " + batteryCapacity);
+            }
+        } else {
+            throw new IllegalArgumentException("batteryCapacity must be Number or String, got: " + batteryCapacity.getClass());
+        }
     }
     
     public Integer getChargingTimeFast() {
@@ -226,84 +196,12 @@ public class VehicleVariantRequest {
         this.chargingTimeSlow = chargingTimeSlow;
     }
     
-    public String getTransmission() {
-        return transmission;
-    }
-    
-    public void setTransmission(String transmission) {
-        this.transmission = transmission;
-    }
-    
-    public String getFuelType() {
-        return fuelType;
-    }
-    
-    public void setFuelType(String fuelType) {
-        this.fuelType = fuelType;
-    }
-    
-    public Integer getWeight() {
-        return weight;
-    }
-    
-    public void setWeight(Integer weight) {
-        this.weight = weight;
-    }
-    
-    public Integer getLength() {
-        return length;
-    }
-    
-    public void setLength(Integer length) {
-        this.length = length;
-    }
-    
-    public Integer getWidth() {
-        return width;
-    }
-    
-    public void setWidth(Integer width) {
-        this.width = width;
-    }
-    
-    public Integer getHeight() {
-        return height;
-    }
-    
-    public void setHeight(Integer height) {
-        this.height = height;
-    }
-    
-    public Integer getWheelbase() {
-        return wheelbase;
-    }
-    
-    public void setWheelbase(Integer wheelbase) {
-        this.wheelbase = wheelbase;
-    }
-    
-    public String getDescription() {
-        return description;
-    }
-    
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
     public Boolean getIsActive() {
         return isActive;
     }
     
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
     }
     
     public String getVariantImageUrl() {

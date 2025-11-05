@@ -41,23 +41,17 @@ public class VehicleModelRequest {
     @Schema(description = "Loại xe điện (body type)", example = "SEDAN", allowableValues = {"SEDAN", "SUV", "HATCHBACK", "COUPE", "TRUCK", "MPV"}, required = false)
     private String vehicleType;
     
-    @Schema(description = "Kiểu dáng thân xe", example = "4-door sedan")
-    private String bodyStyle;
-    
-    @Schema(description = "Số chỗ ngồi", example = "5")
-    private Integer seatingCapacity;
-    
     @Schema(description = "Mô tả về mẫu xe điện", example = "Mẫu xe điện sedan với công nghệ tự lái và phạm vi hoạt động 468km")
     private String description;
     
-    @Schema(description = "Image URL", example = "https://example.com/model3.jpg")
-    private String imageUrl;
+    @Schema(description = "Model image URL", example = "/uploads/models/model3.jpg")
+    private String modelImageUrl;
+    
+    @Schema(description = "Model image path", example = "models/model3.jpg")
+    private String modelImagePath;
     
     @Schema(description = "Is active", example = "true")
     private Boolean isActive;
-    
-    @Schema(description = "Notes", example = "Best selling model")
-    private String notes;
     
     // Constructors
     public VehicleModelRequest() {}
@@ -110,22 +104,6 @@ public class VehicleModelRequest {
         this.vehicleType = vehicleType;
     }
     
-    public String getBodyStyle() {
-        return bodyStyle;
-    }
-    
-    public void setBodyStyle(String bodyStyle) {
-        this.bodyStyle = bodyStyle;
-    }
-    
-    public Integer getSeatingCapacity() {
-        return seatingCapacity;
-    }
-    
-    public void setSeatingCapacity(Integer seatingCapacity) {
-        this.seatingCapacity = seatingCapacity;
-    }
-    
     public String getDescription() {
         return description;
     }
@@ -134,12 +112,20 @@ public class VehicleModelRequest {
         this.description = description;
     }
     
-    public String getImageUrl() {
-        return imageUrl;
+    public String getModelImageUrl() {
+        return modelImageUrl;
     }
     
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setModelImageUrl(String modelImageUrl) {
+        this.modelImageUrl = modelImageUrl;
+    }
+    
+    public String getModelImagePath() {
+        return modelImagePath;
+    }
+    
+    public void setModelImagePath(String modelImagePath) {
+        this.modelImagePath = modelImagePath;
     }
     
     public Boolean getIsActive() {
@@ -148,13 +134,5 @@ public class VehicleModelRequest {
     
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
     }
 }

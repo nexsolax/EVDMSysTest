@@ -25,14 +25,11 @@ public class VehicleInventoryRequest {
     @Schema(description = "Chassis number", example = "CH123456789")
     private String chassisNumber;
     
-    @Schema(description = "Engine number", example = "ENG123456789")
-    private String engineNumber;
-    
     @Schema(description = "Manufacturing date", example = "2024-01-15")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate manufacturingDate;
     
-    @Schema(description = "Purchase price", example = "1000000000")
+    @Schema(description = "Purchase price (maps to costPrice in entity)", example = "1000000000")
     private BigDecimal purchasePrice;
     
     @Schema(description = "Selling price", example = "1200000000")
@@ -41,29 +38,8 @@ public class VehicleInventoryRequest {
     @Schema(description = "Status", example = "available", allowableValues = {"available", "sold", "reserved", "maintenance", "damaged"})
     private String status;
     
-    @Schema(description = "Location", example = "Warehouse A, Bay 1")
+    @Schema(description = "Warehouse location (maps to warehouseLocation in entity)", example = "Warehouse A, Bay 1")
     private String location;
-    
-    @Schema(description = "Mileage", example = "0")
-    private Integer mileage;
-    
-    @Schema(description = "Condition", example = "new", allowableValues = {"new", "used", "refurbished"})
-    private String condition;
-    
-    @Schema(description = "Warranty period (months)", example = "36")
-    private Integer warrantyPeriod;
-    
-    @Schema(description = "Insurance policy number", example = "INS123456789")
-    private String insurancePolicyNumber;
-    
-    @Schema(description = "Registration number", example = "30A-12345")
-    private String registrationNumber;
-    
-    @Schema(description = "Dealer ID", example = "78fe7eb0-ceb8-4793-a8af-187a3fe26f67")
-    private UUID dealerId;
-    
-    @Schema(description = "Notes", example = "Brand new vehicle, ready for delivery")
-    private String notes;
     
     // Constructors
     public VehicleInventoryRequest() {}
@@ -116,14 +92,6 @@ public class VehicleInventoryRequest {
         this.chassisNumber = chassisNumber;
     }
     
-    public String getEngineNumber() {
-        return engineNumber;
-    }
-    
-    public void setEngineNumber(String engineNumber) {
-        this.engineNumber = engineNumber;
-    }
-    
     public LocalDate getManufacturingDate() {
         return manufacturingDate;
     }
@@ -162,61 +130,5 @@ public class VehicleInventoryRequest {
     
     public void setLocation(String location) {
         this.location = location;
-    }
-    
-    public Integer getMileage() {
-        return mileage;
-    }
-    
-    public void setMileage(Integer mileage) {
-        this.mileage = mileage;
-    }
-    
-    public String getCondition() {
-        return condition;
-    }
-    
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
-    
-    public Integer getWarrantyPeriod() {
-        return warrantyPeriod;
-    }
-    
-    public void setWarrantyPeriod(Integer warrantyPeriod) {
-        this.warrantyPeriod = warrantyPeriod;
-    }
-    
-    public String getInsurancePolicyNumber() {
-        return insurancePolicyNumber;
-    }
-    
-    public void setInsurancePolicyNumber(String insurancePolicyNumber) {
-        this.insurancePolicyNumber = insurancePolicyNumber;
-    }
-    
-    public String getRegistrationNumber() {
-        return registrationNumber;
-    }
-    
-    public void setRegistrationNumber(String registrationNumber) {
-        this.registrationNumber = registrationNumber;
-    }
-    
-    public UUID getDealerId() {
-        return dealerId;
-    }
-    
-    public void setDealerId(UUID dealerId) {
-        this.dealerId = dealerId;
-    }
-    
-    public String getNotes() {
-        return notes;
-    }
-    
-    public void setNotes(String notes) {
-        this.notes = notes;
     }
 }

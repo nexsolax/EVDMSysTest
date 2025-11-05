@@ -158,6 +158,12 @@ public class DealerOrderService {
             dealerOrder.setExpectedDeliveryDate(request.getExpectedDeliveryDate());
             dealerOrder.setOrderType(request.getOrderType());
             dealerOrder.setPriority(request.getPriority());
+            if (request.getPaymentTerms() != null) {
+                dealerOrder.setPaymentTerms(request.getPaymentTerms());
+            }
+            if (request.getDeliveryTerms() != null) {
+                dealerOrder.setDeliveryTerms(request.getDeliveryTerms());
+            }
             dealerOrder.setNotes(request.getNotes());
             dealerOrder.setStatus("PENDING");
             dealerOrder.setApprovalStatus("PENDING");

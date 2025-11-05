@@ -138,6 +138,9 @@ public class OrderService {
         if (request.getFulfillmentMethod() != null) {
             order.setFulfillmentMethod(request.getFulfillmentMethod());
         }
+        if (request.getStatus() != null) {
+            order.setStatus(request.getStatus());
+        }
         order.setTotalAmount(request.getTotalAmount());
         order.setDepositAmount(request.getDepositAmount() != null ? request.getDepositAmount() : BigDecimal.ZERO);
         order.setBalanceAmount(request.getBalanceAmount());

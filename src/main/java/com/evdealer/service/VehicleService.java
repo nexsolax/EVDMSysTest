@@ -84,7 +84,8 @@ public class VehicleService {
         brand.setBrandName(request.getBrandName().trim());
         brand.setCountry(request.getCountry());
         brand.setFoundedYear(request.getFoundedYear());
-        brand.setBrandLogoUrl(request.getLogoUrl());
+        brand.setBrandLogoUrl(request.getBrandLogoUrl());
+        brand.setBrandLogoPath(request.getBrandLogoPath());
         brand.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         
         return vehicleBrandRepository.save(brand);
@@ -129,8 +130,11 @@ public class VehicleService {
         if (request.getFoundedYear() != null) {
             brand.setFoundedYear(request.getFoundedYear());
         }
-        if (request.getLogoUrl() != null) {
-            brand.setBrandLogoUrl(request.getLogoUrl());
+        if (request.getBrandLogoUrl() != null) {
+            brand.setBrandLogoUrl(request.getBrandLogoUrl());
+        }
+        if (request.getBrandLogoPath() != null) {
+            brand.setBrandLogoPath(request.getBrandLogoPath());
         }
         if (request.getIsActive() != null) {
             brand.setIsActive(request.getIsActive());
@@ -220,6 +224,17 @@ public class VehicleService {
         
         model.setVehicleType(request.getVehicleType());
         model.setDescription(request.getDescription());
+        
+        // Handle image fields (empty string -> null)
+        if (request.getModelImageUrl() != null) {
+            String imageUrl = request.getModelImageUrl().trim();
+            model.setModelImageUrl(imageUrl.isEmpty() ? null : imageUrl);
+        }
+        if (request.getModelImagePath() != null) {
+            String imagePath = request.getModelImagePath().trim();
+            model.setModelImagePath(imagePath.isEmpty() ? null : imagePath);
+        }
+        
         model.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         
         return vehicleModelRepository.save(model);
@@ -252,6 +267,16 @@ public class VehicleService {
         
         if (request.getDescription() != null) {
             model.setDescription(request.getDescription());
+        }
+        
+        // Handle image fields (empty string -> null)
+        if (request.getModelImageUrl() != null) {
+            String imageUrl = request.getModelImageUrl().trim();
+            model.setModelImageUrl(imageUrl.isEmpty() ? null : imageUrl);
+        }
+        if (request.getModelImagePath() != null) {
+            String imagePath = request.getModelImagePath().trim();
+            model.setModelImagePath(imagePath.isEmpty() ? null : imagePath);
         }
         
         if (request.getIsActive() != null) {
@@ -357,9 +382,9 @@ public class VehicleService {
         variant.setVariantName(request.getVariantName().trim());
         variant.setPriceBase(request.getBasePrice());
         
-        // Convert batteryCapacity from Integer to BigDecimal if provided
+        // Set batteryCapacity (already BigDecimal from request)
         if (request.getBatteryCapacity() != null) {
-            variant.setBatteryCapacity(BigDecimal.valueOf(request.getBatteryCapacity()));
+            variant.setBatteryCapacity(request.getBatteryCapacity());
         }
         
         // Set rangeKm
@@ -423,7 +448,7 @@ public class VehicleService {
         }
         
         if (request.getBatteryCapacity() != null) {
-            variant.setBatteryCapacity(BigDecimal.valueOf(request.getBatteryCapacity()));
+            variant.setBatteryCapacity(request.getBatteryCapacity());
         }
         
         if (request.getRangeKm() != null) {
@@ -547,8 +572,18 @@ public class VehicleService {
         VehicleColor color = new VehicleColor();
         color.setColorName(request.getColorName().trim());
         color.setColorCode(request.getColorCode());
-        color.setColorSwatchUrl(request.getImageUrl());
-        color.setIsActive(request.getIsAvailable() != null ? request.getIsAvailable() : true);
+        
+        // Handle image fields (empty string -> null)
+        if (request.getColorSwatchUrl() != null) {
+            String swatchUrl = request.getColorSwatchUrl().trim();
+            color.setColorSwatchUrl(swatchUrl.isEmpty() ? null : swatchUrl);
+        }
+        if (request.getColorSwatchPath() != null) {
+            String swatchPath = request.getColorSwatchPath().trim();
+            color.setColorSwatchPath(swatchPath.isEmpty() ? null : swatchPath);
+        }
+        
+        color.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
         
         return vehicleColorRepository.save(color);
     }
@@ -588,11 +623,19 @@ public class VehicleService {
         if (request.getColorCode() != null) {
             color.setColorCode(request.getColorCode());
         }
-        if (request.getImageUrl() != null) {
-            color.setColorSwatchUrl(request.getImageUrl());
+        
+        // Handle image fields (empty string -> null)
+        if (request.getColorSwatchUrl() != null) {
+            String swatchUrl = request.getColorSwatchUrl().trim();
+            color.setColorSwatchUrl(swatchUrl.isEmpty() ? null : swatchUrl);
         }
-        if (request.getIsAvailable() != null) {
-            color.setIsActive(request.getIsAvailable());
+        if (request.getColorSwatchPath() != null) {
+            String swatchPath = request.getColorSwatchPath().trim();
+            color.setColorSwatchPath(swatchPath.isEmpty() ? null : swatchPath);
+        }
+        
+        if (request.getIsActive() != null) {
+            color.setIsActive(request.getIsActive());
         }
         
         return vehicleColorRepository.save(color);

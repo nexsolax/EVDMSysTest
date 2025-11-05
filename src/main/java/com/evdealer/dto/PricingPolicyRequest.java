@@ -57,11 +57,17 @@ public class PricingPolicyRequest {
     @Schema(description = "Maximum quantity", example = "10")
     private Integer maxQuantity;
     
-    @Schema(description = "Is active", example = "true")
-    private Boolean isActive;
+    @Schema(description = "Customer type", example = "retail")
+    private String customerType;
     
-    @Schema(description = "Notes", example = "Limited time offer")
-    private String notes;
+    @Schema(description = "Region", example = "North")
+    private String region;
+    
+    @Schema(description = "Status", example = "active", allowableValues = {"active", "inactive", "expired"}, defaultValue = "active")
+    private String status;
+    
+    @Schema(description = "Priority", example = "0", defaultValue = "0")
+    private Integer priority;
     
     // Constructors
     public PricingPolicyRequest() {}
@@ -193,19 +199,35 @@ public class PricingPolicyRequest {
         this.maxQuantity = maxQuantity;
     }
     
-    public Boolean getIsActive() {
-        return isActive;
+    public String getCustomerType() {
+        return customerType;
     }
     
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
+    public void setCustomerType(String customerType) {
+        this.customerType = customerType;
     }
     
-    public String getNotes() {
-        return notes;
+    public String getRegion() {
+        return region;
     }
     
-    public void setNotes(String notes) {
-        this.notes = notes;
+    public void setRegion(String region) {
+        this.region = region;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    
+    public Integer getPriority() {
+        return priority;
+    }
+    
+    public void setPriority(Integer priority) {
+        this.priority = priority;
     }
 }

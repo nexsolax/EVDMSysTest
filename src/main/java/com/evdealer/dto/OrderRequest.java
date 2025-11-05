@@ -38,6 +38,9 @@ public class OrderRequest {
     @Schema(description = "Delivery status", example = "PENDING", allowableValues = {"PENDING", "SCHEDULED", "IN_TRANSIT", "DELIVERED", "CANCELLED"})
     private DeliveryStatus deliveryStatus;
     
+    @Schema(description = "Order status", example = "pending", allowableValues = {"pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "quoted"})
+    private String status;
+    
     @Schema(description = "Fulfillment status", example = "pending")
     private String fulfillmentStatus;
     
@@ -132,6 +135,14 @@ public class OrderRequest {
     
     public void setDeliveryStatus(DeliveryStatus deliveryStatus) {
         this.deliveryStatus = deliveryStatus;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
     }
     
     public String getFulfillmentStatus() {
