@@ -72,31 +72,36 @@ const OrderManagement = () => {
   };
 
 
-  const handleConvertToContract = async (order) => {
-    if (window.confirm(`Bạn có chắc chắn muốn chuyển đổi đơn hàng "${order.orderNumber}" thành hợp đồng?`)) {
-      try {
-        await orderAPI.convertToContract(order.orderId);
-        toast.success('Chuyển đổi thành hợp đồng thành công');
-        loadOrders();
-      } catch (error) {
-        console.error('Error converting order to contract:', error);
-        toast.error('Không thể chuyển đổi thành hợp đồng');
-      }
-    }
-  };
+  // DISABLED: API không tồn tại trong /api/orders
+  // const handleConvertToContract = async (order) => {
+  //   if (window.confirm(`Bạn có chắc chắn muốn chuyển đổi đơn hàng "${order.orderNumber}" thành hợp đồng?`)) {
+  //     try {
+  //       await orderAPI.convertToContract(order.orderId);
+  //       toast.success('Chuyển đổi thành hợp đồng thành công');
+  //       loadOrders();
+  //     } catch (error) {
+  //       console.error('Error converting order to contract:', error);
+  //       toast.error('Không thể chuyển đổi thành hợp đồng');
+  //     }
+  //   }
+  // };
 
-  const handleCancelOrder = async (order) => {
-    if (window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng "${order.orderNumber}"?`)) {
-      try {
-        await orderAPI.cancelOrder(order.orderId);
-        toast.success('Hủy đơn hàng thành công');
-        loadOrders();
-      } catch (error) {
-        console.error('Error cancelling order:', error);
-        toast.error('Không thể hủy đơn hàng');
-      }
-    }
-  };
+  // DISABLED: cancelOrder chỉ có trong publicOrderAPI, không có trong orderAPI
+  // const handleCancelOrder = async (order) => {
+  //   if (window.confirm(`Bạn có chắc chắn muốn hủy đơn hàng "${order.orderNumber}"?`)) {
+  //     try {
+  //       await orderAPI.cancelOrder(order.orderId);
+  //       toast.success('Hủy đơn hàng thành công');
+  //       loadOrders();
+  //     } catch (error) {
+  //       console.error('Error cancelling order:', error);
+  //       toast.error('Không thể hủy đơn hàng');
+  //     }
+  //   }
+  // };
+  
+  const handleConvertToContract = undefined; // API không tồn tại
+  const handleCancelOrder = undefined; // API không tồn tại
 
   const handleExportPDF = async (order) => {
     try {

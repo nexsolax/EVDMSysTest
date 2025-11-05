@@ -2,31 +2,31 @@
 
 // Domain-specific status maps
 const ORDER_STATUS = {
-  PENDING: { class: 'badge-warning', text: 'Chờ xử lý' },
-  CONFIRMED: { class: 'badge-info', text: 'Đã xác nhận' },
-  PROCESSING: { class: 'badge-info', text: 'Đang xử lý' },
-  SHIPPED: { class: 'badge-success', text: 'Đã giao hàng' },
-  DELIVERED: { class: 'badge-success', text: 'Đã giao' },
-  CANCELLED: { class: 'badge-danger', text: 'Đã hủy' },
-  REFUNDED: { class: 'badge-gray', text: 'Đã hoàn tiền' }
+  pending: { class: 'badge-warning', text: 'Chờ xử lý' },
+  quoted: { class: 'badge-info', text: 'Đã có báo giá' },
+  confirmed: { class: 'badge-info', text: 'Đã xác nhận' },
+  paid: { class: 'badge-success', text: 'Đã thanh toán' },
+  delivered: { class: 'badge-success', text: 'Đã giao hàng' },
+  completed: { class: 'badge-success', text: 'Hoàn tất' },
+  rejected: { class: 'badge-danger', text: 'Đã từ chối' }
 };
 
 const CONTRACT_STATUS = {
-  DRAFT: { class: 'badge-gray', text: 'Nháp' },
-  PENDING_SIGNATURE: { class: 'badge-warning', text: 'Chờ ký' },
-  SIGNED: { class: 'badge-success', text: 'Đã ký' },
-  ACTIVE: { class: 'badge-info', text: 'Có hiệu lực' },
-  COMPLETED: { class: 'badge-success', text: 'Hoàn thành' },
-  CANCELLED: { class: 'badge-danger', text: 'Đã hủy' },
-  EXPIRED: { class: 'badge-warning', text: 'Hết hạn' }
+  draft: { class: 'badge-gray', text: 'Nháp' },
+  pending: { class: 'badge-warning', text: 'Chờ xử lý' },
+  signed: { class: 'badge-success', text: 'Đã ký' },
+  active: { class: 'badge-info', text: 'Có hiệu lực' },
+  completed: { class: 'badge-success', text: 'Hoàn thành' },
+  cancelled: { class: 'badge-danger', text: 'Đã hủy' },
+  expired: { class: 'badge-warning', text: 'Hết hạn' }
 };
 
 const DELIVERY_STATUS = {
-  SCHEDULED: { class: 'badge-info', text: 'Đã lên lịch' },
-  IN_TRANSIT: { class: 'badge-warning', text: 'Đang giao' },
-  DELIVERED: { class: 'badge-success', text: 'Đã giao' },
-  FAILED: { class: 'badge-danger', text: 'Giao thất bại' },
-  CANCELLED: { class: 'badge-gray', text: 'Đã hủy' }
+  pending: { class: 'badge-warning', text: 'Chờ giao hàng' },
+  scheduled: { class: 'badge-info', text: 'Đã lên lịch' },
+  in_transit: { class: 'badge-warning', text: 'Đang giao' },
+  delivered: { class: 'badge-success', text: 'Đã giao' },
+  cancelled: { class: 'badge-gray', text: 'Đã hủy' }
 };
 
 const PAYMENT_STATUS = {
@@ -39,18 +39,21 @@ const PAYMENT_STATUS = {
 };
 
 const QUOTATION_STATUS = {
-  DRAFT: { class: 'badge-gray', text: 'Nháp' },
-  SENT: { class: 'badge-info', text: 'Đã gửi' },
-  ACCEPTED: { class: 'badge-success', text: 'Đã chấp nhận' },
-  REJECTED: { class: 'badge-danger', text: 'Từ chối' },
-  EXPIRED: { class: 'badge-warning', text: 'Hết hạn' }
+  pending: { class: 'badge-warning', text: 'Chờ phản hồi' },
+  sent: { class: 'badge-info', text: 'Đã gửi' },
+  accepted: { class: 'badge-success', text: 'Đã chấp nhận' },
+  rejected: { class: 'badge-danger', text: 'Đã từ chối' },
+  expired: { class: 'badge-warning', text: 'Hết hạn' }
 };
 
 const INVENTORY_STATUS = {
-  AVAILABLE: { class: 'badge-success', text: 'Có sẵn' },
-  RESERVED: { class: 'badge-warning', text: 'Đã đặt' },
-  SOLD: { class: 'badge-info', text: 'Đã bán' },
-  MAINTENANCE: { class: 'badge-danger', text: 'Bảo trì' }
+  available: { class: 'badge-success', text: 'Có sẵn' },
+  reserved: { class: 'badge-warning', text: 'Đã đặt' },
+  sold: { class: 'badge-info', text: 'Đã bán' },
+  maintenance: { class: 'badge-danger', text: 'Bảo trì' },
+  damaged: { class: 'badge-danger', text: 'Hư hỏng' },
+  in_transit: { class: 'badge-info', text: 'Đang vận chuyển' },
+  pending_delivery: { class: 'badge-warning', text: 'Chờ giao hàng' }
 };
 
 // Roles
@@ -68,7 +71,24 @@ export const getActiveBadge = (isActive) => ({
 });
 
 export const getRoleBadge = (roleName) => {
-  return ROLE_BADGES[roleName] || { class: 'badge-gray', text: roleName || 'N/A' };
+  // If roleName is null, undefined, or empty, return N/A badge
+  if (!roleName || roleName === 'null' || roleName === 'undefined') {
+    return { class: 'badge-gray', text: 'N/A' };
+  }
+  
+  // Normalize roleName to lowercase for comparison
+  const normalizedRole = String(roleName).toLowerCase().trim();
+  
+  // Check if we have a badge for this role
+  if (ROLE_BADGES[normalizedRole]) {
+    return ROLE_BADGES[normalizedRole];
+  }
+  
+  // Fallback: return formatted role name
+  return { 
+    class: 'badge-gray', 
+    text: normalizedRole.charAt(0).toUpperCase() + normalizedRole.slice(1).replace('_', ' ') || 'N/A' 
+  };
 };
 
 const DOMAIN_MAP = {

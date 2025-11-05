@@ -19,9 +19,12 @@ export default function CustomerForm({
       phone: customer.phone || '',
       address: customer.address || '',
       city: customer.city || '',
+      province: customer.province || '',
       postalCode: customer.postalCode || '',
       dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.split('T')[0] : '',
       creditScore: customer.creditScore || 0,
+      preferredContactMethod: customer.preferredContactMethod || 'EMAIL',
+      notes: customer.notes || '',
       isActive: customer.isActive !== undefined ? customer.isActive : true
     } : {
       firstName: '',
@@ -30,9 +33,12 @@ export default function CustomerForm({
       phone: '',
       address: '',
       city: '',
+      province: '',
       postalCode: '',
       dateOfBirth: '',
       creditScore: 0,
+      preferredContactMethod: 'EMAIL',
+      notes: '',
       isActive: true
     }
   });
@@ -133,6 +139,19 @@ export default function CustomerForm({
         </div>
 
         <div className="form-group">
+          <label htmlFor="province">Tỉnh/TP</label>
+          <input
+            type="text"
+            id="province"
+            name="province"
+            {...register('province')}
+            disabled={mode === 'view'}
+            className="form-input"
+          />
+          {errors.province && <small className="error">{errors.province.message}</small>}
+        </div>
+
+        <div className="form-group">
           <label htmlFor="postalCode">Mã bưu điện</label>
           <input
             type="text"
@@ -190,6 +209,36 @@ export default function CustomerForm({
               </span>
             </div>
           )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="preferredContactMethod">Phương thức liên hệ ưa thích</label>
+          <select
+            id="preferredContactMethod"
+            name="preferredContactMethod"
+            {...register('preferredContactMethod')}
+            disabled={mode === 'view'}
+            className="form-select"
+          >
+            <option value="EMAIL">Email</option>
+            <option value="PHONE">Điện thoại</option>
+            <option value="SMS">SMS</option>
+          </select>
+          {errors.preferredContactMethod && <small className="error">{errors.preferredContactMethod.message}</small>}
+        </div>
+
+        <div className="form-group full-width">
+          <label htmlFor="notes">Ghi chú</label>
+          <textarea
+            id="notes"
+            name="notes"
+            {...register('notes')}
+            disabled={mode === 'view'}
+            className="form-textarea"
+            rows="3"
+            placeholder="Ghi chú về khách hàng"
+          />
+          {errors.notes && <small className="error">{errors.notes.message}</small>}
         </div>
 
         <div className="form-group">

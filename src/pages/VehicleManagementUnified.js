@@ -51,33 +51,18 @@ const VehicleManagementUnified = () => {
       let inventoryData = [];
       
       try {
-        // First try the new getAllInventory API
-        console.log('Trying getAllInventory API...');
-        const allInventoryRes = await inventoryAPI.getAllInventory();
-        inventoryData = allInventoryRes.data || [];
-        console.log('All inventory API response:', inventoryData);
+        // Use regular inventory API
+        const inventoryRes = await inventoryAPI.getInventory();
+        inventoryData = inventoryRes.data || [];
+        console.log('Inventory API response:', inventoryData);
         
         // Check if we got all statuses
         const statuses = [...new Set(inventoryData.map(item => item.status))];
         console.log('Statuses found:', statuses);
         
-      } catch (allError) {
-        console.warn('getAllInventory API failed, trying regular inventory API:', allError);
-        
-        try {
-          // Fallback to regular inventory API
-          const inventoryRes = await inventoryAPI.getInventory();
-          inventoryData = inventoryRes.data || [];
-          console.log('Regular inventory API response:', inventoryData);
-          
-          // Check if we got all statuses
-          const statuses = [...new Set(inventoryData.map(item => item.status))];
-          console.log('Statuses found:', statuses);
-          
-        } catch (regularError) {
-          console.error('Both inventory APIs failed:', regularError);
-          inventoryData = [];
-        }
+      } catch (error) {
+        console.error('Error loading inventory:', error);
+        inventoryData = [];
       }
       
       setInventory(inventoryData);

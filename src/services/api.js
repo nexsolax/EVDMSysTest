@@ -65,27 +65,28 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
-// Product Management API (following guide: /api/products)
+// Product Management API (Write operations - following guide: /api/vehicles)
+// Note: Guide specifies POST/PUT/DELETE for /api/vehicles/brands, not /api/products/brands
 export const productAPI = {
-  // Brands - following guide endpoint pattern
-  createBrand: (data) => api.post('/products/brands', data),
-  updateBrand: (id, data) => api.put(`/products/brands/${id}`, data),
-  deleteBrand: (id) => api.delete(`/products/brands/${id}`),
+  // Brands - following guide endpoint pattern: /api/vehicles/brands
+  createBrand: (data) => api.post('/vehicles/brands', data),
+  updateBrand: (id, data) => api.put(`/vehicles/brands/${id}`, data),
+  deleteBrand: (id) => api.delete(`/vehicles/brands/${id}`),
   
-  // Models - following guide endpoint pattern
-  createModel: (data) => api.post('/products/models', data),
-  updateModel: (id, data) => api.put(`/products/models/${id}`, data),
-  deleteModel: (id) => api.delete(`/products/models/${id}`),
+  // Models - following guide endpoint pattern: /api/vehicles/models
+  createModel: (data) => api.post('/vehicles/models', data),
+  updateModel: (id, data) => api.put(`/vehicles/models/${id}`, data),
+  deleteModel: (id) => api.delete(`/vehicles/models/${id}`),
   
-  // Variants - following guide endpoint pattern
-  createVariant: (data) => api.post('/products/variants', data),
-  updateVariant: (id, data) => api.put(`/products/variants/${id}`, data),
-  deleteVariant: (id) => api.delete(`/products/variants/${id}`),
+  // Variants - following guide endpoint pattern: /api/vehicles/variants
+  createVariant: (data) => api.post('/vehicles/variants', data),
+  updateVariant: (id, data) => api.put(`/vehicles/variants/${id}`, data),
+  deleteVariant: (id) => api.delete(`/vehicles/variants/${id}`),
   
-  // Colors - following guide endpoint pattern
-  createColor: (data) => api.post('/products/colors', data),
-  updateColor: (id, data) => api.put(`/products/colors/${id}`, data),
-  deleteColor: (id) => api.delete(`/products/colors/${id}`),
+  // Colors - following guide endpoint pattern: /api/vehicles/colors
+  createColor: (data) => api.post('/vehicles/colors', data),
+  updateColor: (id, data) => api.put(`/vehicles/colors/${id}`, data),
+  deleteColor: (id) => api.delete(`/vehicles/colors/${id}`),
 };
 
 // Vehicle API (Authenticated) - Read operations
@@ -179,44 +180,81 @@ export const customerAPI = {
   deleteCustomer: (id) => api.delete(`/customers/${id}`),
 };
 
-// Warehouse API
+// Warehouse API (following API_WAREHOUSE_INVENTORY_GUIDE.md)
 export const warehouseAPI = {
+  // GET endpoints
   getWarehouses: () => api.get('/warehouses'),
   getActiveWarehouses: () => api.get('/warehouses/active'),
   getWarehouse: (id) => api.get(`/warehouses/${id}`),
+  getWarehouseByCode: (code) => api.get(`/warehouses/code/${code}`),
+  getWarehousesByCity: (city) => api.get(`/warehouses/city/${city}`),
+  getWarehousesByProvince: (province) => api.get(`/warehouses/province/${province}`),
+  
+  // POST endpoints
   createWarehouse: (data) => api.post('/warehouses', data),
+  
+  // PUT endpoints
   updateWarehouse: (id, data) => api.put(`/warehouses/${id}`, data),
   activateWarehouse: (id) => api.put(`/warehouses/${id}/activate`),
   deactivateWarehouse: (id) => api.put(`/warehouses/${id}/deactivate`),
-  transferWarehouse: (id, data) => api.post(`/warehouses/${id}/transfer`, data),
+  
+  // DELETE endpoints
   deleteWarehouse: (id) => api.delete(`/warehouses/${id}`),
+  
+  // Legacy/Additional endpoints (not in guide but may be in use)
+  transferWarehouse: (id, data) => api.post(`/warehouses/${id}/transfer`, data),
 };
 
-// Vehicle Inventory API (Authenticated)
+// Vehicle Inventory API (following API_WAREHOUSE_INVENTORY_GUIDE.md)
+// Base URL: /api/inventory or /api/vehicle-inventory (using /vehicle-inventory for consistency)
 export const inventoryAPI = {
+  // GET endpoints - Basic
   getInventory: () => api.get('/vehicle-inventory'),
+  getAvailableInventory: () => api.get('/vehicle-inventory/available'),
   getInventoryById: (id) => api.get(`/vehicle-inventory/${id}`),
   getInventoryByVin: (vin) => api.get(`/vehicle-inventory/vin/${vin}`),
-  getAllStatuses: () => api.get('/vehicle-inventory/statuses'),
-  getStatusSummary: () => api.get('/vehicle-inventory/status-summary'),
-  normalizeAllStatuses: () => api.post('/vehicle-inventory/normalize-statuses'),
-  getStatusOptions: () => api.get('/vehicle-inventory/status-options'),
-  validateStatus: (status) => api.post(`/vehicle-inventory/validate-status?status=${status}`),
+  
+  // GET endpoints - Filter by properties
+  getInventoryByStatus: (status) => api.get(`/vehicle-inventory/status/${status}`),
+  getInventoryByWarehouse: (warehouseId) => api.get(`/vehicle-inventory/warehouse/${warehouseId}`),
   getInventoryByVariant: (variantId) => api.get(`/vehicle-inventory/variant/${variantId}`),
   getInventoryByColor: (colorId) => api.get(`/vehicle-inventory/color/${colorId}`),
-  getInventoryByWarehouse: (warehouseId) => api.get(`/vehicle-inventory/warehouse/${warehouseId}`),
   getInventoryByWarehouseLocation: (location) => api.get(`/vehicle-inventory/warehouse-location/${location}`),
-  getInventoryByPriceRange: (minPrice, maxPrice) => 
-    api.get(`/vehicle-inventory/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
+  
+  // GET endpoints - Date ranges
+  getInventoryByDateRange: (startDate, endDate) => 
+    api.get(`/vehicle-inventory/date-range?startDate=${startDate}&endDate=${endDate}`),
   getInventoryByManufacturingDateRange: (startDate, endDate) => 
     api.get(`/vehicle-inventory/manufacturing-date-range?startDate=${startDate}&endDate=${endDate}`),
   getInventoryByArrivalDateRange: (startDate, endDate) => 
     api.get(`/vehicle-inventory/arrival-date-range?startDate=${startDate}&endDate=${endDate}`),
+  
+  // GET endpoints - Price ranges
+  getInventoryByPriceRange: (minPrice, maxPrice) => 
+    api.get(`/vehicle-inventory/price-range?minPrice=${minPrice}&maxPrice=${maxPrice}`),
+  
+  // GET endpoints - Search
+  searchInventory: (keyword) => api.get(`/vehicle-inventory/search?keyword=${keyword}`),
   searchByVin: (vin) => api.get(`/vehicle-inventory/search/vin?vin=${vin}`),
   searchByChassisNumber: (chassisNumber) => api.get(`/vehicle-inventory/search/chassis?chassisNumber=${chassisNumber}`),
+  
+  // GET endpoints - Status management
+  getAllStatuses: () => api.get('/vehicle-inventory/statuses'),
+  getStatusSummary: () => api.get('/vehicle-inventory/status-summary'),
+  getStatusOptions: () => api.get('/vehicle-inventory/status-options'),
+  
+  // POST endpoints
   createInventory: (data) => api.post('/vehicle-inventory', data),
+  normalizeAllStatuses: () => api.post('/vehicle-inventory/normalize-statuses'),
+  validateStatus: (status) => api.post(`/vehicle-inventory/validate-status?status=${status}`),
+  
+  // PUT endpoints
   updateInventory: (id, data) => api.put(`/vehicle-inventory/${id}`, data),
   updateInventoryStatus: (id, status) => api.put(`/vehicle-inventory/${id}/status?status=${status}`),
+  markSold: (id) => api.put(`/vehicle-inventory/${id}/mark-sold`),
+  markReserved: (id) => api.put(`/vehicle-inventory/${id}/mark-reserved`),
+  
+  // DELETE endpoints
   deleteInventory: (id) => api.delete(`/vehicle-inventory/${id}`),
 };
 
@@ -247,7 +285,8 @@ export const orderAPI = {
   getOrdersByCustomerAndStatus: (customerId, status) => 
     api.get(`/orders/customer/${customerId}/status/${status}`),
   createOrder: (data) => api.post('/orders', data),
-  createOrderLegacy: (data) => api.post('/orders/legacy', data),
+  // DISABLED: createOrderLegacy không có trong API_GUIDE.md
+  // createOrderLegacy: (data) => api.post('/orders/legacy', data),
   updateOrder: (id, data) => api.put(`/orders/${id}`, data),
   updateOrderStatus: (id, status) => api.put(`/orders/${id}/status?status=${status}`),
   deleteOrder: (id) => api.delete(`/orders/${id}`),
@@ -276,10 +315,12 @@ export const deliveryAPI = {
   getDeliveriesByOrder: (orderId) => api.get(`/vehicle-deliveries/order/${orderId}`),
   getDeliveriesByCustomer: (customerId) => api.get(`/vehicle-deliveries/customer/${customerId}`),
   createDelivery: (data) => api.post('/vehicle-deliveries', data),
+  createDeliveryFromDealerOrder: (dealerOrderId, data) => 
+    api.post(`/vehicle-deliveries/dealer-order/${dealerOrderId}`, data),
   updateDelivery: (id, data) => api.put(`/vehicle-deliveries/${id}`, data),
   updateDeliveryStatus: (id, status) => api.put(`/vehicle-deliveries/${id}/status?status=${status}`),
   scheduleDelivery: (id) => api.post(`/vehicle-deliveries/${id}/schedule`),
-  completeDelivery: (id) => api.post(`/vehicle-deliveries/${id}/complete`),
+  confirmDelivery: (id) => api.put(`/vehicle-deliveries/${id}/confirm`),
   getDeliveryTracking: (id) => api.get(`/vehicle-deliveries/${id}/tracking`),
   deleteDelivery: (id) => api.delete(`/vehicle-deliveries/${id}`),
 };
@@ -444,6 +485,7 @@ export const dealerAPI = {
   getDealers: () => api.get('/dealers'),
   getDealer: (id) => api.get(`/dealers/${id}`),
   getActiveDealers: () => api.get('/dealers/active'),
+  getDealersOptions: () => api.get('/dealers/options'), // Simplified list for dropdowns (ID, Name, Code)
   searchDealers: (name) => api.get(`/dealers/search?name=${name}`),
   createDealer: (data) => api.post('/dealers', data),
   updateDealer: (id, data) => api.put(`/dealers/${id}`, data),
@@ -527,10 +569,20 @@ export const publicVehicleComparisonAPI = {
 // Public Appointment API (following guide: /api/public/appointments)
 export const publicAppointmentAPI = {
   createAppointment: (data) => publicApi.post('/appointments', data),
+  createTestDriveAppointment: (data) => publicApi.post('/appointments/test-drive', data),
+  createDeliveryAppointment: (data) => publicApi.post('/appointments/delivery', data),
   getAppointmentById: (id) => publicApi.get(`/appointments/${id}`),
   updateAppointment: (id, data) => publicApi.put(`/appointments/${id}`, data),
-  cancelAppointment: (id) => publicApi.delete(`/appointments/${id}`),
-  getAvailableSlots: () => publicApi.get('/appointments/available-slots'),
+  rescheduleAppointment: (id, newDate, reason) => 
+    publicApi.put(`/appointments/${id}/reschedule?newDate=${encodeURIComponent(newDate)}&reason=${encodeURIComponent(reason || '')}`),
+  cancelAppointment: (id, reason) => 
+    publicApi.put(`/appointments/${id}/cancel?reason=${encodeURIComponent(reason || '')}`),
+  getAvailableSlots: (date, type) => {
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (type) params.append('type', type);
+    return publicApi.get(`/appointments/available-slots?${params}`);
+  },
   getAppointmentTypes: () => publicApi.get('/appointments/types'),
 };
 
@@ -555,13 +607,20 @@ export const publicOrderAPI = {
   createOrder: (data) => publicApi.post('/orders', data),
   getOrder: (id) => publicApi.get(`/orders/${id}`),
   getOrderByOrderNumber: (orderNumber) => publicApi.get(`/orders/order-number/${orderNumber}`),
+  trackOrder: (orderNumber) => publicApi.get(`/orders/track/${orderNumber}`),
+  getOrderStatus: (id) => publicApi.get(`/orders/${id}/status`),
+  cancelOrder: (id, reason) => 
+    publicApi.put(`/orders/${id}/cancel?reason=${encodeURIComponent(reason || '')}`),
 };
 
 // Public Payment API (following guide: /api/public/payments)
 export const publicPaymentAPI = {
   createPayment: (data) => publicApi.post('/payments', data),
+  createDeposit: (data) => publicApi.post('/payments/deposit', data),
+  createFullPayment: (data) => publicApi.post('/payments/full', data),
   getPayment: (id) => publicApi.get(`/payments/${id}`),
   getPaymentsByOrder: (orderId) => publicApi.get(`/payments/order/${orderId}`),
+  getPaymentMethods: () => publicApi.get('/payments/methods'),
 };
 
 // Public Contract API (following guide: /api/public/contracts)
@@ -601,6 +660,136 @@ export const notificationAPI = {
 };
 
 // Image Management APIs
+// Dealer Order API - Luồng đại lý đặt xe từ hãng
+export const dealerOrderAPI = {
+  // Create detailed dealer order
+  createDetailedOrder: (data) => api.post('/dealer-orders/create-detailed', data),
+  
+  // Get dealer orders
+  getDealerOrders: () => api.get('/dealer-orders'),
+  getDealerOrder: (id) => api.get(`/dealer-orders/${id}`),
+  getDealerOrdersByDealer: (dealerId) => api.get(`/dealer-orders/dealer/${dealerId}`),
+  getDealerOrdersByStatus: (status) => api.get(`/dealer-orders/status/${status}`),
+  
+  // Approve dealer order
+  approveOrder: (dealerOrderId, approvedBy) => 
+    api.post(`/dealer-orders/${dealerOrderId}/approve?approvedBy=${approvedBy}`),
+  
+  // Reject dealer order
+  rejectOrder: (dealerOrderId, reason) => 
+    api.post(`/dealer-orders/${dealerOrderId}/reject?reason=${encodeURIComponent(reason)}`),
+  
+  // Request quotation
+  requestQuotation: (dealerOrderId, notes) => {
+    const url = notes 
+      ? `/dealer-orders/${dealerOrderId}/request-quotation?notes=${encodeURIComponent(notes)}`
+      : `/dealer-orders/${dealerOrderId}/request-quotation`;
+    return api.post(url);
+  },
+  
+  // Update and delete
+  updateOrder: (id, data) => api.put(`/dealer-orders/${id}`, data),
+  deleteOrder: (id) => api.delete(`/dealer-orders/${id}`),
+};
+
+// Dealer Quotation API
+export const dealerQuotationAPI = {
+  // Get quotations
+  getQuotations: () => api.get('/dealer-quotations'),
+  getQuotation: (id) => api.get(`/dealer-quotations/${id}`),
+  getQuotationsByDealer: (dealerId) => api.get(`/dealer-quotations/dealer/${dealerId}`),
+  getQuotationsByOrder: (dealerOrderId) => api.get(`/dealer-quotations/dealer-order/${dealerOrderId}`),
+  getQuotationsByStatus: (status) => api.get(`/dealer-quotations/status/${status}`),
+  
+  // Get quotation items/details
+  getQuotationItems: (quotationId) => api.get(`/dealer-quotations/${quotationId}/items`),
+  
+  // Create, Update, Delete
+  createQuotation: (data) => api.post('/dealer-quotations', data),
+  updateQuotation: (id, data) => api.put(`/dealer-quotations/${id}`, data),
+  updateQuotationStatus: (id, status) => api.put(`/dealer-quotations/${id}/status?status=${status}`),
+  deleteQuotation: (id) => api.delete(`/dealer-quotations/${id}`),
+  
+  // Send quotation - Bước 16
+  sendQuotation: (quotationId) => api.post(`/dealer-quotations/${quotationId}/send`),
+  
+  // Accept/Reject quotation - Bước 17
+  acceptQuotation: (quotationId) => api.post(`/dealer-quotations/${quotationId}/accept`),
+  rejectQuotation: (quotationId, reason) => 
+    api.post(`/dealer-quotations/${quotationId}/reject?reason=${encodeURIComponent(reason)}`),
+  
+  // Create quotation from order - Bước 15
+  // POST /api/dealer-quotations/from-order/{dealerOrderId}
+  // Query params: evmStaffId?, discountPercentage?, notes?
+  createFromOrder: (dealerOrderId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.evmStaffId) queryParams.append('evmStaffId', params.evmStaffId);
+    if (params.discountPercentage) queryParams.append('discountPercentage', params.discountPercentage);
+    if (params.notes) queryParams.append('notes', params.notes);
+    const queryString = queryParams.toString();
+    const url = queryString 
+      ? `/dealer-quotations/from-order/${dealerOrderId}?${queryString}`
+      : `/dealer-quotations/from-order/${dealerOrderId}`;
+    return api.post(url);
+  },
+};
+
+// Dealer Invoice API
+export const dealerInvoiceAPI = {
+  // Get invoices
+  getInvoices: () => api.get('/dealer-invoices'),
+  getInvoice: (id) => api.get(`/dealer-invoices/${id}`),
+  getInvoicesByOrder: (dealerOrderId) => api.get(`/dealer-invoices/dealer-order/${dealerOrderId}`),
+  getInvoicesByDealer: (dealerId) => api.get(`/dealer-invoices/dealer/${dealerId}`),
+  getInvoicesByStatus: (status) => api.get(`/dealer-invoices/status/${status}`),
+};
+
+// Dealer Payment API
+export const dealerPaymentAPI = {
+  // Get payments
+  getPayments: () => api.get('/dealer-payments'),
+  getPayment: (id) => api.get(`/dealer-payments/${id}`),
+  getPaymentByNumber: (number) => api.get(`/dealer-payments/number/${number}`),
+  getPaymentsByStatus: (status) => api.get(`/dealer-payments/status/${status}`),
+  getPaymentsByDateRange: (startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const queryString = params.toString();
+    return api.get(`/dealer-payments/date-range${queryString ? `?${queryString}` : ''}`);
+  },
+  getPaymentsByType: (type) => api.get(`/dealer-payments/type/${type}`),
+  getPaymentsByDealer: (dealerId) => api.get(`/dealer-payments/dealer/${dealerId}`),
+  getDealerPaymentSummary: (dealerId) => api.get(`/dealer-payments/dealer/${dealerId}/summary`),
+  getPaymentsByInvoice: (invoiceId) => api.get(`/dealer-payments/invoice/${invoiceId}`),
+  getPaymentStatistics: () => api.get('/dealer-payments/statistics'),
+  
+  // Process payment - Bước 18
+  processPayment: (data) => api.post('/dealer-payments/process-payment', data),
+  
+  // Refund payment
+  refund: (data) => api.post('/dealer-payments/refund', data),
+  
+  // Validate payment
+  validatePayment: (data) => api.post('/dealer-payments/validate-payment', data),
+};
+
+// Dealer Installment Plan API
+export const dealerInstallmentPlanAPI = {
+  // Create installment plan
+  createPlan: (data) => api.post('/dealer-installment-plans', data),
+  
+  // Get plans
+  getPlans: () => api.get('/dealer-installment-plans'),
+  getPlan: (id) => api.get(`/dealer-installment-plans/${id}`),
+  getPlansByInvoice: (invoiceId) => api.get(`/dealer-installment-plans/invoice/${invoiceId}`),
+  getPlansByDealer: (dealerId) => api.get(`/dealer-installment-plans/dealer/${dealerId}`),
+  
+  // Update and delete
+  updatePlan: (id, data) => api.put(`/dealer-installment-plans/${id}`, data),
+  deletePlan: (id) => api.delete(`/dealer-installment-plans/${id}`),
+};
+
 export const imageAPI = {
   // UPLOAD APIs
   uploadImage: (file, category) => {

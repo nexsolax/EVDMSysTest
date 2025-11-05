@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Image as ImageIcon, RefreshCw, Eye } from 'lucide-react';
-import { publicAPI } from '../services/api';
+import { inventoryAPI } from '../services/api';
 import ImageUploadModal from '../components/ImageUploadModal';
 import toast from 'react-hot-toast';
 import '../styles/common.css';
@@ -20,7 +20,7 @@ const VehicleImageManagement = () => {
   const loadVehicles = async () => {
     try {
       setLoading(true);
-      const response = await publicAPI.get('/vehicle-inventory');
+      const response = await inventoryAPI.getInventory();
       setVehicles(response.data || []);
     } catch (error) {
       console.error('Error loading vehicles:', error);

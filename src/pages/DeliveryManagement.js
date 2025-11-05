@@ -96,12 +96,12 @@ const DeliveryManagement = () => {
 
   const handleComplete = async (delivery) => {
     try {
-      await deliveryAPI.completeDelivery(delivery.deliveryId);
-      toast.success('Hoàn thành giao xe thành công');
+      await deliveryAPI.confirmDelivery(delivery.deliveryId);
+      toast.success('Xác nhận giao xe thành công');
       loadDeliveries();
     } catch (error) {
-      console.error('Error completing delivery:', error);
-      toast.error('Không thể hoàn thành giao xe');
+      console.error('Error confirming delivery:', error);
+      toast.error('Không thể xác nhận giao xe');
     }
   };
 

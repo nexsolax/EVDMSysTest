@@ -9,12 +9,11 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
     customerId: '',
     variantId: '',
     quotationDate: '',
-    validUntil: '',
-    basePrice: '',
+    totalPrice: '',
     discountAmount: '',
-    taxAmount: '',
-    totalAmount: '',
-    status: 'DRAFT',
+    finalPrice: '',
+    validityDays: 7,
+    status: 'pending',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -32,13 +31,12 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
           setFormData({
             customerId: quotation.customer?.customerId || quotation.customerId || '',
             variantId: quotation.variant?.variantId || quotation.variantId || '',
-            quotationDate: quotation.quotationDate || '',
-            validUntil: quotation.validUntil || '',
-            basePrice: quotation.basePrice || '',
-            discountAmount: quotation.discountAmount || '',
-            taxAmount: quotation.taxAmount || '',
-            totalAmount: quotation.totalAmount || '',
-            status: quotation.status || 'DRAFT',
+            quotationDate: quotation.quotationDate || new Date().toISOString().split('T')[0],
+            totalPrice: quotation.totalPrice || quotation.basePrice || '',
+            discountAmount: quotation.discountAmount || 0,
+            finalPrice: quotation.finalPrice || quotation.totalPrice || '',
+            validityDays: quotation.validityDays || 7,
+            status: quotation.status || 'pending',
             notes: quotation.notes || ''
           });
         }
@@ -74,13 +72,12 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
       setFormData({
         customerId: quotationData.customer?.customerId || quotationData.customerId || '',
         variantId: quotationData.variant?.variantId || quotationData.variantId || '',
-        quotationDate: quotationData.quotationDate || '',
-        validUntil: quotationData.validUntil || '',
-        basePrice: quotationData.basePrice || '',
-        discountAmount: quotationData.discountAmount || '',
-        taxAmount: quotationData.taxAmount || '',
-        totalAmount: quotationData.totalAmount || '',
-        status: quotationData.status || 'DRAFT',
+        quotationDate: quotationData.quotationDate || new Date().toISOString().split('T')[0],
+        totalPrice: quotationData.totalPrice || quotationData.basePrice || '',
+        discountAmount: quotationData.discountAmount || 0,
+        finalPrice: quotationData.finalPrice || quotationData.totalPrice || '',
+        validityDays: quotationData.validityDays || 7,
+        status: quotationData.status || 'pending',
         notes: quotationData.notes || ''
       });
     } catch (error) {
@@ -98,15 +95,14 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
       [name]: value
     }));
 
-    // Auto calculate total amount
-    if (name === 'basePrice' || name === 'discountAmount' || name === 'taxAmount') {
-      const basePrice = parseFloat(name === 'basePrice' ? value : formData.basePrice) || 0;
+    // Auto calculate final price
+    if (name === 'totalPrice' || name === 'discountAmount') {
+      const totalPrice = parseFloat(name === 'totalPrice' ? value : formData.totalPrice) || 0;
       const discountAmount = parseFloat(name === 'discountAmount' ? value : formData.discountAmount) || 0;
-      const taxAmount = parseFloat(name === 'taxAmount' ? value : formData.taxAmount) || 0;
-      const totalAmount = basePrice - discountAmount + taxAmount;
+      const finalPrice = totalPrice - discountAmount;
       setFormData(prev => ({
         ...prev,
-        totalAmount: totalAmount.toString()
+        finalPrice: finalPrice.toString()
       }));
     }
   };
@@ -198,26 +194,12 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
             </div>
 
             <div className="form-group">
-              <label htmlFor="validUntil">Có hiệu lực đến</label>
-              <input
-                type="date"
-                id="validUntil"
-                name="validUntil"
-                value={formData.validUntil}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="basePrice">Giá cơ bản (VNĐ)</label>
+              <label htmlFor="totalPrice">Giá gốc (VNĐ) *</label>
               <input
                 type="number"
-                id="basePrice"
-                name="basePrice"
-                value={formData.basePrice}
+                id="totalPrice"
+                name="totalPrice"
+                value={formData.totalPrice}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
@@ -243,27 +225,12 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
             </div>
 
             <div className="form-group">
-              <label htmlFor="taxAmount">Thuế (VNĐ)</label>
+              <label htmlFor="finalPrice">Giá cuối cùng (VNĐ) *</label>
               <input
                 type="number"
-                id="taxAmount"
-                name="taxAmount"
-                value={formData.taxAmount}
-                onChange={handleInputChange}
-                disabled={mode === 'view'}
-                className="form-input"
-                min="0"
-                step="1000000"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="totalAmount">Tổng tiền (VNĐ)</label>
-              <input
-                type="number"
-                id="totalAmount"
-                name="totalAmount"
-                value={formData.totalAmount}
+                id="finalPrice"
+                name="finalPrice"
+                value={formData.finalPrice}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
@@ -271,6 +238,24 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
                 step="1000000"
                 required
               />
+              <small className="form-help">Giá cuối cùng = Giá gốc - Giảm giá</small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="validityDays">Số ngày hiệu lực</label>
+              <input
+                type="number"
+                id="validityDays"
+                name="validityDays"
+                value={formData.validityDays}
+                onChange={handleInputChange}
+                disabled={mode === 'view'}
+                className="form-input"
+                min="1"
+                max="365"
+                required
+              />
+              <small className="form-help">Mặc định: 7 ngày</small>
             </div>
 
             <div className="form-group">
@@ -284,11 +269,10 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
                 className="form-select"
                 required
               >
-                <option value="DRAFT">Nháp</option>
-                <option value="SENT">Đã gửi</option>
-                <option value="ACCEPTED">Đã chấp nhận</option>
-                <option value="REJECTED">Đã từ chối</option>
-                <option value="EXPIRED">Hết hạn</option>
+                <option value="pending">Chờ phản hồi</option>
+                <option value="accepted">Đã chấp nhận</option>
+                <option value="rejected">Đã từ chối</option>
+                <option value="expired">Hết hạn</option>
               </select>
             </div>
 
@@ -315,8 +299,18 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
               </div>
               <div className="info-item">
                 <DollarSign size={16} />
-                <span>Tổng tiền: {formData.totalAmount ? new Intl.NumberFormat('vi-VN').format(formData.totalAmount) + ' VNĐ' : 'N/A'}</span>
+                <span>Giá gốc: {formData.totalPrice ? new Intl.NumberFormat('vi-VN').format(formData.totalPrice) + ' VNĐ' : 'N/A'}</span>
               </div>
+              <div className="info-item">
+                <DollarSign size={16} />
+                <span>Giá cuối cùng: {formData.finalPrice ? new Intl.NumberFormat('vi-VN').format(formData.finalPrice) + ' VNĐ' : 'N/A'}</span>
+              </div>
+              {formData.validityDays && (
+                <div className="info-item">
+                  <Calendar size={16} />
+                  <span>Hiệu lực: {formData.validityDays} ngày</span>
+                </div>
+              )}
             </div>
           )}
 

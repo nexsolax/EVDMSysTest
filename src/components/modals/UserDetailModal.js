@@ -134,11 +134,27 @@ const UserDetailModal = ({ user, isOpen, onClose }) => {
                   <Shield className="detail-icon" />
                   <div className="detail-content">
                     <span className="detail-label">Vai trò</span>
-                    <span className={`badge ${getRoleBadgeClass(user.role?.roleName)}`}>
-                      {getRoleDisplayName(user.role?.roleName)}
+                    <span className={`badge ${getRoleBadgeClass(user.role?.roleName || user.userType?.toLowerCase())}`}>
+                      {getRoleDisplayName(user.role?.roleName || user.userType?.toLowerCase())}
                     </span>
                   </div>
                 </div>
+                
+                {/* Hiển thị Đại lý nếu không phải admin */}
+                {user.userType?.toUpperCase() !== 'ADMIN' && user.role?.roleName !== 'admin' && (
+                  <div className="detail-item">
+                    <MapPin className="detail-icon" />
+                    <div className="detail-content">
+                      <span className="detail-label">Đại lý</span>
+                      <span className="detail-value">
+                        {user.dealer?.dealerName 
+                          ? `${user.dealer.dealerCode ? `${user.dealer.dealerCode}: ` : ''}${user.dealer.dealerName}`
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                )}
                 
                 <div className="detail-item">
                   <div className="detail-icon">

@@ -250,7 +250,11 @@ export default function VehicleVariantForm({ variant, mode = 'view', onSubmit, o
           if (value && value !== null && value !== undefined && value !== '') {
             cleanedData[key] = value;
           }
+        } else if (key === 'isActive') {
+          // Boolean: luôn gửi (kể cả false)
+          cleanedData[key] = value !== undefined ? value : true;
         } else if (value !== null && value !== undefined && value !== '') {
+          // Các field khác: chỉ gửi nếu có giá trị
           cleanedData[key] = value;
         }
         // Bỏ qua: null, undefined, empty string cho optional fields

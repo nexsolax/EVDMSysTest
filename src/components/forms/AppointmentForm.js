@@ -4,15 +4,27 @@ import { apiFetch } from '../../utils/apiClient';
 import '../modals/Modal.css';
 import './Forms.css';
 
-export default function AppointmentForm({ baseUrl = '', onCreated, defaultVariantId = null, defaultInventoryId = null, onCancel }) {
+export default function AppointmentForm({ baseUrl = '', onCreated, defaultVariantId = null, defaultInventoryId = null, defaultCustomerId = null, onCancel }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
+      customerId: defaultCustomerId,
       variantId: defaultVariantId,
       inventoryId: defaultInventoryId
     }
   });
 
   const onSubmit = async (values) => {
+    // Convert appointmentDate + appointmentTime to appointmentDate if needed
+    if (values.appointmentDate && values.appointmentTime) {
+      values.appointmentDate = `${values.appointmentDate}T${values.appointmentTime}:00`;
+      delete values.appointmentTime;
+    }
+    
+    // Remove preferredDateTime if appointmentDate is provided
+    if (values.appointmentDate) {
+      delete values.preferredDateTime;
+    }
+    
     if (onCreated) {
       await onCreated(values);
     } else {
@@ -22,41 +34,88 @@ export default function AppointmentForm({ baseUrl = '', onCreated, defaultVarian
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <input placeholder="Tên khách hàng *" {...register('customerName')} />
-      {errors.customerName && <small>{errors.customerName.message}</small>}
+    <form onSubmit={handleSubmit(onSubmit)} className="modal-form">
+      <div className="form-grid">
+        <div className="form-group">
+          <label htmlFor="customerId">ID Khách hàng *</label>
+          <input 
+            id="customerId"
+            type="text" 
+            placeholder="UUID khách hàng" 
+            {...register('customerId', { required: 'ID khách hàng là bắt buộc' })} 
+          />
+          {errors.customerId && <small className="error">{errors.customerId.message}</small>}
+        </div>
 
-      <input placeholder="Email" type="email" {...register('email')} />
-      {errors.email && <small>{errors.email.message}</small>}
+        <div className="form-group">
+          <label htmlFor="variantId">Variant ID</label>
+          <input 
+            id="variantId"
+            type="number" 
+            placeholder="ID phiên bản xe" 
+            {...register('variantId', { valueAsNumber: true })} 
+          />
+          {errors.variantId && <small className="error">{errors.variantId.message}</small>}
+        </div>
 
-      <input placeholder="Số điện thoại" {...register('phone')} />
-      {errors.phone && <small>{errors.phone.message}</small>}
+        <div className="form-group">
+          <label htmlFor="inventoryId">Inventory ID</label>
+          <input 
+            id="inventoryId"
+            type="text" 
+            placeholder="UUID tồn kho" 
+            {...register('inventoryId')} 
+          />
+          {errors.inventoryId && <small className="error">{errors.inventoryId.message}</small>}
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="appointmentDate">Ngày hẹn *</label>
+          <input 
+            id="appointmentDate"
+            type="date" 
+            {...register('appointmentDate', { required: 'Ngày hẹn là bắt buộc' })} 
+            min={new Date().toISOString().split('T')[0]}
+          />
+          {errors.appointmentDate && <small className="error">{errors.appointmentDate.message}</small>}
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="appointmentTime">Giờ hẹn</label>
+          <input 
+            id="appointmentTime"
+            type="time" 
+            {...register('appointmentTime')} 
+          />
+          {errors.appointmentTime && <small className="error">{errors.appointmentTime.message}</small>}
+        </div>
+        
+        <div className="form-group full-width">
+          <label htmlFor="preferredDateTime">Hoặc ngày giờ hẹn (YYYY-MM-DDTHH:mm)</label>
+          <input 
+            id="preferredDateTime"
+            type="datetime-local" 
+            {...register('preferredDateTime')} 
+          />
+          {errors.preferredDateTime && <small className="error">{errors.preferredDateTime.message}</small>}
+        </div>
 
-      <input placeholder="Variant ID" type="number" {...register('variantId', { valueAsNumber: true })} />
-      <input placeholder="Inventory ID (UUID)" {...register('inventoryId')} />
-      
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <input 
-          placeholder="Ngày hẹn *" 
-          type="date" 
-          {...register('appointmentDate')} 
-          min={new Date().toISOString().split('T')[0]}
-        />
-        <input 
-          placeholder="Giờ hẹn *" 
-          type="time" 
-          {...register('appointmentTime')} 
-        />
+        <div className="form-group full-width">
+          <label htmlFor="notes">Ghi chú</label>
+          <textarea 
+            id="notes"
+            placeholder="Ghi chú" 
+            {...register('notes')} 
+            className="form-textarea"
+            rows="3"
+          />
+          {errors.notes && <small className="error">{errors.notes.message}</small>}
+        </div>
       </div>
-      <input placeholder="Hoặc ngày giờ hẹn (YYYY-MM-DDTHH:mm)" type="datetime-local" {...register('preferredDateTime')} />
-      {errors.preferredDateTime && <small>{errors.preferredDateTime.message}</small>}
 
-      <textarea placeholder="Ghi chú" {...register('notes')} />
-      {errors.notes && <small>{errors.notes.message}</small>}
-
-      <div className="form-actions">
+      <div className="modal-actions">
         {onCancel && (
-          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          <button type="button" className="btn btn-outline" onClick={onCancel}>
             Hủy
           </button>
         )}

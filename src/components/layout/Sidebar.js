@@ -66,21 +66,45 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
-      path: '/admin/sales',
-      icon: DollarSign,
-      label: 'Đại lý mua xe',
+      path: '/admin/quotations',
+      icon: FileText,
+      label: 'Báo giá từ khách',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
-      path: '/admin/quotations',
+      path: '/admin/dealer-quotations',
       icon: FileText,
-      label: 'Báo giá',
+      label: 'Báo giá từ đại lý',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/dealer-quotation-requests',
+      icon: FileText,
+      label: 'Yêu cầu báo giá của tôi',
+      roles: ['dealer_manager', 'dealer_staff', 'admin']
     },
     {
       path: '/admin/orders',
       icon: ShoppingCart,
       label: 'Đơn hàng',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/dealer-orders',
+      icon: ShoppingCart,
+      label: 'Đại lý đặt xe',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/dealer-invoices',
+      icon: FileText,
+      label: 'Hóa đơn đại lý',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/dealer-payments',
+      icon: CreditCard,
+      label: 'Thanh toán đại lý',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
@@ -126,9 +150,14 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['admin', 'evm_staff', 'dealer_manager'],
       submenu: [
         { path: '/admin/inventory/warehouses', label: 'Kho' },
-        { path: '/admin/inventory/vehicles', label: 'Tồn kho xe' },
-        { path: '/admin/vehicle-images', label: 'Hình ảnh xe' }
+        { path: '/admin/inventory/vehicles', label: 'Tồn kho xe' }
       ]
+    },
+    {
+      path: '/admin/vehicle-images',
+      icon: Car,
+      label: 'Hình ảnh xe',
+      roles: ['admin', 'evm_staff']
     },
     {
       path: '/admin/reports',
@@ -166,12 +195,13 @@ const Sidebar = ({ isOpen, onClose }) => {
       label: 'Người dùng',
       roles: ['admin', 'evm_staff']
     },
-    {
-      path: '/admin/roles',
-      icon: Shield,
-      label: 'Vai trò',
-      roles: ['admin']
-    },
+    // Role Management - DISABLED: API đã bị xóa, hệ thống dùng UserType enum
+    // {
+    //   path: '/admin/roles',
+    //   icon: Shield,
+    //   label: 'Vai trò',
+    //   roles: ['admin']
+    // },
     {
       path: '/admin/profile',
       icon: UserCircle,
@@ -211,8 +241,16 @@ const Sidebar = ({ isOpen, onClose }) => {
               <div key={item.path} className="nav-item">
                 <NavLink
                   to={item.path}
-                  className={`nav-link ${isParentActive ? 'active' : ''}`}
-                  onClick={onClose}
+                  className={({ isActive }) => 
+                    `nav-link ${isActive || isParentActive ? 'active' : ''}`
+                  }
+                  onClick={(e) => {
+                    // Don't prevent default - let navigation happen
+                    if (onClose) {
+                      onClose();
+                    }
+                  }}
+                  end={!item.submenu} // Use exact match for items without submenu
                 >
                   <item.icon className="nav-icon" />
                   <span className="nav-label">{item.label}</span>
@@ -227,7 +265,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                         className={({ isActive }) => 
                           `submenu-link ${isActive ? 'active' : ''}`
                         }
-                        onClick={onClose}
+                        onClick={(e) => {
+                          // Ensure navigation happens
+                          if (onClose) {
+                            onClose();
+                          }
+                        }}
+                        end
                       >
                         {subItem.label}
                       </NavLink>

@@ -12,6 +12,16 @@ import VehicleManagement from './pages/VehicleManagement';
 import CustomerManagement from './pages/CustomerManagement';
 import QuotationManagement from './pages/QuotationManagement';
 import OrderManagement from './pages/OrderManagement';
+import DealerOrderList from './pages/DealerOrderList';
+import DealerOrderCreate from './pages/DealerOrderCreate';
+import DealerOrderDetail from './pages/DealerOrderDetail';
+import DealerQuotationList from './pages/DealerQuotationList';
+import DealerQuotationCreate from './pages/DealerQuotationCreate';
+import DealerQuotationDetail from './pages/DealerQuotationDetail';
+import DealerQuotationRequest from './pages/DealerQuotationRequest';
+import DealerInvoiceList from './pages/DealerInvoiceList';
+import DealerInvoiceDetail from './pages/DealerInvoiceDetail';
+import DealerPaymentManagement from './pages/DealerPaymentManagement';
 import ContractManagement from './pages/ContractManagement';
 import DeliveryManagement from './pages/DeliveryManagement';
 import PaymentManagement from './pages/PaymentManagement';
@@ -28,6 +38,7 @@ import DealerTargetManagement from './pages/DealerTargetManagement';
 import VehicleComparison from './pages/VehicleComparison';
 import SalesPage from './pages/SalesPage';
 import PublicSalesPage from './pages/PublicSalesPage';
+import PublicPurchaseFlow from './pages/PublicPurchaseFlow';
 import VehicleImageManagement from './pages/VehicleImageManagement';
 import VehicleManagementUnified from './pages/VehicleManagementUnified';
 import Profile from './pages/Profile';
@@ -57,6 +68,7 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<PublicSalesPage />} />
+              <Route path="/purchase" element={<PublicPurchaseFlow />} />
               <Route path="/login" element={<Login />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               
@@ -84,6 +96,26 @@ function App() {
                 <Route path="sales" element={<SalesPage />} />
                 <Route path="quotations" element={<QuotationManagement />} />
                 <Route path="orders" element={<OrderManagement />} />
+                
+                {/* Dealer Order Management */}
+                <Route path="dealer-orders" element={<DealerOrderList />} />
+                <Route path="dealer-orders/create" element={<DealerOrderCreate />} />
+                <Route path="dealer-orders/:id" element={<DealerOrderDetail />} />
+                
+                {/* Dealer Quotation Management */}
+                <Route path="dealer-quotations" element={<DealerQuotationList />} />
+                <Route path="dealer-quotations/create" element={<DealerQuotationCreate />} />
+                <Route path="dealer-quotations/:id" element={<DealerQuotationDetail />} />
+                <Route path="dealer-quotation-requests" element={<DealerQuotationRequest />} />
+                
+                {/* Dealer Invoice Management */}
+                <Route path="dealer-invoices" element={<DealerInvoiceList />} />
+                <Route path="dealer-invoices/:id" element={<DealerInvoiceDetail />} />
+                
+                {/* Dealer Payment Management */}
+                <Route path="dealer-payments" element={<DealerPaymentManagement />} />
+                
+                {/* Contracts & Delivery & Payments */}
                 <Route path="contracts" element={<ContractManagement />} />
                 <Route path="deliveries" element={<DeliveryManagement />} />
                 <Route path="payments" element={<PaymentManagement />} />
@@ -138,12 +170,12 @@ function App() {
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
                 
-                {/* Role Management */}
-                <Route path="roles" element={
+                {/* Role Management - DISABLED: API đã bị xóa, hệ thống dùng UserType enum */}
+                {/* <Route path="roles" element={
                   <ProtectedRoute requiredRoles={['admin']}>
                     <RoleManagement />
                   </ProtectedRoute>
-                } />
+                } /> */}
                 
                 {/* Vehicle Image Management */}
             <Route path="vehicle-images" element={

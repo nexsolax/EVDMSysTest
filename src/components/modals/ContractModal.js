@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, DollarSign, Calendar, FileText } from 'lucide-react';
-import { contractAPI, customerAPI, vehicleAPI, orderAPI } from '../../services/api';
+import { contractAPI, customerAPI, inventoryAPI, orderAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Modal.css';
 
@@ -14,8 +14,7 @@ const ContractModal = ({ contract, isOpen, onClose, onSave, mode = 'view' }) => 
     contractAmount: '',
     paymentTerms: '',
     warrantyPeriod: '',
-    status: 'DRAFT',
-    isActive: true,
+    status: 'draft',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -38,11 +37,10 @@ useEffect(() => {
             vehicleId: contract.vehicle?.vehicleId || contract.vehicleId || '',
             contractDate: contract.contractDate || '',
             deliveryDate: contract.deliveryDate || '',
-            contractAmount: contract.contractAmount || '',
+            contractAmount: contract.totalAmount || contract.contractAmount || '',
             paymentTerms: contract.paymentTerms || '',
             warrantyPeriod: contract.warrantyPeriod || '',
-            status: contract.status || 'DRAFT',
-            isActive: contract.isActive !== undefined ? contract.isActive : true,
+            status: contract.status || 'draft',
             notes: contract.notes || ''
           });
         }
@@ -62,10 +60,11 @@ useEffect(() => {
 
   const loadVehicles = async () => {
     try {
-      const response = await vehicleAPI.getActiveVehicles();
+      // Load inventory items instead of vehicles
+      const response = await inventoryAPI.getInventory();
       setVehicles(response.data || []);
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      console.error('Error loading inventory:', error);
     }
   };
 
@@ -89,10 +88,10 @@ useEffect(() => {
         vehicleId: contractData.vehicle?.vehicleId || contractData.vehicleId || '',
         contractDate: contractData.contractDate || '',
         deliveryDate: contractData.deliveryDate || '',
-        contractAmount: contractData.contractAmount || '',
+        contractAmount: contractData.totalAmount || contractData.contractAmount || '',
         paymentTerms: contractData.paymentTerms || '',
         warrantyPeriod: contractData.warrantyPeriod || '',
-        status: contractData.status || 'DRAFT',
+        status: contractData.status || 'draft',
         notes: contractData.notes || ''
       });
     } catch (error) {
@@ -231,7 +230,7 @@ useEffect(() => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="contractAmount">Giá trị hợp đồng (VNĐ)</label>
+              <label htmlFor="contractAmount">Giá trị hợp đồng (VNĐ) - Lấy từ Order</label>
               <input
                 type="number"
                 id="contractAmount"
@@ -294,26 +293,14 @@ useEffect(() => {
                 className="form-select"
                 required
               >
-                <option value="DRAFT">Nháp</option>
-                <option value="SENT">Đã gửi</option>
-                <option value="SIGNED">Đã ký</option>
-                <option value="ACTIVE">Đang thực hiện</option>
-                <option value="COMPLETED">Hoàn thành</option>
-                <option value="TERMINATED">Chấm dứt</option>
+                <option value="draft">Nháp</option>
+                <option value="pending">Chờ xử lý</option>
+                <option value="signed">Đã ký</option>
+                <option value="active">Có hiệu lực</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="cancelled">Đã hủy</option>
+                <option value="expired">Hết hạn</option>
               </select>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleInputChange}
-                  disabled={mode === 'view'}
-                />
-                <span>Đang hoạt động</span>
-              </label>
             </div>
 
             <div className="form-group full-width">

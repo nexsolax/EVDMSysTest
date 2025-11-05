@@ -10,7 +10,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
     brandName: '',
     country: '',
     foundedYear: '',
-    description: '',
     isActive: true,
     
     // Model fields (following guide field names)
@@ -18,11 +17,11 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
     brandId: '',
     modelYear: new Date().getFullYear(),
     vehicleType: 'SEDAN',
+    description: '',
     
     // Variant fields (following guide field names)
     variantName: '',
     modelId: '',
-    engineType: 'ELECTRIC',
     batteryCapacity: 0,
     rangeKm: 0,
     chargingTimeFast: 0,
@@ -33,9 +32,7 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
     
     // Color fields
     colorName: '',
-    colorCode: '',
-    hexCode: '#000000',
-    isMetallic: false
+    colorCode: ''
   });
   const [loading, setLoading] = useState(false);
   const [brands, setBrands] = useState([]);
@@ -53,15 +50,14 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
           brandName: '',
           country: '',
           foundedYear: '',
-          description: '',
           isActive: true,
           modelName: '',
           brandId: '',
           modelYear: new Date().getFullYear(),
           vehicleType: 'SEDAN',
+          description: '',
           variantName: '',
           modelId: '',
-          engineType: 'ELECTRIC',
           batteryCapacity: 0,
           rangeKm: 0,
           chargingTimeFast: 0,
@@ -70,24 +66,21 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
           acceleration0100: 0,
           priceBase: 0,
           colorName: '',
-          colorCode: '',
-          hexCode: '#000000',
-          isMetallic: false
+          colorCode: ''
         });
       } else if (vehicle) {
         setFormData({
           brandName: vehicle.brandName || '',
           country: vehicle.country || '',
           foundedYear: vehicle.foundedYear || '',
-          description: vehicle.description || '',
           isActive: vehicle.isActive !== undefined ? vehicle.isActive : true,
           modelName: vehicle.modelName || '',
           brandId: vehicle.brand?.brandId || vehicle.brandId || '',
           modelYear: vehicle.modelYear || vehicle.year || new Date().getFullYear(),
           vehicleType: vehicle.vehicleType || vehicle.bodyType || 'SEDAN',
+          description: vehicle.description || '',
           variantName: vehicle.variantName || '',
           modelId: vehicle.model?.modelId || vehicle.modelId || '',
-          engineType: vehicle.engineType || 'ELECTRIC',
           batteryCapacity: vehicle.batteryCapacity || 0,
           rangeKm: vehicle.rangeKm || vehicle.range || 0,
           chargingTimeFast: vehicle.chargingTimeFast || 0,
@@ -96,9 +89,7 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
           acceleration0100: vehicle.acceleration0100 || vehicle.acceleration || 0,
           priceBase: vehicle.priceBase || vehicle.price || 0,
           colorName: vehicle.colorName || '',
-          colorCode: vehicle.colorCode || '',
-          hexCode: vehicle.hexCode || '#000000',
-          isMetallic: vehicle.isMetallic || false
+          colorCode: vehicle.colorCode || ''
         });
       }
     }
@@ -187,7 +178,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
           brandName: formData.brandName.trim(),
           country: formData.country?.trim() || null,
           foundedYear: formData.foundedYear ? parseInt(formData.foundedYear) : null,
-          description: formData.description?.trim() || null,
           isActive: formData.isActive !== undefined ? formData.isActive : true
         };
       } else if (vehicleType === 'model') {
@@ -196,6 +186,7 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
           brandId: formData.brandId,
           modelYear: parseInt(formData.modelYear),
           vehicleType: formData.vehicleType || null,
+          description: formData.description?.trim() || null,
           isActive: formData.isActive !== undefined ? formData.isActive : true
         };
       } else if (vehicleType === 'variant') {
@@ -216,9 +207,7 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
         submitData = {
           colorName: formData.colorName.trim(),
           colorCode: formData.colorCode.trim(),
-          hexCode: formData.hexCode,
-          isMetallic: formData.isMetallic,
-          isActive: formData.isActive
+          isActive: formData.isActive !== undefined ? formData.isActive : true
         };
       }
 
@@ -430,20 +419,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="engineType">Loại động cơ</label>
-                  <select
-                    id="engineType"
-                    name="engineType"
-                    value={formData.engineType}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-select"
-                  >
-                    <option value="ELECTRIC">Điện</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
                   <label htmlFor="batteryCapacity">Dung lượng pin (kWh)</label>
                   <input
                     type="number"
@@ -590,32 +565,6 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
                     placeholder="Nhập mã màu sắc"
                   />
                 </div>
-
-                <div className="form-group">
-                  <label htmlFor="hexCode">Mã màu HEX</label>
-                  <input
-                    type="color"
-                    id="hexCode"
-                    name="hexCode"
-                    value={formData.hexCode}
-                    onChange={handleInputChange}
-                    disabled={mode === 'view'}
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      name="isMetallic"
-                      checked={formData.isMetallic}
-                      onChange={handleInputChange}
-                      disabled={mode === 'view'}
-                    />
-                    <span>Màu kim loại</span>
-                  </label>
-                </div>
               </>
             )}
 
@@ -632,13 +581,13 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
               </label>
             </div>
 
-            {(vehicleType === 'brand' || vehicleType === 'model') && (
+            {vehicleType === 'model' && (
               <div className="form-group full-width">
                 <label htmlFor="description">Mô tả</label>
                 <textarea
                   id="description"
                   name="description"
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={handleInputChange}
                   disabled={mode === 'view'}
                   className="form-textarea"

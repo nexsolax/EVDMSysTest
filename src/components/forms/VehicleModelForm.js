@@ -13,7 +13,6 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
       modelYear: '',
       vehicleType: '',
       description: '',
-      specifications: '',
       modelImageUrl: '',
       modelImagePath: '',
       isActive: true
@@ -55,7 +54,6 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
         modelYear: '',
         vehicleType: '',
         description: '',
-        specifications: '',
         modelImageUrl: '',
         modelImagePath: '',
         isActive: true
@@ -63,13 +61,13 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
     } else {
       // Map dữ liệu từ backend sang form
       const brandIdFromModel = model.brandId || model.brand?.brandId;
+      
       const formData = {
         modelName: model.modelName || '',
         brandId: brandIdFromModel ? brandIdFromModel.toString() : '', // Convert to string for select
         modelYear: model.modelYear || model.year || '',
         vehicleType: model.vehicleType || model.bodyType || '',
         description: model.description || '',
-        specifications: model.specifications || (typeof model.specifications === 'string' ? model.specifications : ''),
         modelImageUrl: model.modelImageUrl || '',
         modelImagePath: model.modelImagePath || '',
         isActive: model.isActive !== undefined ? model.isActive : true
@@ -97,29 +95,53 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
   }, [model, brands, reset, setValue]); // Depend on brands để đợi brands load xong
 
   const submitForm = (data) => {
-    // Chuẩn hóa dữ liệu trước khi submit
+    // Chuẩn hóa dữ liệu trước khi submit theo entity VehicleModel
+    const modelName = data.modelName?.trim() || '';
+    if (modelName.length > 100) {
+      console.warn('modelName exceeds 100 characters, truncating');
+    }
+    
     const normalizedData = {
-      brandId: parseInt(data.brandId, 10), // Convert string to number
-      modelName: data.modelName?.trim() || '',
-      modelYear: data.modelYear ? parseInt(data.modelYear, 10) : null, // Ensure modelYear is number (required)
-      isActive: data.isActive !== undefined ? data.isActive : true
+      brandId: parseInt(data.brandId, 10), // Convert string to number (required)
+      modelName: modelName.length > 100 ? modelName.substring(0, 100) : modelName, // maxLength: 100, required
+      modelYear: data.modelYear ? parseInt(data.modelYear, 10) : null, // Integer, required
+      isActive: data.isActive !== undefined ? data.isActive : true // Boolean, default true
     };
     
     // Optional fields - chỉ thêm nếu có giá trị
     if (data.vehicleType?.trim()) {
-      normalizedData.vehicleType = data.vehicleType.trim();
+      const vehicleType = data.vehicleType.trim();
+      // Validate maxLength 50 theo entity
+      if (vehicleType.length <= 50) {
+        normalizedData.vehicleType = vehicleType;
+      } else {
+        console.warn('vehicleType exceeds 50 characters, truncating');
+        normalizedData.vehicleType = vehicleType.substring(0, 50);
+      }
     }
     if (data.description?.trim()) {
       normalizedData.description = data.description.trim();
     }
-    if (data.specifications?.trim()) {
-      normalizedData.specifications = data.specifications.trim();
-    }
+    
     if (data.modelImageUrl?.trim()) {
-      normalizedData.modelImageUrl = data.modelImageUrl.trim();
+      const imageUrl = data.modelImageUrl.trim();
+      // Validate maxLength 500 theo entity
+      if (imageUrl.length <= 500) {
+        normalizedData.modelImageUrl = imageUrl;
+      } else {
+        console.warn('modelImageUrl exceeds 500 characters, truncating');
+        normalizedData.modelImageUrl = imageUrl.substring(0, 500);
+      }
     }
     if (data.modelImagePath?.trim()) {
-      normalizedData.modelImagePath = data.modelImagePath.trim();
+      const imagePath = data.modelImagePath.trim();
+      // Validate maxLength 500 theo entity
+      if (imagePath.length <= 500) {
+        normalizedData.modelImagePath = imagePath;
+      } else {
+        console.warn('modelImagePath exceeds 500 characters, truncating');
+        normalizedData.modelImagePath = imagePath.substring(0, 500);
+      }
     }
     
     console.log('Submitting model data:', normalizedData);
@@ -134,7 +156,11 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
           <input
             type="text"
             id="modelName"
-            {...register('modelName', { required: 'Tên dòng xe là bắt buộc' })}
+            maxLength={100}
+            {...register('modelName', { 
+              required: 'Tên dòng xe là bắt buộc',
+              maxLength: { value: 100, message: 'Tên dòng xe không được vượt quá 100 ký tự' }
+            })}
             disabled={mode === 'view'}
             className="form-input"
           />
@@ -190,7 +216,9 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
           <label htmlFor="vehicleType">Loại xe</label>
           <select
             id="vehicleType"
-            {...register('vehicleType')}
+            {...register('vehicleType', {
+              maxLength: { value: 50, message: 'Loại xe không được vượt quá 50 ký tự' }
+            })}
             disabled={mode === 'view'}
             className="form-select"
           >
@@ -202,6 +230,7 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
             <option value="TRUCK">Truck</option>
             <option value="MPV">MPV</option>
           </select>
+          {errors.vehicleType && <small className="error">{errors.vehicleType.message}</small>}
         </div>
 
         <div className="form-group full-width">
@@ -214,19 +243,6 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
             rows={4}
             placeholder="Mô tả về dòng xe..."
           />
-        </div>
-
-        <div className="form-group full-width">
-          <label htmlFor="specifications">Thông số kỹ thuật (JSON)</label>
-          <textarea
-            id="specifications"
-            {...register('specifications')}
-            disabled={mode === 'view'}
-            className="form-input"
-            rows={4}
-            placeholder='{"doors": 4, "seats": 5}'
-          />
-          <small className="hint">Nhập JSON format, ví dụ: {"{"}"doors": 4, "seats": 5{"}"}</small>
         </div>
 
         {/* Image fields - chỉ hiển thị trong view mode */}

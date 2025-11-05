@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Calendar } from 'lucide-react';
-import { userAPI } from '../../services/api';
+import { userAPI, dealerAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Modal.css';
 
@@ -13,15 +13,21 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
     phone: '',
     password: '',
     role: '',
+    dealerName: '', // Use dealerName instead of dealerId
     isActive: true
   });
   const [loading, setLoading] = useState(false);
   const [roles, setRoles] = useState([]);
+  const [dealers, setDealers] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
       const initializeModal = async () => {
-        await loadRoles(); // Load available roles from API
+        await Promise.all([
+          loadRoles(), // Load available roles from API
+          loadDealers() // Load dealers for dropdown
+        ]);
+        
         if (mode === 'create') {
           // Reset form for new user
           setFormData({
@@ -32,11 +38,24 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
             phone: '',
             password: 'password123',
             role: '',
+            dealerName: '',
             isActive: true
           });
         } else if (mode === 'edit' && user) {
           await loadUserDetails();
         } else if (mode === 'view' && user) {
+          // Backend uses UserType enum, normalize it to lowercase
+          const normalizeUserType = (userType) => {
+            if (!userType) return '';
+            const typeMapping = {
+              'ADMIN': 'admin',
+              'EVM_STAFF': 'evm_staff',
+              'DEALER_MANAGER': 'dealer_manager',
+              'DEALER_STAFF': 'dealer_staff'
+            };
+            return typeMapping[userType] || userType.toLowerCase();
+          };
+          
           setFormData({
             username: user.username || '',
             firstName: user.firstName || '',
@@ -44,7 +63,8 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
             email: user.email || '',
             phone: user.phone || '',
             password: '', // Don't show password in view mode
-            role: user.roleString || user.role?.roleName || '',
+            role: normalizeUserType(user.userType) || user.roleString || user.role?.roleName || '',
+            dealerName: user.dealer?.dealerName || '',
             isActive: user.isActive || false
           });
         }
@@ -57,10 +77,14 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
 
   const loadRoles = async () => {
     try {
-      console.log('Loading roles from API...');
-      const response = await userAPI.getRoles();
-      console.log('Roles API response:', response.data);
-      setRoles(response.data || []);
+      // Backend uses UserType enum, not UserRole entity
+      // Use hardcoded UserType enum values
+      setRoles([
+        { roleId: 1, roleName: 'admin' },
+        { roleId: 2, roleName: 'evm_staff' },
+        { roleId: 3, roleName: 'dealer_manager' },
+        { roleId: 4, roleName: 'dealer_staff' }
+      ]);
     } catch (error) {
       console.error('Error loading roles:', error);
       // Fallback to hardcoded roles if API fails
@@ -73,11 +97,45 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
     }
   };
 
+  const loadDealers = async () => {
+    try {
+      const response = await dealerAPI.getDealersOptions();
+      setDealers(response.data || []);
+    } catch (error) {
+      console.error('Error loading dealers:', error);
+      // Fallback: try to get full dealers list
+      try {
+        const fallbackResponse = await dealerAPI.getDealers();
+        const dealersList = fallbackResponse.data || [];
+        setDealers(dealersList.map(d => ({
+          dealerId: d.dealerId,
+          dealerName: d.dealerName,
+          dealerCode: d.dealerCode || ''
+        })));
+      } catch (fallbackError) {
+        console.error('Error loading dealers fallback:', fallbackError);
+        setDealers([]);
+      }
+    }
+  };
+
   const loadUserDetails = async () => {
     try {
       setLoading(true);
       const response = await userAPI.getUser(user.userId);
       const userData = response.data;
+        // Backend uses UserType enum, normalize it to lowercase
+        const normalizeUserType = (userType) => {
+          if (!userType) return '';
+          const typeMapping = {
+            'ADMIN': 'admin',
+            'EVM_STAFF': 'evm_staff',
+            'DEALER_MANAGER': 'dealer_manager',
+            'DEALER_STAFF': 'dealer_staff'
+          };
+          return typeMapping[userType] || userType.toLowerCase();
+        };
+        
         setFormData({
           username: userData.username || '',
           firstName: userData.firstName || '',
@@ -85,7 +143,8 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
           email: userData.email || '',
           phone: userData.phone || '',
           password: '', // Don't load password for edit mode
-          role: userData.roleString || userData.role?.roleName || '',
+          role: normalizeUserType(userData.userType) || userData.roleString || userData.role?.roleName || '',
+          dealerName: userData.dealer?.dealerName || '',
           isActive: userData.isActive || false
         });
     } catch (error) {
@@ -129,12 +188,34 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
       toast.error('Vai trò là bắt buộc');
       return;
     }
+    
+    // Validate dealer: Admin không cần, các role khác bắt buộc
+    const isAdmin = formData.role === 'admin';
+    const requiresDealer = !isAdmin; // EVM_STAFF, DEALER_MANAGER, DEALER_STAFF cần dealer
+    
+    if (requiresDealer && !formData.dealerName?.trim()) {
+      toast.error('Vui lòng chọn đại lý (bắt buộc cho role này)');
+      return;
+    }
+    
     // Password validation is not needed since we use default password
 
     try {
       setLoading(true);
       
       // Prepare data for backend - match UserRequest DTO structure
+      // Backend uses UserType enum (ADMIN, EVM_STAFF, DEALER_MANAGER, DEALER_STAFF)
+      // Convert lowercase role to uppercase enum
+      const roleToUserType = (role) => {
+        const mapping = {
+          'admin': 'ADMIN',
+          'evm_staff': 'EVM_STAFF',
+          'dealer_manager': 'DEALER_MANAGER',
+          'dealer_staff': 'DEALER_STAFF'
+        };
+        return mapping[role] || role?.toUpperCase();
+      };
+      
       const submitData = {
         username: formData.username.trim(),
         firstName: formData.firstName.trim(),
@@ -142,9 +223,15 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         password: formData.password,
-        roleString: formData.role, // Use role as is from database
+        userType: roleToUserType(formData.role), // Use userType enum instead of roleString
+        dealerName: formData.dealerName?.trim() || undefined, // Send dealerName (backend will find by name)
         isActive: formData.isActive
       };
+      
+      // Remove dealerName if user is admin (not required)
+      if (isAdmin) {
+        delete submitData.dealerName;
+      }
       
       // Log data being sent
       console.log('Sending user data:', submitData);
@@ -297,7 +384,13 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
                   id="role"
                   name="role"
                   value={formData.role}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    // Clear dealerName when switching to admin
+                    if (e.target.value === 'admin') {
+                      setFormData(prev => ({ ...prev, dealerName: '' }));
+                    }
+                  }}
                   className="form-select"
                 >
                   <option value="" disabled>Chọn vai trò</option>
@@ -315,6 +408,36 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
                 </select>
               )}
             </div>
+
+            {/* Dealer Selection - Hiển thị khi không phải admin */}
+            {formData.role && formData.role !== 'admin' && (
+              <div className="form-group">
+                <label htmlFor="dealerName">
+                  Đại lý {mode === 'view' ? '' : '*'}
+                </label>
+                {mode === 'view' ? (
+                  <div className="form-display">
+                    {formData.dealerName || 'N/A'}
+                  </div>
+                ) : (
+                  <select
+                    id="dealerName"
+                    name="dealerName"
+                    value={formData.dealerName}
+                    onChange={handleInputChange}
+                    className="form-select"
+                    required={formData.role !== 'admin'}
+                  >
+                    <option value="">-- Chọn đại lý --</option>
+                    {dealers.map((dealer) => (
+                      <option key={dealer.dealerId} value={dealer.dealerName}>
+                        {dealer.dealerCode ? `${dealer.dealerCode}: ` : ''}{dealer.dealerName}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             <div className="form-group">
               {mode === 'view' ? (

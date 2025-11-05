@@ -138,7 +138,10 @@ const QuotationManagement = () => {
       quotation.customer?.firstName?.toLowerCase().includes(searchLower) ||
       quotation.customer?.lastName?.toLowerCase().includes(searchLower) ||
       quotation.customer?.email?.toLowerCase().includes(searchLower) ||
-      quotation.status?.toLowerCase().includes(searchLower)
+      quotation.status?.toLowerCase().includes(searchLower) ||
+      quotation.variant?.variantName?.toLowerCase().includes(searchLower) ||
+      quotation.variant?.model?.modelName?.toLowerCase().includes(searchLower) ||
+      quotation.variant?.model?.brand?.brandName?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -161,20 +164,43 @@ const QuotationManagement = () => {
           <User size={16} />
           <div>
             <div className="customer-name">
-              {quotation.customer?.firstName} {quotation.customer?.lastName}
+              {quotation.customer?.firstName || ''} {quotation.customer?.lastName || ''}
             </div>
-            <div className="customer-email">{quotation.customer?.email}</div>
+            <div className="customer-email">{quotation.customer?.email || 'N/A'}</div>
           </div>
         </div>
       )
     },
     { 
-      key: 'totalAmount', 
-      header: 'Tổng tiền',
+      key: 'variant', 
+      header: 'Xe',
+      render: (quotation) => (
+        <div className="vehicle-info">
+          <div>
+            <div className="vehicle-name">
+              {quotation.variant?.model?.brand?.brandName || ''} {quotation.variant?.model?.modelName || ''}
+            </div>
+            <div className="vehicle-variant">{quotation.variant?.variantName || 'N/A'}</div>
+          </div>
+        </div>
+      )
+    },
+    { 
+      key: 'finalPrice', 
+      header: 'Giá cuối cùng',
       render: (quotation) => (
         <div className="amount">
           <DollarSign size={16} />
-          {quotation.totalAmount ? `${quotation.totalAmount.toLocaleString('vi-VN')} VNĐ` : 'N/A'}
+          {quotation.finalPrice ? `${Number(quotation.finalPrice).toLocaleString('vi-VN')} VNĐ` : 'N/A'}
+        </div>
+      )
+    },
+    { 
+      key: 'totalPrice', 
+      header: 'Giá gốc',
+      render: (quotation) => (
+        <div className="amount">
+          {quotation.totalPrice ? `${Number(quotation.totalPrice).toLocaleString('vi-VN')} VNĐ` : 'N/A'}
         </div>
       )
     },
@@ -184,14 +210,37 @@ const QuotationManagement = () => {
       render: (quotation) => getStatusBadge(quotation.status)
     },
     { 
-      key: 'validUntil', 
-      header: 'Có hiệu lực đến',
+      key: 'quotationDate', 
+      header: 'Ngày báo giá',
       render: (quotation) => (
         <div className="date">
           <Calendar size={16} />
-          {quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString('vi-VN') : 'N/A'}
+          {quotation.quotationDate ? new Date(quotation.quotationDate).toLocaleDateString('vi-VN') : 'N/A'}
         </div>
       )
+    },
+    { 
+      key: 'expiryDate', 
+      header: 'Hết hạn',
+      render: (quotation) => {
+        // Calculate expiry date from quotationDate + validityDays
+        if (quotation.quotationDate && quotation.validityDays) {
+          const expiryDate = new Date(quotation.quotationDate);
+          expiryDate.setDate(expiryDate.getDate() + quotation.validityDays);
+          return (
+            <div className="date">
+              <Calendar size={16} />
+              {expiryDate.toLocaleDateString('vi-VN')}
+            </div>
+          );
+        }
+        return (
+          <div className="date">
+            <Calendar size={16} />
+            {quotation.expiryDate ? new Date(quotation.expiryDate).toLocaleDateString('vi-VN') : 'N/A'}
+          </div>
+        );
+      }
     },
     { 
       key: 'createdAt', 
@@ -221,14 +270,14 @@ const QuotationManagement = () => {
       <div className="page-header">
         <div className="page-title">
           <FileText className="title-icon" />
-          <h1>Quản lý báo giá</h1>
+          <h1>Quản lý báo giá từ khách</h1>
         </div>
         <p>Quản lý báo giá cho khách hàng</p>
       </div>
 
       <div className="content">
         <div className="section-header">
-          <h2>Danh sách báo giá</h2>
+          <h2>Danh sách báo giá từ khách</h2>
           <button className="btn btn-primary">
             <Plus size={20} />
             Tạo báo giá mới

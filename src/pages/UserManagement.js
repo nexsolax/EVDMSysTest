@@ -28,24 +28,98 @@ const UserManagement = () => {
       setLoading(true);
       console.log('Loading users from API...');
       const response = await userAPI.getUsers();
-      console.log('Users API response:', response.data);
+      console.log('Users API response:', response);
+      console.log('Users API response data:', response.data);
       
-      const usersData = response.data || [];
+      let usersData = response.data || [];
       console.log('Setting users state with:', usersData.length, 'users');
+      
+      // Validate and handle dealer relationship safely
+      usersData = usersData.map(user => {
+        // Ensure dealer is properly structured
+        if (user.dealer && typeof user.dealer === 'object') {
+          // Dealer is already an object - good
+        } else if (user.dealerId && !user.dealer) {
+          // Has dealerId but no dealer object - will show as N/A
+          console.warn(`User ${user.username} has dealerId but no dealer object:`, user.dealerId);
+        }
+        return user;
+      });
+      
+      // Log detailed user structure for first user to debug
+      if (usersData.length > 0) {
+        console.log('First user full structure:', JSON.stringify(usersData[0], null, 2));
+        console.log('First user userType:', usersData[0].userType);
+        console.log('First user dealer:', usersData[0].dealer);
+        console.log('First user all keys:', Object.keys(usersData[0]));
+      }
+      
+      // Backend uses UserType enum directly - no need to enrich
+      
+      // Log each user's role for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        usersData.forEach(user => {
+          console.log(`User ${user.username}:`, {
+            userType: user.userType,
+            roleString: user.roleString,
+            role: user.role,
+            'role.roleName': user.role?.roleName,
+            dealer: user.dealer,
+            normalizedUserType: normalizeUserType(user.userType),
+            allKeys: Object.keys(user)
+          });
+        });
+      }
       
       setUsers(usersData);
       
-      // Log each user's role for debugging
-      usersData.forEach(user => {
-        console.log(`User ${user.username}: role.roleName = ${user.role?.roleName || 'null'}, roleString = ${user.roleString || 'null'}`);
-      });
-      
     } catch (error) {
       console.error('Error loading users:', error);
-      toast.error('Không thể tải danh sách người dùng');
+      
+      // Log detailed error information
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        console.error('Response headers:', error.response.headers);
+        
+        // Show specific error message
+        if (error.response.data && error.response.data.message) {
+          toast.error(`Lỗi server: ${error.response.data.message}`);
+        } else if (error.response.status === 500) {
+          toast.error('Lỗi server (500). Vui lòng kiểm tra backend logs hoặc liên hệ quản trị viên.');
+        } else {
+          toast.error(`Không thể tải danh sách người dùng (${error.response.status})`);
+        }
+      } else if (error.request) {
+        console.error('Request was made but no response received:', error.request);
+        toast.error('Không có phản hồi từ server. Vui lòng kiểm tra kết nối.');
+      } else {
+        console.error('Error setting up request:', error.message);
+        toast.error(`Lỗi: ${error.message}`);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Normalize userType enum to lowercase for display
+  const normalizeUserType = (userType) => {
+    if (!userType) return null;
+    
+    // If already lowercase, return as is
+    if (typeof userType === 'string' && userType === userType.toLowerCase()) {
+      return userType;
+    }
+    
+    // Map enum values (uppercase) to lowercase
+    const typeMapping = {
+      'ADMIN': 'admin',
+      'EVM_STAFF': 'evm_staff',
+      'DEALER_MANAGER': 'dealer_manager',
+      'DEALER_STAFF': 'dealer_staff'
+    };
+    
+    return typeMapping[userType] || userType.toLowerCase();
   };
 
   const handleSearch = (e) => {
@@ -63,7 +137,8 @@ const UserManagement = () => {
       user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const userRole = user.roleString || user.role?.roleName;
+    // Use userType (enum) as primary source, fallback to roleString or role.roleName
+    const userRole = normalizeUserType(user.userType) || user.roleString || user.role?.roleName;
     const matchesRole = !filterRole || userRole === filterRole;
     
     return matchesSearch && matchesRole;
@@ -250,8 +325,22 @@ const UserManagement = () => {
           </select>
         </div>
 
-        <div className="table-container">
-          <table className="table">
+        <div 
+          className="table-container"
+          style={{
+            overflowX: 'auto',
+            overflowY: 'visible',
+            width: '100%',
+            maxWidth: '100%'
+          }}
+        >
+          <table 
+            className="table"
+            style={{
+              minWidth: '1200px',
+              width: '100%'
+            }}
+          >
             <thead>
               <tr>
                 <th>Tên đăng nhập</th>
@@ -259,6 +348,7 @@ const UserManagement = () => {
                 <th>Email</th>
                 <th>Số điện thoại</th>
                 <th>Vai trò</th>
+                <th>Đại lý</th>
                 <th>Trạng thái</th>
                 <th>Ngày tạo</th>
                 <th>Thao tác</th>
@@ -267,7 +357,7 @@ const UserManagement = () => {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center">
+                  <td colSpan="9" className="text-center">
                     <div className="empty-state">
                       <User size={48} />
                       <p>Không tìm thấy người dùng nào</p>
@@ -295,10 +385,33 @@ const UserManagement = () => {
                     <td>{user.phone || 'N/A'}</td>
                     <td>
                       {(() => { 
-                        // Use roleString if available, fallback to role.roleName
-                        const roleName = user.roleString || user.role?.roleName;
+                        // Backend uses UserType enum (ADMIN, EVM_STAFF, DEALER_MANAGER, DEALER_STAFF)
+                        // Priority: userType (enum) > roleString > role.roleName
+                        const roleName = normalizeUserType(user.userType) || user.roleString || user.role?.roleName;
+                        
+                        // Log for debugging if role is missing
+                        if (!roleName) {
+                          console.warn('User role not found for user:', user.username, {
+                            userType: user.userType,
+                            roleString: user.roleString,
+                            role: user.role,
+                            allUserKeys: Object.keys(user)
+                          });
+                        }
+                        
                         const b = getRoleBadge(roleName); 
                         return (<span className={`badge ${b.class}`}>{b.text}</span>); 
+                      })()}
+                    </td>
+                    <td>
+                      {(() => {
+                        // Admin không cần dealer
+                        const roleName = normalizeUserType(user.userType) || user.roleString || user.role?.roleName;
+                        if (roleName === 'admin') {
+                          return <span className="text-muted">-</span>;
+                        }
+                        // Hiển thị dealer name hoặc code
+                        return user.dealer?.dealerName || user.dealer?.dealerCode || 'N/A';
                       })()}
                     </td>
                     <td>

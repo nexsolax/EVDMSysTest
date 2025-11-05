@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Phone, Mail, Car, Zap, Shield, Eye, Calendar, Quote, ArrowLeft } from 'lucide-react';
+import { Search, Filter, Phone, Mail, Car, Zap, Shield, Eye, Calendar, Quote, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { publicInventoryAPI, publicVehicleAPI } from '../services/api';
 import QuoteModal from '../components/modals/QuoteModal';
 import AppointmentModal from '../components/modals/AppointmentModal';
@@ -26,6 +26,107 @@ const PublicSalesPage = () => {
     loadData();
   }, []);
 
+  // Enrich inventory data with missing relationships
+  // This function fetches variant, model, and brand data if they're missing from API response
+  const enrichInventoryData = async (inventoryList) => {
+    if (!inventoryList || inventoryList.length === 0) return inventoryList;
+
+    try {
+      // Fetch all variants, models, and brands in parallel using public API
+      const [variantsRes, modelsRes, brandsRes] = await Promise.all([
+        publicVehicleAPI.getVariants().catch(() => ({ data: [] })),
+        publicVehicleAPI.getModels().catch(() => ({ data: [] })),
+        publicVehicleAPI.getBrands().catch(() => ({ data: [] }))
+      ]);
+
+      const variants = variantsRes.data || [];
+      const models = modelsRes.data || [];
+      const brands = brandsRes.data || [];
+
+      // Create lookup maps for faster access
+      // Use both string and number keys to handle type mismatches
+      const variantMap = new Map();
+      variants.forEach(v => {
+        variantMap.set(v.variantId, v);
+        variantMap.set(String(v.variantId), v);
+        variantMap.set(Number(v.variantId), v);
+      });
+      
+      const modelMap = new Map();
+      models.forEach(m => {
+        modelMap.set(m.modelId, m);
+        modelMap.set(String(m.modelId), m);
+        modelMap.set(Number(m.modelId), m);
+      });
+      
+      const brandMap = new Map();
+      brands.forEach(b => {
+        brandMap.set(b.brandId, b);
+        brandMap.set(String(b.brandId), b);
+        brandMap.set(Number(b.brandId), b);
+      });
+
+      // Enrich each inventory item
+      return inventoryList.map(item => {
+        const enriched = { ...item };
+
+        // If variant is missing but variantId exists, fetch from map
+        // Also enrich if variant exists but is missing image data
+        if (!enriched.variant && enriched.variantId) {
+          const variant = variantMap.get(enriched.variantId) || variantMap.get(String(enriched.variantId)) || variantMap.get(Number(enriched.variantId));
+          if (variant) {
+            enriched.variant = variant;
+            console.log('Enriched variant for inventory', item.inventoryId, ':', variant);
+          } else {
+            console.warn('Variant not found for variantId:', enriched.variantId, 'Available IDs:', Array.from(variantMap.keys()).slice(0, 5));
+          }
+        } else if (enriched.variant && enriched.variantId && (!enriched.variant.variantImageUrl && !enriched.variant.variantImagePath)) {
+          // Variant exists but missing image, try to enrich from map
+          const variant = variantMap.get(enriched.variantId) || variantMap.get(String(enriched.variantId)) || variantMap.get(Number(enriched.variantId));
+          if (variant && (variant.variantImageUrl || variant.variantImagePath)) {
+            enriched.variant = { ...enriched.variant, ...variant };
+            console.log('Enriched variant image data for inventory', item.inventoryId);
+          }
+        }
+
+        // If variant exists but model is missing, enrich it
+        if (enriched.variant && !enriched.variant.model && enriched.variant.modelId) {
+          const model = modelMap.get(enriched.variant.modelId);
+          if (model) {
+            enriched.variant.model = model;
+            console.log('Enriched model for variant', enriched.variant.variantId, ':', model);
+            
+            // If model exists but brand is missing, enrich it
+            if (!model.brand && model.brandId) {
+              const brand = brandMap.get(model.brandId);
+              if (brand) {
+                enriched.variant.model.brand = brand;
+                console.log('Enriched brand for model', model.modelId, ':', brand);
+              }
+            }
+          }
+        }
+
+        // Log final enriched item structure
+        console.log('Final enriched item:', {
+          inventoryId: enriched.inventoryId,
+          hasVariant: !!enriched.variant,
+          variantImageUrl: enriched.variant?.variantImageUrl,
+          variantImagePath: enriched.variant?.variantImagePath,
+          variantName: enriched.variant?.variantName,
+          modelName: enriched.variant?.model?.modelName,
+          brandName: enriched.variant?.model?.brand?.brandName
+        });
+
+        return enriched;
+      });
+    } catch (error) {
+      console.error('Error enriching inventory data:', error);
+      // Return original data if enrichment fails
+      return inventoryList;
+    }
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -34,7 +135,12 @@ const PublicSalesPage = () => {
         publicVehicleAPI.getBrands()
       ]);
       
-      setVehicles(vehiclesRes.data || []);
+      let vehiclesData = vehiclesRes.data || [];
+      
+      // Enrich inventory data with variant, model, and brand information
+      vehiclesData = await enrichInventoryData(vehiclesData);
+      
+      setVehicles(vehiclesData);
       setBrands(brandsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -212,7 +318,7 @@ const PublicSalesPage = () => {
             <p className="detail-brand">{selectedVehicleDetail.variant?.model?.brand?.brandName} • {selectedVehicleDetail.variant?.model?.modelName}</p>
             
             <div className="detail-price">
-              <span className="price-amount">{selectedVehicleDetail.sellingPrice?.toLocaleString('vi-VN')} VNĐ</span>
+              <span className="price-amount">{(selectedVehicleDetail.sellingPrice || selectedVehicleDetail.variant?.priceBase)?.toLocaleString('vi-VN')} VNĐ</span>
               <span className="price-label">Giá niêm yết</span>
             </div>
             
@@ -243,6 +349,13 @@ const PublicSalesPage = () => {
             <div className="detail-actions">
               <button 
                 className="btn-lg btn-primary"
+                onClick={() => window.location.href = `/purchase?inventoryId=${selectedVehicleDetail.inventoryId}`}
+              >
+                <ShoppingCart className="btn-icon" />
+                Mua xe ngay
+              </button>
+              <button 
+                className="btn-lg btn-secondary"
                 onClick={() => handleRequestQuote(selectedVehicleDetail)}
               >
                 <Quote className="btn-icon" />
@@ -405,7 +518,7 @@ const PublicSalesPage = () => {
                     </div>
                     
                     <div className="vehicle-price">
-                      <span className="price">{vehicle.sellingPrice?.toLocaleString('vi-VN')} VNĐ</span>
+                      <span className="price">{(vehicle.sellingPrice || vehicle.variant?.priceBase)?.toLocaleString('vi-VN')} VNĐ</span>
                       <span className="price-unit">/xe</span>
                     </div>
                     
@@ -416,6 +529,13 @@ const PublicSalesPage = () => {
                       >
                         <Eye className="btn-icon" />
                         Xem chi tiết
+                      </button>
+                      <button 
+                        className="action-btn primary"
+                        onClick={() => window.location.href = `/purchase?inventoryId=${vehicle.inventoryId}`}
+                      >
+                        <ShoppingCart className="btn-icon" />
+                        Mua xe
                       </button>
                       <button 
                         className="action-btn secondary"
@@ -432,7 +552,7 @@ const PublicSalesPage = () => {
                         <Quote className="btn-icon" />
                         Báo giá
                       </button>
-            </div>
+                    </div>
                 </div>
               </div>
               ))}
@@ -467,7 +587,7 @@ const PublicSalesPage = () => {
                       </div>
                     </div>
                   <div className="list-price">
-                    <span className="price">{vehicle.sellingPrice?.toLocaleString('vi-VN')} VNĐ</span>
+                    <span className="price">{(vehicle.sellingPrice || vehicle.variant?.priceBase)?.toLocaleString('vi-VN')} VNĐ</span>
                   </div>
                   <div className="list-actions">
                     <button 
@@ -476,6 +596,13 @@ const PublicSalesPage = () => {
                     >
                       <Eye className="btn-icon" />
                       Xem chi tiết
+                    </button>
+                    <button 
+                      className="action-btn primary"
+                      onClick={() => window.location.href = `/purchase?inventoryId=${vehicle.inventoryId}`}
+                    >
+                      <ShoppingCart className="btn-icon" />
+                      Mua xe
                     </button>
                     <button 
                       className="action-btn secondary"
@@ -492,7 +619,7 @@ const PublicSalesPage = () => {
                       <Quote className="btn-icon" />
                       Báo giá
                     </button>
-              </div>
+                  </div>
           </div>
               ))}
         </div>
@@ -588,7 +715,7 @@ const PublicSalesPage = () => {
                     <td>Giá bán</td>
                     {selectedVehicles.map(vehicle => (
                       <td key={vehicle.inventoryId}>
-                        {vehicle.sellingPrice?.toLocaleString('vi-VN')} VNĐ
+                        {(vehicle.sellingPrice || vehicle.variant?.priceBase)?.toLocaleString('vi-VN')} VNĐ
                       </td>
                     ))}
                   </tr>

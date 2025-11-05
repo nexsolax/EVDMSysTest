@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Save, Truck, Calendar, MapPin } from 'lucide-react';
-import { deliveryAPI, customerAPI, orderAPI, vehicleAPI } from '../../services/api';
+import { deliveryAPI, customerAPI, orderAPI, inventoryAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Modal.css';
 
@@ -8,11 +8,10 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
   const [formData, setFormData] = useState({
     customerId: '',
     orderId: '',
-    vehicleId: '',
+    inventoryId: '',
     deliveryAddress: '',
     scheduledDate: '',
-    status: 'SCHEDULED',
-    isActive: true,
+    status: 'scheduled',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -33,11 +32,10 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
             setFormData({
               customerId: delivery.customer?.customerId || delivery.customerId || '',
               orderId: delivery.order?.orderId || delivery.orderId || '',
-              vehicleId: delivery.vehicle?.vehicleId || delivery.vehicleId || '',
+              inventoryId: delivery.inventory?.inventoryId || delivery.inventoryId || delivery.vehicle?.vehicleId || delivery.vehicleId || '',
               deliveryAddress: delivery.deliveryAddress || '',
               scheduledDate: delivery.scheduledDate ? delivery.scheduledDate.slice(0, 10) : '',
-              status: delivery.status || 'SCHEDULED',
-              isActive: delivery.isActive !== undefined ? delivery.isActive : true,
+              status: delivery.status || 'scheduled',
               notes: delivery.notes || ''
             });
           }
@@ -71,7 +69,8 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
 
   const loadVehicles = async () => {
     try {
-      const res = await vehicleAPI.getActiveVehicles?.();
+      // Load inventory items instead of vehicles
+      const res = await inventoryAPI.getInventory?.();
       setVehicles(res?.data || []);
     } catch (e) {
       // Optional list; ignore errors
@@ -86,10 +85,10 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
       setFormData({
         customerId: d.customer?.customerId || d.customerId || '',
         orderId: d.order?.orderId || d.orderId || '',
-        vehicleId: d.vehicle?.vehicleId || d.vehicleId || '',
+        inventoryId: d.inventory?.inventoryId || d.inventoryId || d.vehicle?.vehicleId || d.vehicleId || '',
         deliveryAddress: d.deliveryAddress || '',
         scheduledDate: d.scheduledDate ? d.scheduledDate.slice(0, 10) : '',
-        status: d.status || 'SCHEDULED',
+        status: d.status || 'scheduled',
         notes: d.notes || ''
       });
     } catch (error) {
@@ -238,25 +237,12 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
                 className="form-select"
                 required
               >
-                <option value="SCHEDULED">Đã lên lịch</option>
-                <option value="IN_TRANSIT">Đang giao</option>
-                <option value="DELIVERED">Đã giao</option>
-                <option value="FAILED">Giao thất bại</option>
-                <option value="CANCELLED">Đã hủy</option>
+                <option value="pending">Chờ giao hàng</option>
+                <option value="scheduled">Đã lên lịch</option>
+                <option value="in_transit">Đang giao</option>
+                <option value="delivered">Đã giao</option>
+                <option value="cancelled">Đã hủy</option>
               </select>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleChange}
-                  disabled={mode === 'view'}
-                />
-                <span>Đang hoạt động</span>
-              </label>
             </div>
 
             <div className="form-group full-width">

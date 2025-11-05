@@ -11,8 +11,7 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
     paymentDate: '',
     amount: '',
     method: '',
-    status: 'PENDING',
-    isActive: true,
+    status: 'pending',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -34,8 +33,7 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
             paymentDate: payment.paymentDate || '',
             amount: payment.amount || '',
             method: payment.method || '',
-            status: payment.status || 'PENDING',
-            isActive: payment.isActive !== undefined ? payment.isActive : true,
+            status: payment.status || 'pending',
             notes: payment.notes || ''
           });
         }
@@ -71,7 +69,7 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
         paymentDate: p.paymentDate || '',
         amount: p.amount || '',
         method: p.method || '',
-        status: p.status || 'PENDING',
+        status: p.status || 'pending',
         notes: p.notes || ''
       });
     } catch (e) {
@@ -217,24 +215,12 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
                 className="form-select"
                 required
               >
-                <option value="PENDING">Chờ xử lý</option>
-                <option value="PROCESSED">Đã xử lý</option>
-                <option value="REFUNDED">Đã hoàn tiền</option>
-                <option value="FAILED">Thất bại</option>
+                <option value="pending">Chờ xử lý</option>
+                <option value="completed">Hoàn thành</option>
+                <option value="failed">Thất bại</option>
+                <option value="refunded">Đã hoàn tiền</option>
+                <option value="cancelled">Đã hủy</option>
               </select>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleChange}
-                  disabled={mode === 'view'}
-                />
-                <span>Đang hoạt động</span>
-              </label>
             </div>
 
             <div className="form-group full-width">

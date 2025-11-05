@@ -143,13 +143,15 @@ const DataTable = ({
                 <tr key={item.id || rowIndex} className="data-row">
                   {columns.map((column, colIndex) => (
                     <td key={colIndex} className={column.cellClassName || ''}>
-                      {column.render ? column.render(item) : (() => {
+                      {column.render ? column.render(item) : 
+                       column.renderCell ? column.renderCell(item) : (() => {
                         const value = item[column.key];
                         console.log(`Column ${column.key} value:`, value, typeof value);
                         if (value === null || value === undefined) return 'N/A';
-                        if (typeof value === 'object') {
+                        if (typeof value === 'object' && value !== null) {
+                          // Don't stringify objects - let renderCell handle it
                           console.log(`Object detected in column ${column.key}:`, value);
-                          return JSON.stringify(value);
+                          return 'N/A'; // Fallback for objects without renderCell
                         }
                         return value;
                       })()}

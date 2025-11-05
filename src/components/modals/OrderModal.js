@@ -13,9 +13,8 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
     deliveryDate: '',
     totalAmount: '',
     depositAmount: '',
-    remainingAmount: '',
-    status: 'PENDING',
-    isActive: true,
+    balanceAmount: '',
+    status: 'pending',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -40,9 +39,8 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
             deliveryDate: order.deliveryDate || '',
             totalAmount: order.totalAmount || order.orderAmount || '',
             depositAmount: order.depositAmount || '',
-            remainingAmount: order.remainingAmount || '',
-            status: order.status || 'PENDING',
-            isActive: order.isActive !== undefined ? order.isActive : true,
+            balanceAmount: order.balanceAmount || order.remainingAmount || '',
+            status: order.status || 'pending',
             notes: order.notes || ''
           });
         }
@@ -92,8 +90,8 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
         deliveryDate: orderData.deliveryDate || '',
         totalAmount: orderData.totalAmount || orderData.orderAmount || '',
         depositAmount: orderData.depositAmount || '',
-        remainingAmount: orderData.remainingAmount || '',
-        status: orderData.status || 'PENDING',
+        balanceAmount: orderData.balanceAmount || orderData.remainingAmount || '',
+        status: orderData.status || 'pending',
         notes: orderData.notes || ''
       });
     } catch (error) {
@@ -115,10 +113,10 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
     if (name === 'totalAmount' || name === 'depositAmount') {
       const totalAmount = parseFloat(name === 'totalAmount' ? value : formData.totalAmount) || 0;
       const depositAmount = parseFloat(name === 'depositAmount' ? value : formData.depositAmount) || 0;
-      const remainingAmount = totalAmount - depositAmount;
+      const balanceAmount = totalAmount - depositAmount;
       setFormData(prev => ({
         ...prev,
-        remainingAmount: remainingAmount.toString()
+        balanceAmount: balanceAmount.toString()
       }));
     }
   };
@@ -273,12 +271,12 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="remainingAmount">Số tiền còn lại (VNĐ)</label>
+              <label htmlFor="balanceAmount">Số tiền còn lại (VNĐ)</label>
               <input
                 type="number"
-                id="remainingAmount"
-                name="remainingAmount"
-                value={formData.remainingAmount}
+                id="balanceAmount"
+                name="balanceAmount"
+                value={formData.balanceAmount}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
@@ -299,26 +297,14 @@ const OrderModal = ({ order, isOpen, onClose, onSave, mode = 'view' }) => {
                 className="form-select"
                 required
               >
-                <option value="PENDING">Chờ xử lý</option>
-                <option value="CONFIRMED">Đã xác nhận</option>
-                <option value="IN_PRODUCTION">Đang sản xuất</option>
-                <option value="READY_FOR_DELIVERY">Sẵn sàng giao hàng</option>
-                <option value="DELIVERED">Đã giao hàng</option>
-                <option value="CANCELLED">Đã hủy</option>
+                <option value="pending">Chờ xử lý</option>
+                <option value="quoted">Đã có báo giá</option>
+                <option value="confirmed">Đã xác nhận</option>
+                <option value="paid">Đã thanh toán</option>
+                <option value="delivered">Đã giao hàng</option>
+                <option value="completed">Hoàn tất</option>
+                <option value="rejected">Đã từ chối</option>
               </select>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleInputChange}
-                  disabled={mode === 'view'}
-                />
-                <span>Đang hoạt động</span>
-              </label>
             </div>
 
             <div className="form-group full-width">
