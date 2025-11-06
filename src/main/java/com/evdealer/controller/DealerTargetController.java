@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/dealer-targets")
@@ -27,6 +28,28 @@ public class DealerTargetController {
     
     @Autowired
     private SecurityUtils securityUtils;
+    
+    private Map<String, Object> targetToMap(DealerTarget target) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("targetId", target.getTargetId());
+        map.put("targetYear", target.getTargetYear());
+        map.put("targetMonth", target.getTargetMonth());
+        map.put("targetType", target.getTargetType());
+        map.put("targetAmount", target.getTargetAmount());
+        map.put("targetQuantity", target.getTargetQuantity());
+        map.put("achievedAmount", target.getAchievedAmount());
+        map.put("achievedQuantity", target.getAchievedQuantity());
+        map.put("achievementRate", target.getAchievementRate());
+        map.put("targetStatus", target.getTargetStatus());
+        map.put("targetScope", target.getTargetScope());
+        map.put("notes", target.getNotes());
+        map.put("createdAt", target.getCreatedAt());
+        map.put("updatedAt", target.getUpdatedAt());
+        if (target.getDealer() != null) {
+            map.put("dealerId", target.getDealer().getDealerId());
+        }
+        return map;
+    }
     
     @GetMapping
     @Operation(summary = "Lấy danh sách mục tiêu", description = "Lấy tất cả mục tiêu đại lý")
@@ -52,7 +75,8 @@ public class DealerTargetController {
                 }
             }
             
-            return ResponseEntity.ok(targets);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get targets: " + e.getMessage());
@@ -87,7 +111,7 @@ public class DealerTargetController {
                 }
             }
             
-            return ResponseEntity.ok(target);
+            return ResponseEntity.ok(targetToMap(target));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get target: " + e.getMessage());
@@ -100,27 +124,55 @@ public class DealerTargetController {
     }
     
     @GetMapping("/year/{targetYear}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByYear(@PathVariable Integer targetYear) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByYear(targetYear);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByYear(@PathVariable Integer targetYear) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByYear(targetYear);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/month/{targetMonth}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByMonth(@PathVariable Integer targetMonth) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByMonth(targetMonth);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByMonth(@PathVariable Integer targetMonth) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByMonth(targetMonth);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/type/{targetType}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByType(@PathVariable String targetType) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByType(targetType);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByType(@PathVariable String targetType) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByType(targetType);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{targetStatus}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByStatus(@PathVariable String targetStatus) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByStatus(targetStatus);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByStatus(@PathVariable String targetStatus) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByStatus(targetStatus);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer/{dealerId}")
@@ -148,7 +200,8 @@ public class DealerTargetController {
             }
             
             List<DealerTarget> targets = dealerTargetService.getTargetsByDealer(dealerId);
-            return ResponseEntity.ok(targets);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get targets: " + e.getMessage());
@@ -158,9 +211,16 @@ public class DealerTargetController {
     
     @GetMapping("/scope/{targetScope}")
     @Operation(summary = "Lấy mục tiêu theo phạm vi", description = "Lấy mục tiêu theo phạm vi (dealer, global)")
-    public ResponseEntity<List<DealerTarget>> getTargetsByScope(@PathVariable String targetScope) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByScope(targetScope);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByScope(@PathVariable String targetScope) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByScope(targetScope);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer-specific")
@@ -187,7 +247,8 @@ public class DealerTargetController {
                 }
             }
             
-            return ResponseEntity.ok(targets);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get dealer-specific targets: " + e.getMessage());
@@ -220,7 +281,8 @@ public class DealerTargetController {
             }
             
             List<DealerTarget> targets = dealerTargetService.getTargetsByDealerAndYear(dealerId, targetYear);
-            return ResponseEntity.ok(targets);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get targets: " + e.getMessage());
@@ -229,27 +291,55 @@ public class DealerTargetController {
     }
     
     @GetMapping("/year/{targetYear}/month/{targetMonth}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByYearAndMonth(@PathVariable Integer targetYear, @PathVariable Integer targetMonth) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByYearAndMonth(targetYear, targetMonth);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByYearAndMonth(@PathVariable Integer targetYear, @PathVariable Integer targetMonth) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByYearAndMonth(targetYear, targetMonth);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/year/{targetYear}/type/{targetType}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByYearAndType(@PathVariable Integer targetYear, @PathVariable String targetType) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByYearAndType(targetYear, targetType);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByYearAndType(@PathVariable Integer targetYear, @PathVariable String targetType) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByYearAndType(targetYear, targetType);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/achievement-rate/min/{minRate}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByAchievementRateGreaterThanEqual(@PathVariable Double minRate) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByAchievementRateGreaterThanEqual(minRate);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByAchievementRateGreaterThanEqual(@PathVariable Double minRate) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByAchievementRateGreaterThanEqual(minRate);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/achievement-rate/max/{maxRate}")
-    public ResponseEntity<List<DealerTarget>> getTargetsByAchievementRateLessThan(@PathVariable Double maxRate) {
-        List<DealerTarget> targets = dealerTargetService.getTargetsByAchievementRateLessThan(maxRate);
-        return ResponseEntity.ok(targets);
+    public ResponseEntity<?> getTargetsByAchievementRateLessThan(@PathVariable Double maxRate) {
+        try {
+            List<DealerTarget> targets = dealerTargetService.getTargetsByAchievementRateLessThan(maxRate);
+            List<Map<String, Object>> targetList = targets.stream().map(this::targetToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(targetList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve targets: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -271,7 +361,7 @@ public class DealerTargetController {
             }
             
             DealerTarget createdTarget = dealerTargetService.createTarget(target);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdTarget);
+            return ResponseEntity.status(HttpStatus.CREATED).body(targetToMap(createdTarget));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create target: " + e.getMessage());
@@ -302,7 +392,7 @@ public class DealerTargetController {
             }
             
             DealerTarget updatedTarget = dealerTargetService.updateTarget(targetId, targetDetails);
-            return ResponseEntity.ok(updatedTarget);
+            return ResponseEntity.ok(targetToMap(updatedTarget));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update target: " + e.getMessage());
@@ -332,7 +422,7 @@ public class DealerTargetController {
             }
             
             DealerTarget updatedTarget = dealerTargetService.updateTargetStatus(targetId, status);
-            return ResponseEntity.ok(updatedTarget);
+            return ResponseEntity.ok(targetToMap(updatedTarget));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update target status: " + e.getMessage());
@@ -383,7 +473,7 @@ public class DealerTargetController {
             }
             
             DealerTarget updatedTarget = dealerTargetService.updateAchievement(targetId, achievedAmount, achievedQuantity);
-            return ResponseEntity.ok(updatedTarget);
+            return ResponseEntity.ok(targetToMap(updatedTarget));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update achievement: " + e.getMessage());

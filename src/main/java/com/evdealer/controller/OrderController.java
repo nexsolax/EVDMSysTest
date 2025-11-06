@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -233,14 +234,37 @@ public class OrderController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
+            // Kiểm tra orderId có hợp lệ không
+            if (orderId == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Order ID cannot be null");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            // Kiểm tra xem order có tồn tại không trước khi xóa
+            Optional<Order> existingOrder = orderService.getOrderById(orderId);
+            if (!existingOrder.isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Order not found with id: " + orderId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            }
+            
             orderService.deleteOrder(orderId);
             Map<String, String> response = new HashMap<>();
             response.put("message", "Order deleted successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete order: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete order: " + e.getMessage());

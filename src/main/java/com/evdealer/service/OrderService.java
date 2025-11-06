@@ -292,9 +292,26 @@ public class OrderService {
     }
     
     public void deleteOrder(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
-        orderRepository.delete(order);
+        // Kiểm tra xem order có tồn tại không
+        if (orderId == null) {
+            throw new RuntimeException("Order ID cannot be null");
+        }
+        
+        // Thử tìm order bằng nhiều cách để debug
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        
+        if (!orderOpt.isPresent()) {
+            // Thử tìm bằng orderNumber nếu có thể
+            throw new RuntimeException("Order not found with id: " + orderId);
+        }
+        
+        Order order = orderOpt.get();
+        
+        try {
+            orderRepository.delete(order);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete order: " + e.getMessage() + ". Order may be referenced by other records (payments, contracts, etc.).");
+        }
     }
     
     public Order updateOrderStatus(UUID orderId, String status) {

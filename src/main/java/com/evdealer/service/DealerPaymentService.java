@@ -87,10 +87,9 @@ public class DealerPaymentService {
     }
     
     public void deleteDealerPayment(UUID paymentId) {
-        if (!dealerPaymentRepository.existsById(paymentId)) {
-            throw new RuntimeException("Dealer payment not found");
-        }
-        dealerPaymentRepository.deleteById(paymentId);
+        DealerPayment payment = dealerPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Dealer payment not found with id: " + paymentId));
+        dealerPaymentRepository.delete(payment);
     }
     
     public DealerPayment updatePaymentStatus(UUID paymentId, String status) {

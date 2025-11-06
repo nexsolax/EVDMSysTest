@@ -189,7 +189,12 @@ public class CustomerService {
     public void deleteCustomer(UUID customerId) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + customerId));
-        customerRepository.delete(customer);
+        
+        try {
+            customerRepository.delete(customer);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete customer: " + e.getMessage() + ". Customer may be referenced by other records (orders, payments, feedback, etc.).");
+        }
     }
 }
 

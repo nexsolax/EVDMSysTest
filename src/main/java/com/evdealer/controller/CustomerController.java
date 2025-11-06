@@ -156,8 +156,16 @@ public class CustomerController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete customer: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete customer: " + e.getMessage());

@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/installment-schedules")
@@ -32,70 +33,154 @@ public class InstallmentScheduleController {
     
     @GetMapping
     @Operation(summary = "Get all installment schedules", description = "Retrieve a list of all installment schedules")
-    public ResponseEntity<List<InstallmentSchedule>> getAllInstallmentSchedules() {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getAllInstallmentSchedules();
-        return ResponseEntity.ok(schedules);
+    public ResponseEntity<?> getAllInstallmentSchedules() {
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getAllInstallmentSchedules();
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    private Map<String, Object> scheduleToMap(InstallmentSchedule schedule) {
+        Map<String, Object> scheduleMap = new HashMap<>();
+        scheduleMap.put("scheduleId", schedule.getScheduleId());
+        scheduleMap.put("installmentNumber", schedule.getInstallmentNumber());
+        scheduleMap.put("dueDate", schedule.getDueDate());
+        scheduleMap.put("amount", schedule.getAmount());
+        scheduleMap.put("principalAmount", schedule.getPrincipalAmount());
+        scheduleMap.put("interestAmount", schedule.getInterestAmount());
+        scheduleMap.put("status", schedule.getStatus());
+        scheduleMap.put("paidDate", schedule.getPaidDate());
+        scheduleMap.put("paidAmount", schedule.getPaidAmount());
+        scheduleMap.put("lateFee", schedule.getLateFee());
+        scheduleMap.put("notes", schedule.getNotes());
+        scheduleMap.put("createdAt", schedule.getCreatedAt());
+        
+        if (schedule.getPlan() != null) {
+            scheduleMap.put("planId", schedule.getPlan().getPlanId());
+        }
+        
+        return scheduleMap;
     }
     
     @GetMapping("/{scheduleId}")
     @Operation(summary = "Get installment schedule by ID", description = "Retrieve a specific installment schedule by its ID")
-    public ResponseEntity<InstallmentSchedule> getScheduleById(@PathVariable @Parameter(description = "Schedule ID") UUID scheduleId) {
-        return installmentScheduleService.getScheduleById(scheduleId)
-                .map(schedule -> ResponseEntity.ok(schedule))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getScheduleById(@PathVariable @Parameter(description = "Schedule ID") UUID scheduleId) {
+        try {
+            return installmentScheduleService.getScheduleById(scheduleId)
+                    .map(schedule -> ResponseEntity.ok(scheduleToMap(schedule)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedule: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/plan/{planId}")
     @Operation(summary = "Get schedules by plan", description = "Retrieve installment schedules for a specific plan")
-    public ResponseEntity<List<InstallmentSchedule>> getSchedulesByPlan(@PathVariable UUID planId) {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByPlan(planId);
-        return ResponseEntity.ok(schedules);
+    public ResponseEntity<?> getSchedulesByPlan(@PathVariable UUID planId) {
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByPlan(planId);
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Get schedules by status", description = "Retrieve installment schedules filtered by status")
-    public ResponseEntity<List<InstallmentSchedule>> getSchedulesByStatus(@PathVariable String status) {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByStatus(status);
-        return ResponseEntity.ok(schedules);
+    public ResponseEntity<?> getSchedulesByStatus(@PathVariable String status) {
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByStatus(status);
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/due-date-range")
     @Operation(summary = "Get schedules by due date range", description = "Retrieve installment schedules within a due date range")
-    public ResponseEntity<List<InstallmentSchedule>> getSchedulesByDueDateRange(
+    public ResponseEntity<?> getSchedulesByDueDateRange(
             @RequestParam @Parameter(description = "Start date") LocalDate startDate,
             @RequestParam @Parameter(description = "End date") LocalDate endDate) {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByDueDateRange(startDate, endDate);
-        return ResponseEntity.ok(schedules);
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByDueDateRange(startDate, endDate);
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/overdue")
     @Operation(summary = "Get overdue schedules", description = "Retrieve installment schedules that are overdue")
-    public ResponseEntity<List<InstallmentSchedule>> getOverdueSchedules() {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getOverdueSchedules();
-        return ResponseEntity.ok(schedules);
+    public ResponseEntity<?> getOverdueSchedules() {
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getOverdueSchedules();
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/due-soon")
     @Operation(summary = "Get due soon schedules", description = "Retrieve installment schedules that are due within 7 days")
-    public ResponseEntity<List<InstallmentSchedule>> getDueSoonSchedules() {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getDueSoonSchedules();
-        return ResponseEntity.ok(schedules);
+    public ResponseEntity<?> getDueSoonSchedules() {
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getDueSoonSchedules();
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/installment-number/{installmentNumber}")
     @Operation(summary = "Get schedules by installment number", description = "Retrieve installment schedules by installment number")
-    public ResponseEntity<List<InstallmentSchedule>> getSchedulesByInstallmentNumber(@PathVariable Integer installmentNumber) {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByInstallmentNumber(installmentNumber);
-        return ResponseEntity.ok(schedules);
+    public ResponseEntity<?> getSchedulesByInstallmentNumber(@PathVariable Integer installmentNumber) {
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByInstallmentNumber(installmentNumber);
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/paid-date-range")
     @Operation(summary = "Get schedules by paid date range", description = "Retrieve installment schedules within a paid date range")
-    public ResponseEntity<List<InstallmentSchedule>> getSchedulesByPaidDateRange(
+    public ResponseEntity<?> getSchedulesByPaidDateRange(
             @RequestParam @Parameter(description = "Start date") LocalDate startDate,
             @RequestParam @Parameter(description = "End date") LocalDate endDate) {
-        List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByPaidDateRange(startDate, endDate);
-        return ResponseEntity.ok(schedules);
+        try {
+            List<InstallmentSchedule> schedules = installmentScheduleService.getSchedulesByPaidDateRange(startDate, endDate);
+            List<Map<String, Object>> scheduleList = schedules.stream().map(this::scheduleToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(scheduleList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve schedules: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -117,7 +202,7 @@ public class InstallmentScheduleController {
             }
             
             InstallmentSchedule createdSchedule = installmentScheduleService.createInstallmentSchedule(installmentSchedule);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdSchedule);
+            return ResponseEntity.status(HttpStatus.CREATED).body(scheduleToMap(createdSchedule));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create installment schedule: " + e.getMessage());
@@ -150,7 +235,7 @@ public class InstallmentScheduleController {
             }
             
             InstallmentSchedule updatedSchedule = installmentScheduleService.updateInstallmentSchedule(scheduleId, installmentScheduleDetails);
-            return ResponseEntity.ok(updatedSchedule);
+            return ResponseEntity.ok(scheduleToMap(updatedSchedule));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update installment schedule: " + e.getMessage());
@@ -183,7 +268,7 @@ public class InstallmentScheduleController {
             }
             
             InstallmentSchedule updatedSchedule = installmentScheduleService.updateScheduleStatus(scheduleId, status);
-            return ResponseEntity.ok(updatedSchedule);
+            return ResponseEntity.ok(scheduleToMap(updatedSchedule));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update schedule status: " + e.getMessage());
@@ -217,7 +302,7 @@ public class InstallmentScheduleController {
             }
             
             InstallmentSchedule updatedSchedule = installmentScheduleService.markAsPaid(scheduleId, paidDate, paidAmount);
-            return ResponseEntity.ok(updatedSchedule);
+            return ResponseEntity.ok(scheduleToMap(updatedSchedule));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to mark schedule as paid: " + e.getMessage());

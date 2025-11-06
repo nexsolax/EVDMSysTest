@@ -28,11 +28,47 @@ public class DealerController {
     @Autowired
     private SecurityUtils securityUtils;
     
+    private Map<String, Object> dealerToMap(Dealer dealer) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("dealerId", dealer.getDealerId());
+        map.put("dealerCode", dealer.getDealerCode());
+        map.put("dealerName", dealer.getDealerName());
+        map.put("contactPerson", dealer.getContactPerson());
+        map.put("email", dealer.getEmail());
+        map.put("phone", dealer.getPhone());
+        map.put("address", dealer.getAddress());
+        map.put("city", dealer.getCity());
+        map.put("province", dealer.getProvince());
+        map.put("postalCode", dealer.getPostalCode());
+        map.put("dealerType", dealer.getDealerType());
+        map.put("licenseNumber", dealer.getLicenseNumber());
+        map.put("taxCode", dealer.getTaxCode());
+        map.put("bankAccount", dealer.getBankAccount());
+        map.put("bankName", dealer.getBankName());
+        map.put("commissionRate", dealer.getCommissionRate());
+        map.put("status", dealer.getStatus() != null ? dealer.getStatus().toString() : null);
+        map.put("notes", dealer.getNotes());
+        map.put("contractStartDate", dealer.getContractStartDate());
+        map.put("contractEndDate", dealer.getContractEndDate());
+        map.put("monthlySalesTarget", dealer.getMonthlySalesTarget());
+        map.put("yearlySalesTarget", dealer.getYearlySalesTarget());
+        map.put("createdAt", dealer.getCreatedAt());
+        map.put("updatedAt", dealer.getUpdatedAt());
+        return map;
+    }
+    
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả đại lý", description = "Lấy danh sách tất cả đại lý trong hệ thống")
-    public ResponseEntity<List<Dealer>> getAllDealers() {
-        List<Dealer> dealers = dealerService.getAllDealers();
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getAllDealers() {
+        try {
+            List<Dealer> dealers = dealerService.getAllDealers();
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/options")
@@ -77,7 +113,7 @@ public class DealerController {
                 }
             }
             
-            return ResponseEntity.ok(dealer);
+            return ResponseEntity.ok(dealerToMap(dealer));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get dealer: " + e.getMessage());
@@ -90,60 +126,120 @@ public class DealerController {
     }
     
     @GetMapping("/code/{dealerCode}")
-    public ResponseEntity<Dealer> getDealerByCode(@PathVariable String dealerCode) {
-        return dealerService.getDealerByCode(dealerCode)
-                .map(dealer -> ResponseEntity.ok(dealer))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getDealerByCode(@PathVariable String dealerCode) {
+        try {
+            return dealerService.getDealerByCode(dealerCode)
+                    .map(dealer -> ResponseEntity.ok(dealerToMap(dealer)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<Dealer>> getDealersByStatus(@PathVariable String status) {
-        List<Dealer> dealers = dealerService.getDealersByStatus(status);
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getDealersByStatus(@PathVariable String status) {
+        try {
+            List<Dealer> dealers = dealerService.getDealersByStatus(status);
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/type/{dealerType}")
-    public ResponseEntity<List<Dealer>> getDealersByType(@PathVariable String dealerType) {
-        List<Dealer> dealers = dealerService.getDealersByType(dealerType);
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getDealersByType(@PathVariable String dealerType) {
+        try {
+            List<Dealer> dealers = dealerService.getDealersByType(dealerType);
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/city/{city}")
-    public ResponseEntity<List<Dealer>> getDealersByCity(@PathVariable String city) {
-        List<Dealer> dealers = dealerService.getDealersByCity(city);
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getDealersByCity(@PathVariable String city) {
+        try {
+            List<Dealer> dealers = dealerService.getDealersByCity(city);
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/province/{province}")
-    public ResponseEntity<List<Dealer>> getDealersByProvince(@PathVariable String province) {
-        List<Dealer> dealers = dealerService.getDealersByProvince(province);
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getDealersByProvince(@PathVariable String province) {
+        try {
+            List<Dealer> dealers = dealerService.getDealersByProvince(province);
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/search")
-    public ResponseEntity<List<Dealer>> getDealersByName(@RequestParam String name) {
-        List<Dealer> dealers = dealerService.getDealersByName(name);
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getDealersByName(@RequestParam String name) {
+        try {
+            List<Dealer> dealers = dealerService.getDealersByName(name);
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/contact")
-    public ResponseEntity<List<Dealer>> getDealersByContactPerson(@RequestParam String contactPerson) {
-        List<Dealer> dealers = dealerService.getDealersByContactPerson(contactPerson);
-        return ResponseEntity.ok(dealers);
+    public ResponseEntity<?> getDealersByContactPerson(@RequestParam String contactPerson) {
+        try {
+            List<Dealer> dealers = dealerService.getDealersByContactPerson(contactPerson);
+            List<Map<String, Object>> dealerList = dealers.stream().map(this::dealerToMap).collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(dealerList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/email/{email}")
-    public ResponseEntity<Dealer> getDealerByEmail(@PathVariable String email) {
-        return dealerService.getDealerByEmail(email)
-                .map(dealer -> ResponseEntity.ok(dealer))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getDealerByEmail(@PathVariable String email) {
+        try {
+            return dealerService.getDealerByEmail(email)
+                    .map(dealer -> ResponseEntity.ok(dealerToMap(dealer)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/phone/{phone}")
-    public ResponseEntity<Dealer> getDealerByPhone(@PathVariable String phone) {
-        return dealerService.getDealerByPhone(phone)
-                .map(dealer -> ResponseEntity.ok(dealer))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getDealerByPhone(@PathVariable String phone) {
+        try {
+            return dealerService.getDealerByPhone(phone)
+                    .map(dealer -> ResponseEntity.ok(dealerToMap(dealer)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -165,7 +261,7 @@ public class DealerController {
             }
             
             Dealer createdDealer = dealerService.createDealer(dealer);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdDealer);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dealerToMap(createdDealer));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create dealer: " + e.getMessage());
@@ -246,7 +342,7 @@ public class DealerController {
             }
             
             Dealer updatedDealer = dealerService.updateDealer(id, dealerDetails);
-            return ResponseEntity.ok(updatedDealer);
+            return ResponseEntity.ok(dealerToMap(updatedDealer));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update dealer: " + e.getMessage());
@@ -276,7 +372,7 @@ public class DealerController {
             }
             
             Dealer updatedDealer = dealerService.updateDealerStatus(id, status);
-            return ResponseEntity.ok(updatedDealer);
+            return ResponseEntity.ok(dealerToMap(updatedDealer));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update dealer status: " + e.getMessage());
@@ -311,8 +407,16 @@ public class DealerController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete dealer: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete dealer: " + e.getMessage());

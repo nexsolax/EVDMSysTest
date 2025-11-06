@@ -259,10 +259,9 @@ public class QuotationService {
     }
     
     public void deleteQuotation(UUID quotationId) {
-        if (!quotationRepository.existsById(quotationId)) {
-            throw new RuntimeException("Quotation not found");
-        }
-        quotationRepository.deleteById(quotationId);
+        Quotation quotation = quotationRepository.findById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found with id: " + quotationId));
+        quotationRepository.delete(quotation);
     }
     
     public Quotation updateQuotationStatus(UUID quotationId, String status) {

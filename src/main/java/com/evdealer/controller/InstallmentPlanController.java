@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/installment-plans")
@@ -33,55 +34,133 @@ public class InstallmentPlanController {
     @Autowired
     private SecurityUtils securityUtils;
     
+    private Map<String, Object> planToMap(InstallmentPlan plan) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("planId", plan.getPlanId());
+        map.put("planType", plan.getPlanType());
+        map.put("totalAmount", plan.getTotalAmount());
+        map.put("downPaymentAmount", plan.getDownPaymentAmount());
+        map.put("loanAmount", plan.getLoanAmount());
+        map.put("interestRate", plan.getInterestRate());
+        map.put("loanTermMonths", plan.getLoanTermMonths());
+        map.put("monthlyPaymentAmount", plan.getMonthlyPaymentAmount());
+        map.put("firstPaymentDate", plan.getFirstPaymentDate());
+        map.put("lastPaymentDate", plan.getLastPaymentDate());
+        map.put("planStatus", plan.getPlanStatus());
+        map.put("financeCompany", plan.getFinanceCompany());
+        map.put("contractNumber", plan.getContractNumber());
+        map.put("createdAt", plan.getCreatedAt());
+        if (plan.getOrder() != null) {
+            map.put("orderId", plan.getOrder().getOrderId());
+        }
+        if (plan.getCustomer() != null) {
+            map.put("customerId", plan.getCustomer().getCustomerId());
+        }
+        if (plan.getInvoice() != null) {
+            map.put("invoiceId", plan.getInvoice().getInvoiceId());
+        }
+        if (plan.getDealer() != null) {
+            map.put("dealerId", plan.getDealer().getDealerId());
+        }
+        return map;
+    }
+    
     @GetMapping
     @Operation(summary = "Get all installment plans", description = "Retrieve a list of all installment plans")
-    public ResponseEntity<List<InstallmentPlan>> getAllInstallmentPlans() {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getAllInstallmentPlans();
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getAllInstallmentPlans() {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getAllInstallmentPlans();
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{planId}")
     @Operation(summary = "Get installment plan by ID", description = "Retrieve a specific installment plan by its ID")
-    public ResponseEntity<InstallmentPlan> getInstallmentPlanById(@PathVariable @Parameter(description = "Plan ID") UUID planId) {
-        return installmentPlanService.getInstallmentPlanById(planId)
-                .map(plan -> ResponseEntity.ok(plan))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getInstallmentPlanById(@PathVariable @Parameter(description = "Plan ID") UUID planId) {
+        try {
+            return installmentPlanService.getInstallmentPlanById(planId)
+                    .map(plan -> ResponseEntity.ok(planToMap(plan)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plan: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/contract/{contractNumber}")
     @Operation(summary = "Get installment plan by contract number", description = "Retrieve a specific installment plan by its contract number")
-    public ResponseEntity<InstallmentPlan> getInstallmentPlanByContractNumber(@PathVariable String contractNumber) {
-        return installmentPlanService.getInstallmentPlanByContractNumber(contractNumber)
-                .map(plan -> ResponseEntity.ok(plan))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getInstallmentPlanByContractNumber(@PathVariable String contractNumber) {
+        try {
+            return installmentPlanService.getInstallmentPlanByContractNumber(contractNumber)
+                    .map(plan -> ResponseEntity.ok(planToMap(plan)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plan: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Get installment plans by status", description = "Retrieve installment plans filtered by status")
-    public ResponseEntity<List<InstallmentPlan>> getInstallmentPlansByStatus(@PathVariable String status) {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByStatus(status);
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getInstallmentPlansByStatus(@PathVariable String status) {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByStatus(status);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "Get installment plans by customer", description = "Retrieve installment plans for a specific customer")
-    public ResponseEntity<List<InstallmentPlan>> getInstallmentPlansByCustomer(@PathVariable UUID customerId) {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByCustomer(customerId);
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getInstallmentPlansByCustomer(@PathVariable UUID customerId) {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByCustomer(customerId);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/order/{orderId}")
     @Operation(summary = "Get installment plans by order", description = "Retrieve installment plans for a specific order")
-    public ResponseEntity<List<InstallmentPlan>> getInstallmentPlansByOrder(@PathVariable UUID orderId) {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByOrder(orderId);
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getInstallmentPlansByOrder(@PathVariable UUID orderId) {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByOrder(orderId);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/finance-company/{financeCompany}")
     @Operation(summary = "Get installment plans by finance company", description = "Retrieve installment plans from a specific finance company")
-    public ResponseEntity<List<InstallmentPlan>> getInstallmentPlansByFinanceCompany(@PathVariable String financeCompany) {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByFinanceCompany(financeCompany);
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getInstallmentPlansByFinanceCompany(@PathVariable String financeCompany) {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByFinanceCompany(financeCompany);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/invoice/{invoiceId}")
@@ -114,7 +193,8 @@ public class InstallmentPlanController {
             }
             
             List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByInvoice(invoiceId);
-            return ResponseEntity.ok(installmentPlans);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get plans: " + e.getMessage());
@@ -151,7 +231,8 @@ public class InstallmentPlanController {
             }
             
             List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByDealer(dealerId);
-            return ResponseEntity.ok(installmentPlans);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get plans: " + e.getMessage());
@@ -161,16 +242,30 @@ public class InstallmentPlanController {
     
     @GetMapping("/plan-type/{planType}")
     @Operation(summary = "Get installment plans by plan type", description = "Retrieve installment plans filtered by plan type")
-    public ResponseEntity<List<InstallmentPlan>> getInstallmentPlansByPlanType(@PathVariable String planType) {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByPlanType(planType);
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getInstallmentPlansByPlanType(@PathVariable String planType) {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByPlanType(planType);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer-plans")
     @Operation(summary = "Get customer installment plans", description = "Retrieve all customer installment plans")
-    public ResponseEntity<List<InstallmentPlan>> getCustomerInstallmentPlans() {
-        List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByPlanType("customer");
-        return ResponseEntity.ok(installmentPlans);
+    public ResponseEntity<?> getCustomerInstallmentPlans() {
+        try {
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByPlanType("customer");
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve installment plans: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer-plans")
@@ -197,7 +292,8 @@ public class InstallmentPlanController {
                 }
             }
             
-            return ResponseEntity.ok(installmentPlans);
+            List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(planList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get dealer plans: " + e.getMessage());
@@ -253,7 +349,7 @@ public class InstallmentPlanController {
             }
             
             InstallmentPlan createdPlan = installmentPlanService.createInstallmentPlan(installmentPlan);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdPlan);
+            return ResponseEntity.status(HttpStatus.CREATED).body(planToMap(createdPlan));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create plan: " + e.getMessage());
@@ -313,7 +409,7 @@ public class InstallmentPlanController {
             }
             
             InstallmentPlan updatedPlan = installmentPlanService.updateInstallmentPlan(planId, installmentPlanDetails);
-            return ResponseEntity.ok(updatedPlan);
+            return ResponseEntity.ok(planToMap(updatedPlan));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update plan: " + e.getMessage());
@@ -373,7 +469,7 @@ public class InstallmentPlanController {
             }
             
             InstallmentPlan updatedPlan = installmentPlanService.updateInstallmentPlanStatus(planId, status);
-            return ResponseEntity.ok(updatedPlan);
+            return ResponseEntity.ok(planToMap(updatedPlan));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update plan status: " + e.getMessage());

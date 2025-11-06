@@ -110,10 +110,9 @@ public class CustomerPaymentService {
     }
     
     public void deleteCustomerPayment(UUID paymentId) {
-        if (!customerPaymentRepository.existsById(paymentId)) {
-            throw new RuntimeException("Customer payment not found");
-        }
-        customerPaymentRepository.deleteById(paymentId);
+        CustomerPayment customerPayment = customerPaymentRepository.findById(paymentId)
+                .orElseThrow(() -> new RuntimeException("Customer payment not found with id: " + paymentId));
+        customerPaymentRepository.delete(customerPayment);
     }
     
     public CustomerPayment updatePaymentStatus(UUID paymentId, String status) {

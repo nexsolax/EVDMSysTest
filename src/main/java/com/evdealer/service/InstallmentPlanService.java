@@ -95,10 +95,9 @@ public class InstallmentPlanService {
     }
     
     public void deleteInstallmentPlan(UUID planId) {
-        if (!installmentPlanRepository.existsById(planId)) {
-            throw new RuntimeException("Installment plan not found");
-        }
-        installmentPlanRepository.deleteById(planId);
+        InstallmentPlan plan = installmentPlanRepository.findById(planId)
+                .orElseThrow(() -> new RuntimeException("Installment plan not found with id: " + planId));
+        installmentPlanRepository.delete(plan);
     }
     
     public InstallmentPlan updateInstallmentPlanStatus(UUID planId, String status) {

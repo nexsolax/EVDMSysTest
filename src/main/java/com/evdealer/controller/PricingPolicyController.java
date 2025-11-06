@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/pricing-policies")
@@ -26,47 +27,126 @@ public class PricingPolicyController {
     @Autowired
     private SecurityUtils securityUtils;
     
+    private Map<String, Object> policyToMap(PricingPolicy policy) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("policyId", policy.getPolicyId());
+        map.put("policyName", policy.getPolicyName());
+        map.put("description", policy.getDescription());
+        map.put("policyType", policy.getPolicyType());
+        map.put("basePrice", policy.getBasePrice());
+        map.put("discountPercent", policy.getDiscountPercent());
+        map.put("discountAmount", policy.getDiscountAmount());
+        map.put("markupPercent", policy.getMarkupPercent());
+        map.put("markupAmount", policy.getMarkupAmount());
+        map.put("effectiveDate", policy.getEffectiveDate());
+        map.put("expiryDate", policy.getExpiryDate());
+        map.put("minQuantity", policy.getMinQuantity());
+        map.put("maxQuantity", policy.getMaxQuantity());
+        map.put("customerType", policy.getCustomerType());
+        map.put("region", policy.getRegion());
+        map.put("scope", policy.getScope());
+        map.put("status", policy.getStatus());
+        map.put("priority", policy.getPriority());
+        map.put("createdAt", policy.getCreatedAt());
+        map.put("updatedAt", policy.getUpdatedAt());
+        if (policy.getVariant() != null) {
+            map.put("variantId", policy.getVariant().getVariantId());
+        }
+        if (policy.getDealer() != null) {
+            map.put("dealerId", policy.getDealer().getDealerId());
+        }
+        return map;
+    }
+    
     @GetMapping
-    public ResponseEntity<List<PricingPolicy>> getAllPricingPolicies() {
-        List<PricingPolicy> policies = pricingPolicyService.getAllPricingPolicies();
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getAllPricingPolicies() {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getAllPricingPolicies();
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<PricingPolicy> getPricingPolicyById(@PathVariable UUID id) {
-        return pricingPolicyService.getPricingPolicyById(id)
-                .map(policy -> ResponseEntity.ok(policy))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getPricingPolicyById(@PathVariable UUID id) {
+        try {
+            return pricingPolicyService.getPricingPolicyById(id)
+                    .map(policy -> ResponseEntity.ok(policyToMap(policy)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policy: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variant/{variantId}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByVariant(@PathVariable Integer variantId) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByVariant(variantId);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByVariant(@PathVariable Integer variantId) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByVariant(variantId);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByStatus(@PathVariable String status) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByStatus(status);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByStatus(@PathVariable String status) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByStatus(status);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/type/{policyType}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByType(@PathVariable String policyType) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByType(policyType);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByType(@PathVariable String policyType) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByType(policyType);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer-type/{customerType}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByCustomerType(@PathVariable String customerType) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByCustomerType(customerType);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByCustomerType(@PathVariable String customerType) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByCustomerType(customerType);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/region/{region}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByRegion(@PathVariable String region) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByRegion(region);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByRegion(@PathVariable String region) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByRegion(region);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer/{dealerId}")
@@ -93,7 +173,8 @@ public class PricingPolicyController {
             }
             
             List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByDealer(dealerId);
-            return ResponseEntity.ok(policies);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get pricing policies: " + e.getMessage());
@@ -102,61 +183,124 @@ public class PricingPolicyController {
     }
     
     @GetMapping("/scope/{scope}")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByScope(@PathVariable String scope) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByScope(scope);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByScope(@PathVariable String scope) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByScope(scope);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/global")
-    public ResponseEntity<List<PricingPolicy>> getGlobalPricingPolicies() {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByScope("global");
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getGlobalPricingPolicies() {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByScope("global");
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer-specific")
-    public ResponseEntity<List<PricingPolicy>> getDealerSpecificPricingPolicies() {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByScope("dealer");
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getDealerSpecificPricingPolicies() {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByScope("dealer");
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active")
-    public ResponseEntity<List<PricingPolicy>> getActivePricingPolicies() {
-        List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByDate(LocalDate.now());
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getActivePricingPolicies() {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByDate(LocalDate.now());
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/date/{date}")
-    public ResponseEntity<List<PricingPolicy>> getActivePricingPoliciesByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByDate(date);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getActivePricingPoliciesByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByDate(date);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/variant/{variantId}")
-    public ResponseEntity<List<PricingPolicy>> getActivePricingPoliciesByVariant(@PathVariable Integer variantId) {
-        List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByVariantAndDate(variantId, LocalDate.now());
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getActivePricingPoliciesByVariant(@PathVariable Integer variantId) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByVariantAndDate(variantId, LocalDate.now());
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/variant/{variantId}/date/{date}")
-    public ResponseEntity<List<PricingPolicy>> getActivePricingPoliciesByVariantAndDate(
+    public ResponseEntity<?> getActivePricingPoliciesByVariantAndDate(
             @PathVariable Integer variantId, 
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByVariantAndDate(variantId, date);
-        return ResponseEntity.ok(policies);
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByVariantAndDate(variantId, date);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/variant/{variantId}/customer-type/{customerType}")
-    public ResponseEntity<List<PricingPolicy>> getActivePricingPoliciesByVariantAndCustomerType(
+    public ResponseEntity<?> getActivePricingPoliciesByVariantAndCustomerType(
             @PathVariable Integer variantId, 
             @PathVariable String customerType) {
-        List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByVariantCustomerTypeAndDate(variantId, customerType, LocalDate.now());
-        return ResponseEntity.ok(policies);
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getActivePricingPoliciesByVariantCustomerTypeAndDate(variantId, customerType, LocalDate.now());
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/search")
-    public ResponseEntity<List<PricingPolicy>> getPricingPoliciesByName(@RequestParam String policyName) {
-        List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByName(policyName);
-        return ResponseEntity.ok(policies);
+    public ResponseEntity<?> getPricingPoliciesByName(@RequestParam String policyName) {
+        try {
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByName(policyName);
+            List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(policyList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve pricing policies: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -177,7 +321,7 @@ public class PricingPolicyController {
             }
             
             PricingPolicy createdPolicy = pricingPolicyService.createPricingPolicy(pricingPolicy);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdPolicy);
+            return ResponseEntity.status(HttpStatus.CREATED).body(policyToMap(createdPolicy));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create pricing policy: " + e.getMessage());
@@ -207,7 +351,7 @@ public class PricingPolicyController {
             }
             
             PricingPolicy updatedPolicy = pricingPolicyService.updatePricingPolicy(id, pricingPolicyDetails);
-            return ResponseEntity.ok(updatedPolicy);
+            return ResponseEntity.ok(policyToMap(updatedPolicy));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update pricing policy: " + e.getMessage());
@@ -237,7 +381,7 @@ public class PricingPolicyController {
             }
             
             PricingPolicy updatedPolicy = pricingPolicyService.updatePricingPolicyStatus(id, status);
-            return ResponseEntity.ok(updatedPolicy);
+            return ResponseEntity.ok(policyToMap(updatedPolicy));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update pricing policy status: " + e.getMessage());

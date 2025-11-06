@@ -179,7 +179,12 @@ public class DealerService {
     public void deleteDealer(UUID dealerId) {
         Dealer dealer = dealerRepository.findById(dealerId)
                 .orElseThrow(() -> new RuntimeException("Dealer not found with id: " + dealerId));
-        dealerRepository.delete(dealer);
+        
+        try {
+            dealerRepository.delete(dealer);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete dealer: " + e.getMessage() + ". Dealer may be referenced by other records (users, orders, contracts, etc.).");
+        }
     }
     
     public Dealer updateDealerStatus(UUID dealerId, String status) {

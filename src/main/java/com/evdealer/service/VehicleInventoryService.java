@@ -289,10 +289,9 @@ public class VehicleInventoryService {
     }
     
     public void deleteVehicleInventory(UUID inventoryId) {
-        if (!vehicleInventoryRepository.existsById(inventoryId)) {
-            throw new RuntimeException("Vehicle inventory not found");
-        }
-        vehicleInventoryRepository.deleteById(inventoryId);
+        VehicleInventory inventory = vehicleInventoryRepository.findById(inventoryId)
+                .orElseThrow(() -> new RuntimeException("Vehicle inventory not found with id: " + inventoryId));
+        vehicleInventoryRepository.delete(inventory);
     }
     
     public VehicleInventory updateInventoryStatus(UUID inventoryId, String status) {

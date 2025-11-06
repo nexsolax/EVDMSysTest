@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/vehicles")
@@ -34,46 +35,151 @@ public class VehicleController {
     @Autowired
     private SecurityUtils securityUtils;
     
+    // Helper methods to convert entities to Map
+    private Map<String, Object> brandToMap(VehicleBrand brand) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("brandId", brand.getBrandId());
+        map.put("brandName", brand.getBrandName());
+        map.put("country", brand.getCountry());
+        map.put("foundedYear", brand.getFoundedYear());
+        map.put("brandLogoUrl", brand.getBrandLogoUrl());
+        map.put("brandLogoPath", brand.getBrandLogoPath());
+        map.put("isActive", brand.getIsActive());
+        map.put("createdAt", brand.getCreatedAt());
+        return map;
+    }
+    
+    private Map<String, Object> modelToMap(VehicleModel model) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("modelId", model.getModelId());
+        map.put("modelName", model.getModelName());
+        map.put("modelYear", model.getModelYear());
+        map.put("vehicleType", model.getVehicleType());
+        map.put("description", model.getDescription());
+        map.put("specifications", model.getSpecifications());
+        map.put("modelImageUrl", model.getModelImageUrl());
+        map.put("modelImagePath", model.getModelImagePath());
+        map.put("isActive", model.getIsActive());
+        map.put("createdAt", model.getCreatedAt());
+        if (model.getBrand() != null) {
+            map.put("brandId", model.getBrand().getBrandId());
+        }
+        return map;
+    }
+    
+    private Map<String, Object> variantToMap(VehicleVariant variant) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("variantId", variant.getVariantId());
+        map.put("variantName", variant.getVariantName());
+        map.put("batteryCapacity", variant.getBatteryCapacity());
+        map.put("rangeKm", variant.getRangeKm());
+        map.put("powerKw", variant.getPowerKw());
+        map.put("acceleration0100", variant.getAcceleration0100());
+        map.put("topSpeed", variant.getTopSpeed());
+        map.put("chargingTimeFast", variant.getChargingTimeFast());
+        map.put("chargingTimeSlow", variant.getChargingTimeSlow());
+        map.put("priceBase", variant.getPriceBase());
+        map.put("variantImageUrl", variant.getVariantImageUrl());
+        map.put("variantImagePath", variant.getVariantImagePath());
+        map.put("isActive", variant.getIsActive());
+        map.put("createdAt", variant.getCreatedAt());
+        if (variant.getModel() != null) {
+            map.put("modelId", variant.getModel().getModelId());
+        }
+        return map;
+    }
+    
+    private Map<String, Object> colorToMap(VehicleColor color) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("colorId", color.getColorId());
+        map.put("colorName", color.getColorName());
+        map.put("colorCode", color.getColorCode());
+        map.put("colorSwatchUrl", color.getColorSwatchUrl());
+        map.put("colorSwatchPath", color.getColorSwatchPath());
+        map.put("isActive", color.getIsActive());
+        return map;
+    }
+    
     // Vehicle Brand endpoints
     @GetMapping("/brands")
     @Operation(summary = "Lấy danh sách thương hiệu", description = "Lấy tất cả thương hiệu xe")
-    public ResponseEntity<List<VehicleBrand>> getAllBrands() {
-        List<VehicleBrand> brands = vehicleService.getAllBrands();
-        return ResponseEntity.ok(brands);
+    public ResponseEntity<?> getAllBrands() {
+        try {
+            List<VehicleBrand> brands = vehicleService.getAllBrands();
+            List<Map<String, Object>> brandList = brands.stream().map(this::brandToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(brandList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve brands: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/brands/active")
     @Operation(summary = "Lấy thương hiệu đang hoạt động", description = "Lấy thương hiệu xe đang hoạt động")
-    public ResponseEntity<List<VehicleBrand>> getActiveBrands() {
-        List<VehicleBrand> brands = vehicleService.getActiveBrands();
-        return ResponseEntity.ok(brands);
+    public ResponseEntity<?> getActiveBrands() {
+        try {
+            List<VehicleBrand> brands = vehicleService.getActiveBrands();
+            List<Map<String, Object>> brandList = brands.stream().map(this::brandToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(brandList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active brands: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/brands/{brandId}")
     @Operation(summary = "Lấy thương hiệu theo ID", description = "Lấy thông tin thương hiệu theo ID")
-    public ResponseEntity<VehicleBrand> getBrandById(@PathVariable Integer brandId) {
-        return vehicleService.getBrandById(brandId)
-                .map(brand -> ResponseEntity.ok(brand))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getBrandById(@PathVariable Integer brandId) {
+        try {
+            return vehicleService.getBrandById(brandId)
+                    .map(brand -> ResponseEntity.ok(brandToMap(brand)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/brands/name/{brandName}")
-    public ResponseEntity<VehicleBrand> getBrandByName(@PathVariable String brandName) {
-        return vehicleService.getBrandByName(brandName)
-                .map(brand -> ResponseEntity.ok(brand))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getBrandByName(@PathVariable String brandName) {
+        try {
+            return vehicleService.getBrandByName(brandName)
+                    .map(brand -> ResponseEntity.ok(brandToMap(brand)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/brands/country/{country}")
-    public ResponseEntity<List<VehicleBrand>> getBrandsByCountry(@PathVariable String country) {
-        List<VehicleBrand> brands = vehicleService.getBrandsByCountry(country);
-        return ResponseEntity.ok(brands);
+    public ResponseEntity<?> getBrandsByCountry(@PathVariable String country) {
+        try {
+            List<VehicleBrand> brands = vehicleService.getBrandsByCountry(country);
+            List<Map<String, Object>> brandList = brands.stream().map(this::brandToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(brandList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve brands: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/brands/search")
-    public ResponseEntity<List<VehicleBrand>> searchBrandsByName(@RequestParam String name) {
-        List<VehicleBrand> brands = vehicleService.searchBrandsByName(name);
-        return ResponseEntity.ok(brands);
+    public ResponseEntity<?> searchBrandsByName(@RequestParam String name) {
+        try {
+            List<VehicleBrand> brands = vehicleService.searchBrandsByName(name);
+            List<Map<String, Object>> brandList = brands.stream().map(this::brandToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(brandList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to search brands: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping("/brands")
@@ -95,7 +201,7 @@ public class VehicleController {
             }
             
             VehicleBrand createdBrand = vehicleService.createBrandFromRequest(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdBrand);
+            return ResponseEntity.status(HttpStatus.CREATED).body(brandToMap(createdBrand));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create brand: " + e.getMessage());
@@ -126,7 +232,7 @@ public class VehicleController {
             }
             
             VehicleBrand updatedBrand = vehicleService.updateBrandFromRequest(brandId, request);
-            return ResponseEntity.ok(updatedBrand);
+            return ResponseEntity.ok(brandToMap(updatedBrand));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update brand: " + e.getMessage());
@@ -161,8 +267,16 @@ public class VehicleController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete brand: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete brand: " + e.getMessage());
@@ -173,57 +287,108 @@ public class VehicleController {
     // Vehicle Model endpoints
     @GetMapping("/models")
     @Operation(summary = "Lấy danh sách mẫu xe", description = "Lấy tất cả mẫu xe")
-    public ResponseEntity<List<VehicleModel>> getAllModels() {
+    public ResponseEntity<?> getAllModels() {
         try {
             List<VehicleModel> models = vehicleService.getAllModels();
-            return ResponseEntity.ok(models);
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @GetMapping("/models/active")
     @Operation(summary = "Lấy mẫu xe đang hoạt động", description = "Lấy mẫu xe đang hoạt động")
-    public ResponseEntity<List<VehicleModel>> getActiveModels() {
-        List<VehicleModel> models = vehicleService.getActiveModels();
-        return ResponseEntity.ok(models);
+    public ResponseEntity<?> getActiveModels() {
+        try {
+            List<VehicleModel> models = vehicleService.getActiveModels();
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/models/{modelId}")
-    public ResponseEntity<VehicleModel> getModelById(@PathVariable Integer modelId) {
-        return vehicleService.getModelById(modelId)
-                .map(model -> ResponseEntity.ok(model))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getModelById(@PathVariable Integer modelId) {
+        try {
+            return vehicleService.getModelById(modelId)
+                    .map(model -> ResponseEntity.ok(modelToMap(model)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/models/brand/{brandId}")
-    public ResponseEntity<List<VehicleModel>> getModelsByBrand(@PathVariable Integer brandId) {
-        List<VehicleModel> models = vehicleService.getModelsByBrand(brandId);
-        return ResponseEntity.ok(models);
+    public ResponseEntity<?> getModelsByBrand(@PathVariable Integer brandId) {
+        try {
+            List<VehicleModel> models = vehicleService.getModelsByBrand(brandId);
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/models/brand/{brandId}/active")
-    public ResponseEntity<List<VehicleModel>> getActiveModelsByBrand(@PathVariable Integer brandId) {
-        List<VehicleModel> models = vehicleService.getActiveModelsByBrand(brandId);
-        return ResponseEntity.ok(models);
+    public ResponseEntity<?> getActiveModelsByBrand(@PathVariable Integer brandId) {
+        try {
+            List<VehicleModel> models = vehicleService.getActiveModelsByBrand(brandId);
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/models/search")
-    public ResponseEntity<List<VehicleModel>> searchModelsByName(@RequestParam String name) {
-        List<VehicleModel> models = vehicleService.searchModelsByName(name);
-        return ResponseEntity.ok(models);
+    public ResponseEntity<?> searchModelsByName(@RequestParam String name) {
+        try {
+            List<VehicleModel> models = vehicleService.searchModelsByName(name);
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to search models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/models/type/{vehicleType}")
-    public ResponseEntity<List<VehicleModel>> getModelsByType(@PathVariable String vehicleType) {
-        List<VehicleModel> models = vehicleService.getModelsByType(vehicleType);
-        return ResponseEntity.ok(models);
+    public ResponseEntity<?> getModelsByType(@PathVariable String vehicleType) {
+        try {
+            List<VehicleModel> models = vehicleService.getModelsByType(vehicleType);
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/models/year/{year}")
-    public ResponseEntity<List<VehicleModel>> getModelsByYear(@PathVariable Integer year) {
-        List<VehicleModel> models = vehicleService.getModelsByYear(year);
-        return ResponseEntity.ok(models);
+    public ResponseEntity<?> getModelsByYear(@PathVariable Integer year) {
+        try {
+            List<VehicleModel> models = vehicleService.getModelsByYear(year);
+            List<Map<String, Object>> modelList = models.stream().map(this::modelToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(modelList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping("/models")
@@ -245,7 +410,7 @@ public class VehicleController {
             }
             
             VehicleModel createdModel = vehicleService.createModelFromRequest(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdModel);
+            return ResponseEntity.status(HttpStatus.CREATED).body(modelToMap(createdModel));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create model: " + e.getMessage());
@@ -276,7 +441,7 @@ public class VehicleController {
             }
             
             VehicleModel updatedModel = vehicleService.updateModelFromRequest(modelId, request);
-            return ResponseEntity.ok(updatedModel);
+            return ResponseEntity.ok(modelToMap(updatedModel));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update model: " + e.getMessage());
@@ -311,8 +476,16 @@ public class VehicleController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete model: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete model: " + e.getMessage());
@@ -323,59 +496,110 @@ public class VehicleController {
     // Vehicle Variant endpoints
     @GetMapping("/variants")
     @Operation(summary = "Lấy danh sách phiên bản xe", description = "Lấy tất cả phiên bản xe")
-    public ResponseEntity<List<VehicleVariant>> getAllVariants() {
+    public ResponseEntity<?> getAllVariants() {
         try {
             List<VehicleVariant> variants = vehicleService.getAllVariants();
-            return ResponseEntity.ok(variants);
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
     @GetMapping("/variants/active")
     @Operation(summary = "Lấy phiên bản xe đang hoạt động", description = "Lấy phiên bản xe đang hoạt động")
-    public ResponseEntity<List<VehicleVariant>> getActiveVariants() {
-        List<VehicleVariant> variants = vehicleService.getActiveVariants();
-        return ResponseEntity.ok(variants);
+    public ResponseEntity<?> getActiveVariants() {
+        try {
+            List<VehicleVariant> variants = vehicleService.getActiveVariants();
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variants/{variantId}")
-    public ResponseEntity<VehicleVariant> getVariantById(@PathVariable Integer variantId) {
-        return vehicleService.getVariantById(variantId)
-                .map(variant -> ResponseEntity.ok(variant))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getVariantById(@PathVariable Integer variantId) {
+        try {
+            return vehicleService.getVariantById(variantId)
+                    .map(variant -> ResponseEntity.ok(variantToMap(variant)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variants/model/{modelId}")
-    public ResponseEntity<List<VehicleVariant>> getVariantsByModel(@PathVariable Integer modelId) {
-        List<VehicleVariant> variants = vehicleService.getVariantsByModel(modelId);
-        return ResponseEntity.ok(variants);
+    public ResponseEntity<?> getVariantsByModel(@PathVariable Integer modelId) {
+        try {
+            List<VehicleVariant> variants = vehicleService.getVariantsByModel(modelId);
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variants/model/{modelId}/active")
-    public ResponseEntity<List<VehicleVariant>> getActiveVariantsByModel(@PathVariable Integer modelId) {
-        List<VehicleVariant> variants = vehicleService.getActiveVariantsByModel(modelId);
-        return ResponseEntity.ok(variants);
+    public ResponseEntity<?> getActiveVariantsByModel(@PathVariable Integer modelId) {
+        try {
+            List<VehicleVariant> variants = vehicleService.getActiveVariantsByModel(modelId);
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variants/search")
-    public ResponseEntity<List<VehicleVariant>> searchVariantsByName(@RequestParam String name) {
-        List<VehicleVariant> variants = vehicleService.searchVariantsByName(name);
-        return ResponseEntity.ok(variants);
+    public ResponseEntity<?> searchVariantsByName(@RequestParam String name) {
+        try {
+            List<VehicleVariant> variants = vehicleService.searchVariantsByName(name);
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to search variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variants/price-range")
-    public ResponseEntity<List<VehicleVariant>> getVariantsByPriceRange(
+    public ResponseEntity<?> getVariantsByPriceRange(
             @RequestParam BigDecimal minPrice, 
             @RequestParam BigDecimal maxPrice) {
-        List<VehicleVariant> variants = vehicleService.getVariantsByPriceRange(minPrice, maxPrice);
-        return ResponseEntity.ok(variants);
+        try {
+            List<VehicleVariant> variants = vehicleService.getVariantsByPriceRange(minPrice, maxPrice);
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variants/min-range/{minRange}")
-    public ResponseEntity<List<VehicleVariant>> getVariantsByMinRange(@PathVariable Integer minRange) {
-        List<VehicleVariant> variants = vehicleService.getVariantsByMinRange(minRange);
-        return ResponseEntity.ok(variants);
+    public ResponseEntity<?> getVariantsByMinRange(@PathVariable Integer minRange) {
+        try {
+            List<VehicleVariant> variants = vehicleService.getVariantsByMinRange(minRange);
+            List<Map<String, Object>> variantList = variants.stream().map(this::variantToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(variantList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping("/variants")
@@ -397,7 +621,7 @@ public class VehicleController {
             }
             
             VehicleVariant createdVariant = vehicleService.createVariantFromRequest(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdVariant);
+            return ResponseEntity.status(HttpStatus.CREATED).body(variantToMap(createdVariant));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create variant: " + e.getMessage());
@@ -428,7 +652,7 @@ public class VehicleController {
             }
             
             VehicleVariant updatedVariant = vehicleService.updateVariantFromRequest(variantId, request);
-            return ResponseEntity.ok(updatedVariant);
+            return ResponseEntity.ok(variantToMap(updatedVariant));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update variant: " + e.getMessage());
@@ -463,8 +687,16 @@ public class VehicleController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete variant: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete variant: " + e.getMessage());
@@ -475,43 +707,82 @@ public class VehicleController {
     // Vehicle Color endpoints
     @GetMapping("/colors")
     @Operation(summary = "Lấy danh sách màu sắc", description = "Lấy tất cả màu sắc xe")
-    public ResponseEntity<List<VehicleColor>> getAllColors() {
-        List<VehicleColor> colors = vehicleService.getAllColors();
-        return ResponseEntity.ok(colors);
+    public ResponseEntity<?> getAllColors() {
+        try {
+            List<VehicleColor> colors = vehicleService.getAllColors();
+            List<Map<String, Object>> colorList = colors.stream().map(this::colorToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(colorList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve colors: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/colors/active")
     @Operation(summary = "Lấy màu sắc đang hoạt động", description = "Lấy màu sắc xe đang hoạt động")
-    public ResponseEntity<List<VehicleColor>> getActiveColors() {
-        List<VehicleColor> colors = vehicleService.getActiveColors();
-        return ResponseEntity.ok(colors);
+    public ResponseEntity<?> getActiveColors() {
+        try {
+            List<VehicleColor> colors = vehicleService.getActiveColors();
+            List<Map<String, Object>> colorList = colors.stream().map(this::colorToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(colorList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active colors: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/colors/{colorId}")
-    public ResponseEntity<VehicleColor> getColorById(@PathVariable Integer colorId) {
-        return vehicleService.getColorById(colorId)
-                .map(color -> ResponseEntity.ok(color))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getColorById(@PathVariable Integer colorId) {
+        try {
+            return vehicleService.getColorById(colorId)
+                    .map(color -> ResponseEntity.ok(colorToMap(color)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/colors/name/{colorName}")
-    public ResponseEntity<VehicleColor> getColorByName(@PathVariable String colorName) {
-        return vehicleService.getColorByName(colorName)
-                .map(color -> ResponseEntity.ok(color))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getColorByName(@PathVariable String colorName) {
+        try {
+            return vehicleService.getColorByName(colorName)
+                    .map(color -> ResponseEntity.ok(colorToMap(color)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/colors/code/{colorCode}")
-    public ResponseEntity<VehicleColor> getColorByCode(@PathVariable String colorCode) {
-        return vehicleService.getColorByCode(colorCode)
-                .map(color -> ResponseEntity.ok(color))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getColorByCode(@PathVariable String colorCode) {
+        try {
+            return vehicleService.getColorByCode(colorCode)
+                    .map(color -> ResponseEntity.ok(colorToMap(color)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/colors/search")
-    public ResponseEntity<List<VehicleColor>> searchColorsByName(@RequestParam String name) {
-        List<VehicleColor> colors = vehicleService.searchColorsByName(name);
-        return ResponseEntity.ok(colors);
+    public ResponseEntity<?> searchColorsByName(@RequestParam String name) {
+        try {
+            List<VehicleColor> colors = vehicleService.searchColorsByName(name);
+            List<Map<String, Object>> colorList = colors.stream().map(this::colorToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(colorList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to search colors: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping("/colors")
@@ -533,7 +804,7 @@ public class VehicleController {
             }
             
             VehicleColor createdColor = vehicleService.createColorFromRequest(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdColor);
+            return ResponseEntity.status(HttpStatus.CREATED).body(colorToMap(createdColor));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create color: " + e.getMessage());
@@ -564,7 +835,7 @@ public class VehicleController {
             }
             
             VehicleColor updatedColor = vehicleService.updateColorFromRequest(colorId, request);
-            return ResponseEntity.ok(updatedColor);
+            return ResponseEntity.ok(colorToMap(updatedColor));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update color: " + e.getMessage());
@@ -599,8 +870,16 @@ public class VehicleController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to delete color: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            String errorMessage = e.getMessage();
+            error.put("error", errorMessage);
+            // Phân biệt giữa entity không tồn tại và lỗi foreign key constraint
+            if (errorMessage != null && errorMessage.contains("Cannot delete")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            } else if (errorMessage != null && errorMessage.contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete color: " + e.getMessage());

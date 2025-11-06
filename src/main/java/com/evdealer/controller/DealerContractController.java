@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/dealer-contracts")
@@ -28,6 +29,31 @@ public class DealerContractController {
     
     @Autowired
     private SecurityUtils securityUtils;
+    
+    private Map<String, Object> contractToMap(DealerContract contract) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("contractId", contract.getContractId());
+        map.put("contractNumber", contract.getContractNumber());
+        map.put("contractType", contract.getContractType());
+        map.put("startDate", contract.getStartDate());
+        map.put("endDate", contract.getEndDate());
+        map.put("territory", contract.getTerritory());
+        map.put("commissionRate", contract.getCommissionRate());
+        map.put("minimumSalesTarget", contract.getMinimumSalesTarget());
+        map.put("contractStatus", contract.getContractStatus() != null ? contract.getContractStatus().toString() : null);
+        map.put("signedDate", contract.getSignedDate());
+        map.put("contractFileUrl", contract.getContractFileUrl());
+        map.put("contractFilePath", contract.getContractFilePath());
+        map.put("termsAndConditions", contract.getTermsAndConditions());
+        map.put("monthlyTarget", contract.getMonthlyTarget());
+        map.put("yearlyTarget", contract.getYearlyTarget());
+        map.put("createdAt", contract.getCreatedAt());
+        map.put("updatedAt", contract.getUpdatedAt());
+        if (contract.getDealer() != null) {
+            map.put("dealerId", contract.getDealer().getDealerId());
+        }
+        return map;
+    }
     
     @GetMapping
     @Operation(summary = "Lấy danh sách hợp đồng", description = "Lấy tất cả hợp đồng đại lý")
@@ -53,7 +79,8 @@ public class DealerContractController {
                 }
             }
             
-            return ResponseEntity.ok(contracts);
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get contracts: " + e.getMessage());
@@ -88,7 +115,7 @@ public class DealerContractController {
                 }
             }
             
-            return ResponseEntity.ok(contract);
+            return ResponseEntity.ok(contractToMap(contract));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get contract: " + e.getMessage());
@@ -102,52 +129,100 @@ public class DealerContractController {
     
     @GetMapping("/contract-number/{contractNumber}")
     @Operation(summary = "Lấy hợp đồng theo số", description = "Lấy thông tin hợp đồng theo số hợp đồng")
-    public ResponseEntity<DealerContract> getContractByNumber(@PathVariable String contractNumber) {
-        return dealerContractService.getContractByNumber(contractNumber)
-                .map(contract -> ResponseEntity.ok(contract))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getContractByNumber(@PathVariable String contractNumber) {
+        try {
+            return dealerContractService.getContractByNumber(contractNumber)
+                    .map(contract -> ResponseEntity.ok(contractToMap(contract)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contract: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/type/{contractType}")
     @Operation(summary = "Lấy hợp đồng theo loại", description = "Lấy danh sách hợp đồng theo loại")
-    public ResponseEntity<List<DealerContract>> getContractsByType(@PathVariable String contractType) {
-        List<DealerContract> contracts = dealerContractService.getContractsByType(contractType);
-        return ResponseEntity.ok(contracts);
+    public ResponseEntity<?> getContractsByType(@PathVariable String contractType) {
+        try {
+            List<DealerContract> contracts = dealerContractService.getContractsByType(contractType);
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Lấy hợp đồng theo trạng thái", description = "Lấy danh sách hợp đồng theo trạng thái")
-    public ResponseEntity<List<DealerContract>> getContractsByStatus(@PathVariable String status) {
-        List<DealerContract> contracts = dealerContractService.getContractsByStatus(status);
-        return ResponseEntity.ok(contracts);
+    public ResponseEntity<?> getContractsByStatus(@PathVariable String status) {
+        try {
+            List<DealerContract> contracts = dealerContractService.getContractsByStatus(status);
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active")
     @Operation(summary = "Lấy hợp đồng đang hoạt động", description = "Lấy danh sách hợp đồng đang hoạt động")
-    public ResponseEntity<List<DealerContract>> getActiveContracts() {
-        List<DealerContract> contracts = dealerContractService.getActiveContracts();
-        return ResponseEntity.ok(contracts);
+    public ResponseEntity<?> getActiveContracts() {
+        try {
+            List<DealerContract> contracts = dealerContractService.getActiveContracts();
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/date/{date}")
     @Operation(summary = "Lấy hợp đồng hoạt động theo ngày", description = "Lấy hợp đồng hoạt động theo ngày")
-    public ResponseEntity<List<DealerContract>> getActiveContractsByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<DealerContract> contracts = dealerContractService.getActiveContractsByDate(date);
-        return ResponseEntity.ok(contracts);
+    public ResponseEntity<?> getActiveContractsByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            List<DealerContract> contracts = dealerContractService.getActiveContractsByDate(date);
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/type/{contractType}/status/{status}")
     @Operation(summary = "Lấy hợp đồng theo loại và trạng thái", description = "Lấy hợp đồng theo loại và trạng thái")
-    public ResponseEntity<List<DealerContract>> getContractsByTypeAndStatus(@PathVariable String contractType, @PathVariable String status) {
-        List<DealerContract> contracts = dealerContractService.getContractsByTypeAndStatus(contractType, status);
-        return ResponseEntity.ok(contracts);
+    public ResponseEntity<?> getContractsByTypeAndStatus(@PathVariable String contractType, @PathVariable String status) {
+        try {
+            List<DealerContract> contracts = dealerContractService.getContractsByTypeAndStatus(contractType, status);
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/territory/{territory}")
     @Operation(summary = "Lấy hợp đồng theo khu vực", description = "Lấy hợp đồng theo khu vực")
-    public ResponseEntity<List<DealerContract>> getContractsByTerritory(@PathVariable String territory) {
-        List<DealerContract> contracts = dealerContractService.getContractsByTerritory(territory);
-        return ResponseEntity.ok(contracts);
+    public ResponseEntity<?> getContractsByTerritory(@PathVariable String territory) {
+        try {
+            List<DealerContract> contracts = dealerContractService.getContractsByTerritory(territory);
+            List<Map<String, Object>> contractList = contracts.stream().map(this::contractToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -169,7 +244,7 @@ public class DealerContractController {
             }
             
             DealerContract createdContract = dealerContractService.createContract(contract);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdContract);
+            return ResponseEntity.status(HttpStatus.CREATED).body(contractToMap(createdContract));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create contract: " + e.getMessage());
@@ -200,7 +275,7 @@ public class DealerContractController {
             }
             
             DealerContract updatedContract = dealerContractService.updateContract(contractId, contractDetails);
-            return ResponseEntity.ok(updatedContract);
+            return ResponseEntity.ok(contractToMap(updatedContract));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update contract: " + e.getMessage());
@@ -231,7 +306,7 @@ public class DealerContractController {
             }
             
             DealerContract updatedContract = dealerContractService.updateContractStatus(contractId, status);
-            return ResponseEntity.ok(updatedContract);
+            return ResponseEntity.ok(contractToMap(updatedContract));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update contract status: " + e.getMessage());
@@ -283,7 +358,7 @@ public class DealerContractController {
             }
             
             DealerContract updatedContract = dealerContractService.signContract(contractId, signedDate);
-            return ResponseEntity.ok(updatedContract);
+            return ResponseEntity.ok(contractToMap(updatedContract));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to sign contract: " + e.getMessage());

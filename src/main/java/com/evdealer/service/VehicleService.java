@@ -146,7 +146,12 @@ public class VehicleService {
     public void deleteBrand(Integer brandId) {
         VehicleBrand brand = vehicleBrandRepository.findById(brandId)
                 .orElseThrow(() -> new RuntimeException("Brand not found with id: " + brandId));
-        vehicleBrandRepository.delete(brand);
+        
+        try {
+            vehicleBrandRepository.delete(brand);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete brand: " + e.getMessage() + ". Brand may be referenced by vehicle models.");
+        }
     }
     
     // Vehicle Model methods
@@ -304,7 +309,12 @@ public class VehicleService {
     public void deleteModel(Integer modelId) {
         VehicleModel model = vehicleModelRepository.findById(modelId)
                 .orElseThrow(() -> new RuntimeException("Model not found with id: " + modelId));
-        vehicleModelRepository.delete(model);
+        
+        try {
+            vehicleModelRepository.delete(model);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete model: " + e.getMessage() + ". Model may be referenced by vehicle variants.");
+        }
     }
     
     // Vehicle Variant methods
@@ -518,7 +528,12 @@ public class VehicleService {
     public void deleteVariant(Integer variantId) {
         VehicleVariant variant = vehicleVariantRepository.findById(variantId)
                 .orElseThrow(() -> new RuntimeException("Variant not found with id: " + variantId));
-        vehicleVariantRepository.delete(variant);
+        
+        try {
+            vehicleVariantRepository.delete(variant);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete variant: " + e.getMessage() + ". Variant may be referenced by inventory, orders, or quotations.");
+        }
     }
     
     // Vehicle Color methods
@@ -640,7 +655,12 @@ public class VehicleService {
     public void deleteColor(Integer colorId) {
         VehicleColor color = vehicleColorRepository.findById(colorId)
                 .orElseThrow(() -> new RuntimeException("Color not found with id: " + colorId));
-        vehicleColorRepository.delete(color);
+        
+        try {
+            vehicleColorRepository.delete(color);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot delete color: " + e.getMessage() + ". Color may be referenced by inventory, orders, or quotations.");
+        }
     }
 }
 

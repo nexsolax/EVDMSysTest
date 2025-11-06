@@ -109,10 +109,9 @@ public class DealerInvoiceService {
     }
     
     public void deleteInvoice(UUID invoiceId) {
-        if (!dealerInvoiceRepository.existsById(invoiceId)) {
-            throw new RuntimeException("Invoice not found");
-        }
-        dealerInvoiceRepository.deleteById(invoiceId);
+        DealerInvoice invoice = dealerInvoiceRepository.findById(invoiceId)
+                .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+        dealerInvoiceRepository.delete(invoice);
     }
     
     public DealerInvoice updateInvoiceStatus(UUID invoiceId, String status) {

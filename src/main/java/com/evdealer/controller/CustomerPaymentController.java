@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/customer-payments")
@@ -31,76 +32,172 @@ public class CustomerPaymentController {
     
     @GetMapping
     @Operation(summary = "Get all customer payments", description = "Retrieve a list of all customer payments")
-    public ResponseEntity<List<CustomerPayment>> getAllCustomerPayments() {
-        List<CustomerPayment> payments = customerPaymentService.getAllCustomerPayments();
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getAllCustomerPayments() {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getAllCustomerPayments();
+            
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    private Map<String, Object> paymentToMap(CustomerPayment payment) {
+        Map<String, Object> paymentMap = new HashMap<>();
+        paymentMap.put("paymentId", payment.getPaymentId());
+        paymentMap.put("paymentNumber", payment.getPaymentNumber());
+        paymentMap.put("paymentDate", payment.getPaymentDate());
+        paymentMap.put("amount", payment.getAmount());
+        paymentMap.put("paymentType", payment.getPaymentType());
+        paymentMap.put("paymentMethod", payment.getPaymentMethod());
+        paymentMap.put("referenceNumber", payment.getReferenceNumber());
+        paymentMap.put("status", payment.getStatus());
+        paymentMap.put("notes", payment.getNotes());
+        paymentMap.put("createdAt", payment.getCreatedAt());
+        
+        if (payment.getOrder() != null) {
+            paymentMap.put("orderId", payment.getOrder().getOrderId());
+        }
+        if (payment.getCustomer() != null) {
+            paymentMap.put("customerId", payment.getCustomer().getCustomerId());
+        }
+        if (payment.getProcessedBy() != null) {
+            paymentMap.put("processedBy", payment.getProcessedBy().getUserId());
+        }
+        
+        return paymentMap;
     }
     
     @GetMapping("/{paymentId}")
     @Operation(summary = "Get payment by ID", description = "Retrieve a specific customer payment by its ID")
-    public ResponseEntity<CustomerPayment> getPaymentById(@PathVariable @Parameter(description = "Payment ID") UUID paymentId) {
-        return customerPaymentService.getPaymentById(paymentId)
-                .map(payment -> ResponseEntity.ok(payment))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getPaymentById(@PathVariable @Parameter(description = "Payment ID") UUID paymentId) {
+        try {
+            return customerPaymentService.getPaymentById(paymentId)
+                    .map(payment -> ResponseEntity.ok(paymentToMap(payment)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/number/{paymentNumber}")
     @Operation(summary = "Get payment by number", description = "Retrieve a specific customer payment by its number")
-    public ResponseEntity<CustomerPayment> getPaymentByNumber(@PathVariable String paymentNumber) {
-        return customerPaymentService.getPaymentByNumber(paymentNumber)
-                .map(payment -> ResponseEntity.ok(payment))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getPaymentByNumber(@PathVariable String paymentNumber) {
+        try {
+            return customerPaymentService.getPaymentByNumber(paymentNumber)
+                    .map(payment -> ResponseEntity.ok(paymentToMap(payment)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payment: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Get payments by status", description = "Retrieve customer payments filtered by status")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByStatus(@PathVariable String status) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByStatus(status);
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getPaymentsByStatus(@PathVariable String status) {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByStatus(status);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "Get payments by customer", description = "Retrieve customer payments for a specific customer")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByCustomer(@PathVariable UUID customerId) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByCustomer(customerId);
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getPaymentsByCustomer(@PathVariable UUID customerId) {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByCustomer(customerId);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/order/{orderId}")
     @Operation(summary = "Get payments by order", description = "Retrieve customer payments for a specific order")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByOrder(@PathVariable UUID orderId) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByOrder(orderId);
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getPaymentsByOrder(@PathVariable UUID orderId) {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByOrder(orderId);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/date-range")
     @Operation(summary = "Get payments by date range", description = "Retrieve customer payments within a date range")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByDateRange(
+    public ResponseEntity<?> getPaymentsByDateRange(
             @RequestParam @Parameter(description = "Start date") LocalDate startDate,
             @RequestParam @Parameter(description = "End date") LocalDate endDate) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByDateRange(startDate, endDate);
-        return ResponseEntity.ok(payments);
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByDateRange(startDate, endDate);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/type/{paymentType}")
     @Operation(summary = "Get payments by type", description = "Retrieve customer payments filtered by payment type")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByType(@PathVariable String paymentType) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByType(paymentType);
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getPaymentsByType(@PathVariable String paymentType) {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByType(paymentType);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/method/{paymentMethod}")
     @Operation(summary = "Get payments by method", description = "Retrieve customer payments filtered by payment method")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByMethod(@PathVariable String paymentMethod) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByMethod(paymentMethod);
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getPaymentsByMethod(@PathVariable String paymentMethod) {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByMethod(paymentMethod);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/processed-by/{userId}")
     @Operation(summary = "Get payments by processed by", description = "Retrieve customer payments processed by a specific user")
-    public ResponseEntity<List<CustomerPayment>> getPaymentsByProcessedBy(@PathVariable UUID userId) {
-        List<CustomerPayment> payments = customerPaymentService.getPaymentsByProcessedBy(userId);
-        return ResponseEntity.ok(payments);
+    public ResponseEntity<?> getPaymentsByProcessedBy(@PathVariable UUID userId) {
+        try {
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByProcessedBy(userId);
+            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(paymentList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payments: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -122,7 +219,7 @@ public class CustomerPaymentController {
             }
             
             CustomerPayment createdPayment = customerPaymentService.createCustomerPayment(customerPayment);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdPayment);
+            return ResponseEntity.status(HttpStatus.CREATED).body(paymentToMap(createdPayment));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create customer payment: " + e.getMessage());
@@ -155,7 +252,7 @@ public class CustomerPaymentController {
             }
             
             CustomerPayment updatedPayment = customerPaymentService.updateCustomerPayment(paymentId, customerPaymentDetails);
-            return ResponseEntity.ok(updatedPayment);
+            return ResponseEntity.ok(paymentToMap(updatedPayment));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update customer payment: " + e.getMessage());
@@ -188,7 +285,7 @@ public class CustomerPaymentController {
             }
             
             CustomerPayment updatedPayment = customerPaymentService.updatePaymentStatus(paymentId, status);
-            return ResponseEntity.ok(updatedPayment);
+            return ResponseEntity.ok(paymentToMap(updatedPayment));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update payment status: " + e.getMessage());

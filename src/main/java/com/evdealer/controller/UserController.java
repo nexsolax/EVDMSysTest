@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -34,32 +35,68 @@ public class UserController {
     // User endpoints
     @GetMapping
     @Operation(summary = "Lấy danh sách người dùng", description = "Lấy tất cả người dùng trong hệ thống")
-    public ResponseEntity<List<User>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getAllUsers() {
+        try {
+            List<User> users = userService.getAllUsers();
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    private Map<String, Object> userToMap(User user) {
+        Map<String, Object> userMap = new HashMap<>();
+        userMap.put("userId", user.getUserId());
+        userMap.put("username", user.getUsername());
+        userMap.put("email", user.getEmail());
+        userMap.put("firstName", user.getFirstName());
+        userMap.put("lastName", user.getLastName());
+        userMap.put("phone", user.getPhone());
+        userMap.put("address", user.getAddress());
+        userMap.put("dateOfBirth", user.getDateOfBirth());
+        userMap.put("profileImageUrl", user.getProfileImageUrl());
+        userMap.put("profileImagePath", user.getProfileImagePath());
+        userMap.put("userType", user.getUserType() != null ? user.getUserType().toString() : null);
+        userMap.put("status", user.getStatus() != null ? user.getStatus().toString() : null);
+        userMap.put("createdAt", user.getCreatedAt());
+        userMap.put("updatedAt", user.getUpdatedAt());
+        
+        if (user.getDealer() != null) {
+            userMap.put("dealerId", user.getDealer().getDealerId());
+        }
+        
+        return userMap;
     }
     
     @GetMapping("/active")
     @Operation(summary = "Lấy người dùng đang hoạt động", description = "Lấy danh sách người dùng đang hoạt động")
-    public ResponseEntity<List<User>> getActiveUsers() {
-        List<User> users = userService.getActiveUsers();
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getActiveUsers() {
+        try {
+            List<User> users = userService.getActiveUsers();
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{userId}")
     @Operation(summary = "Lấy người dùng theo ID", description = "Lấy thông tin người dùng theo ID")
-    public ResponseEntity<User> getUserById(@PathVariable @Parameter(description = "User ID") UUID userId) {
-        return userService.getUserById(userId)
-                .map(user -> {
-                    // Remove password hash for security
-                    user.setPasswordHash(null);
-                    return ResponseEntity.ok(user);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUserById(@PathVariable @Parameter(description = "User ID") UUID userId) {
+        try {
+            return userService.getUserById(userId)
+                    .map(user -> ResponseEntity.ok(userToMap(user)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/me")
@@ -69,9 +106,7 @@ public class UserController {
             Optional<User> userOpt = securityUtils.getCurrentUser();
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
-                // Remove password hash for security
-                user.setPasswordHash(null);
-                return ResponseEntity.ok(user);
+                return ResponseEntity.ok(userToMap(user));
             } else {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "User not found or not authenticated");
@@ -86,35 +121,44 @@ public class UserController {
     
     @GetMapping("/username/{username}")
     @Operation(summary = "Lấy người dùng theo tên đăng nhập", description = "Lấy thông tin người dùng theo tên đăng nhập")
-    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
-        return userService.getUserByUsername(username)
-                .map(user -> {
-                    // Remove password hash for security
-                    user.setPasswordHash(null);
-                    return ResponseEntity.ok(user);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUserByUsername(@PathVariable String username) {
+        try {
+            return userService.getUserByUsername(username)
+                    .map(user -> ResponseEntity.ok(userToMap(user)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/email/{email}")
     @Operation(summary = "Lấy người dùng theo email", description = "Lấy thông tin người dùng theo email")
-    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
-        return userService.getUserByEmail(email)
-                .map(user -> {
-                    // Remove password hash for security
-                    user.setPasswordHash(null);
-                    return ResponseEntity.ok(user);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getUserByEmail(@PathVariable String email) {
+        try {
+            return userService.getUserByEmail(email)
+                    .map(user -> ResponseEntity.ok(userToMap(user)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve user: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/role/{roleName}")
     @Operation(summary = "Lấy người dùng theo vai trò", description = "Lấy danh sách người dùng theo vai trò")
-    public ResponseEntity<List<User>> getUsersByRole(@PathVariable String roleName) {
-        List<User> users = userService.getUsersByRole(roleName);
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getUsersByRole(@PathVariable String roleName) {
+        try {
+            List<User> users = userService.getUsersByRole(roleName);
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer/{dealerId}")
@@ -142,9 +186,8 @@ public class UserController {
             }
             
             List<User> users = userService.getUsersByDealer(dealerId);
-            // Remove password hash from all users for security
-            users.forEach(user -> user.setPasswordHash(null));
-            return ResponseEntity.ok(users);
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get users: " + e.getMessage());
@@ -154,56 +197,86 @@ public class UserController {
     
     @GetMapping("/role-string/{roleString}")
     @Operation(summary = "Lấy người dùng theo role string", description = "Lấy danh sách người dùng theo role string (DEALER_STAFF, DEALER_MANAGER, EVM_STAFF, ADMIN)")
-    public ResponseEntity<List<User>> getUsersByRoleString(@PathVariable String roleString) {
-        List<User> users = userService.getUsersByRoleString(roleString);
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getUsersByRoleString(@PathVariable String roleString) {
+        try {
+            List<User> users = userService.getUsersByRoleString(roleString);
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer-staff")
     @Operation(summary = "Lấy nhân viên đại lý", description = "Lấy danh sách tất cả nhân viên đại lý")
-    public ResponseEntity<List<User>> getDealerStaff() {
-        List<User> users = userService.getUsersByRoleString("DEALER_STAFF");
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getDealerStaff() {
+        try {
+            List<User> users = userService.getUsersByRoleString("DEALER_STAFF");
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/dealer-managers")
     @Operation(summary = "Lấy quản lý đại lý", description = "Lấy danh sách tất cả quản lý đại lý")
-    public ResponseEntity<List<User>> getDealerManagers() {
-        List<User> users = userService.getUsersByRoleString("DEALER_MANAGER");
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getDealerManagers() {
+        try {
+            List<User> users = userService.getUsersByRoleString("DEALER_MANAGER");
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/evm-staff")
     @Operation(summary = "Lấy nhân viên EVM", description = "Lấy danh sách tất cả nhân viên EVM")
-    public ResponseEntity<List<User>> getEvmStaff() {
-        List<User> users = userService.getUsersByRoleString("EVM_STAFF");
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getEvmStaff() {
+        try {
+            List<User> users = userService.getUsersByRoleString("EVM_STAFF");
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/admins")
     @Operation(summary = "Lấy quản trị viên", description = "Lấy danh sách tất cả quản trị viên")
-    public ResponseEntity<List<User>> getAdmins() {
-        List<User> users = userService.getUsersByRoleString("ADMIN");
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> getAdmins() {
+        try {
+            List<User> users = userService.getUsersByRoleString("ADMIN");
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm người dùng", description = "Tìm kiếm người dùng theo tên")
-    public ResponseEntity<List<User>> searchUsersByName(@RequestParam String name) {
-        List<User> users = userService.searchUsersByName(name);
-        // Remove password hash from all users for security
-        users.forEach(user -> user.setPasswordHash(null));
-        return ResponseEntity.ok(users);
+    public ResponseEntity<?> searchUsersByName(@RequestParam String name) {
+        try {
+            List<User> users = userService.searchUsersByName(name);
+            List<Map<String, Object>> userList = users.stream().map(this::userToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(userList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve users: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -225,9 +298,7 @@ public class UserController {
             }
             
             User createdUser = userService.createUser(user);
-            // Remove password hash from response for security
-            createdUser.setPasswordHash(null);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+            return ResponseEntity.status(HttpStatus.CREATED).body(userToMap(createdUser));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create user: " + e.getMessage());
@@ -258,9 +329,7 @@ public class UserController {
             }
             
             User createdUser = userService.createUserFromRequest(request);
-            // Remove password hash from response for security
-            createdUser.setPasswordHash(null);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+            return ResponseEntity.status(HttpStatus.CREATED).body(userToMap(createdUser));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
@@ -302,9 +371,7 @@ public class UserController {
             }
             
             User updatedUser = userService.updateUser(userId, userUpdateRequest);
-            // Remove password hash from response for security
-            updatedUser.setPasswordHash(null);
-            return ResponseEntity.ok(updatedUser);
+            return ResponseEntity.ok(userToMap(updatedUser));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update user: " + e.getMessage());

@@ -79,10 +79,9 @@ public class InstallmentScheduleService {
     }
     
     public void deleteInstallmentSchedule(UUID scheduleId) {
-        if (!installmentScheduleRepository.existsById(scheduleId)) {
-            throw new RuntimeException("Installment schedule not found");
-        }
-        installmentScheduleRepository.deleteById(scheduleId);
+        InstallmentSchedule schedule = installmentScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new RuntimeException("Installment schedule not found with id: " + scheduleId));
+        installmentScheduleRepository.delete(schedule);
     }
     
     public InstallmentSchedule updateScheduleStatus(UUID scheduleId, String status) {

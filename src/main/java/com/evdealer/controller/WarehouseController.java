@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/warehouses")
@@ -28,48 +29,106 @@ public class WarehouseController {
     @Autowired
     private SecurityUtils securityUtils;
     
+    private Map<String, Object> warehouseToMap(Warehouse warehouse) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("warehouseId", warehouse.getWarehouseId());
+        map.put("warehouseName", warehouse.getWarehouseName());
+        map.put("warehouseCode", warehouse.getWarehouseCode());
+        map.put("address", warehouse.getAddress());
+        map.put("city", warehouse.getCity());
+        map.put("province", warehouse.getProvince());
+        map.put("postalCode", warehouse.getPostalCode());
+        map.put("phone", warehouse.getPhone());
+        map.put("email", warehouse.getEmail());
+        map.put("capacity", warehouse.getCapacity());
+        map.put("isActive", warehouse.getIsActive());
+        map.put("createdAt", warehouse.getCreatedAt());
+        map.put("updatedAt", warehouse.getUpdatedAt());
+        return map;
+    }
+    
     @GetMapping
     @Operation(summary = "Lấy danh sách kho", description = "Lấy tất cả kho")
-    public ResponseEntity<List<Warehouse>> getAllWarehouses() {
-        List<Warehouse> warehouses = warehouseService.getAllWarehouses();
-        return ResponseEntity.ok(warehouses);
+    public ResponseEntity<?> getAllWarehouses() {
+        try {
+            List<Warehouse> warehouses = warehouseService.getAllWarehouses();
+            List<Map<String, Object>> warehouseList = warehouses.stream().map(this::warehouseToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(warehouseList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve warehouses: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active")
     @Operation(summary = "Lấy kho đang hoạt động", description = "Lấy kho đang hoạt động")
-    public ResponseEntity<List<Warehouse>> getActiveWarehouses() {
-        List<Warehouse> warehouses = warehouseService.getActiveWarehouses();
-        return ResponseEntity.ok(warehouses);
+    public ResponseEntity<?> getActiveWarehouses() {
+        try {
+            List<Warehouse> warehouses = warehouseService.getActiveWarehouses();
+            List<Map<String, Object>> warehouseList = warehouses.stream().map(this::warehouseToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(warehouseList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve active warehouses: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{warehouseId}")
     @Operation(summary = "Lấy kho theo ID", description = "Lấy thông tin kho theo ID")
-    public ResponseEntity<Warehouse> getWarehouseById(@PathVariable @Parameter(description = "Warehouse ID") UUID warehouseId) {
-        return warehouseService.getWarehouseById(warehouseId)
-                .map(warehouse -> ResponseEntity.ok(warehouse))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getWarehouseById(@PathVariable @Parameter(description = "Warehouse ID") UUID warehouseId) {
+        try {
+            return warehouseService.getWarehouseById(warehouseId)
+                    .map(warehouse -> ResponseEntity.ok(warehouseToMap(warehouse)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve warehouse: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/code/{warehouseCode}")
     @Operation(summary = "Lấy kho theo mã", description = "Lấy thông tin kho theo mã kho")
-    public ResponseEntity<Warehouse> getWarehouseByCode(@PathVariable String warehouseCode) {
-        return warehouseService.getWarehouseByCode(warehouseCode)
-                .map(warehouse -> ResponseEntity.ok(warehouse))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getWarehouseByCode(@PathVariable String warehouseCode) {
+        try {
+            return warehouseService.getWarehouseByCode(warehouseCode)
+                    .map(warehouse -> ResponseEntity.ok(warehouseToMap(warehouse)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve warehouse: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/city/{city}")
     @Operation(summary = "Lấy kho theo thành phố", description = "Lấy kho theo thành phố")
-    public ResponseEntity<List<Warehouse>> getWarehousesByCity(@PathVariable String city) {
-        List<Warehouse> warehouses = warehouseService.getWarehousesByCity(city);
-        return ResponseEntity.ok(warehouses);
+    public ResponseEntity<?> getWarehousesByCity(@PathVariable String city) {
+        try {
+            List<Warehouse> warehouses = warehouseService.getWarehousesByCity(city);
+            List<Map<String, Object>> warehouseList = warehouses.stream().map(this::warehouseToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(warehouseList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve warehouses: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/province/{province}")
     @Operation(summary = "Lấy kho theo tỉnh", description = "Lấy kho theo tỉnh")
-    public ResponseEntity<List<Warehouse>> getWarehousesByProvince(@PathVariable String province) {
-        List<Warehouse> warehouses = warehouseService.getWarehousesByProvince(province);
-        return ResponseEntity.ok(warehouses);
+    public ResponseEntity<?> getWarehousesByProvince(@PathVariable String province) {
+        try {
+            List<Warehouse> warehouses = warehouseService.getWarehousesByProvince(province);
+            List<Map<String, Object>> warehouseList = warehouses.stream().map(this::warehouseToMap).collect(Collectors.toList());
+            return ResponseEntity.ok(warehouseList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve warehouses: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -91,7 +150,7 @@ public class WarehouseController {
             }
             
             Warehouse createdWarehouse = warehouseService.createWarehouse(warehouse);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdWarehouse);
+            return ResponseEntity.status(HttpStatus.CREATED).body(warehouseToMap(createdWarehouse));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create warehouse: " + e.getMessage());
@@ -124,7 +183,7 @@ public class WarehouseController {
             }
             
             Warehouse updatedWarehouse = warehouseService.updateWarehouse(warehouseId, warehouseDetails);
-            return ResponseEntity.ok(updatedWarehouse);
+            return ResponseEntity.ok(warehouseToMap(updatedWarehouse));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update warehouse: " + e.getMessage());
@@ -155,7 +214,7 @@ public class WarehouseController {
             }
             
             Warehouse activatedWarehouse = warehouseService.activateWarehouse(warehouseId);
-            return ResponseEntity.ok(activatedWarehouse);
+            return ResponseEntity.ok(warehouseToMap(activatedWarehouse));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to activate warehouse: " + e.getMessage());
@@ -186,7 +245,7 @@ public class WarehouseController {
             }
             
             Warehouse deactivatedWarehouse = warehouseService.deactivateWarehouse(warehouseId);
-            return ResponseEntity.ok(deactivatedWarehouse);
+            return ResponseEntity.ok(warehouseToMap(deactivatedWarehouse));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to deactivate warehouse: " + e.getMessage());

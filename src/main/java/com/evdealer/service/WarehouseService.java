@@ -67,10 +67,9 @@ public class WarehouseService {
     }
     
     public void deleteWarehouse(UUID warehouseId) {
-        if (!warehouseRepository.existsById(warehouseId)) {
-            throw new RuntimeException("Warehouse not found");
-        }
-        warehouseRepository.deleteById(warehouseId);
+        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+                .orElseThrow(() -> new RuntimeException("Warehouse not found with id: " + warehouseId));
+        warehouseRepository.delete(warehouse);
     }
     
     public Warehouse activateWarehouse(UUID warehouseId) {
