@@ -38,7 +38,7 @@ public class OrderRequest {
     @Schema(description = "Delivery status", example = "PENDING", allowableValues = {"PENDING", "SCHEDULED", "IN_TRANSIT", "DELIVERED", "CANCELLED"})
     private DeliveryStatus deliveryStatus;
     
-    @Schema(description = "Order status", example = "pending", allowableValues = {"pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "quoted"})
+    @Schema(description = "Order status", example = "pending", allowableValues = {"pending", "quoted", "confirmed", "paid", "delivered", "completed", "rejected", "cancelled"})
     private String status;
     
     @Schema(description = "Fulfillment status", example = "pending")

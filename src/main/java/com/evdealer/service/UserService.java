@@ -151,7 +151,6 @@ public class UserService {
         user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
-        // Note: User entity doesn't have notes field, so we skip it
         
         // Validate dealer requirement: Non-admin users must have dealer
         com.evdealer.enums.UserType userType = request.getUserType() != null ? request.getUserType() : com.evdealer.enums.UserType.DEALER_STAFF;
@@ -204,16 +203,6 @@ public class UserService {
         // Use findByIdWithDealer to eagerly load dealer relationship
         User user = userRepository.findByIdWithDealer(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        
-        // Log incoming data for debugging
-        System.out.println("=== USER SERVICE UPDATE DEBUG ===");
-        System.out.println("Existing user username: " + user.getUsername());
-        System.out.println("New username: " + userUpdateRequest.getUsername());
-        System.out.println("New email: " + userUpdateRequest.getEmail());
-        System.out.println("New user type: " + userUpdateRequest.getUserType());
-        System.out.println("New status: " + userUpdateRequest.getStatus());
-        System.out.println("New is active: " + userUpdateRequest.getIsActive());
-        System.out.println("==================================");
         
         // Check for duplicate username (excluding current user)
         if (userUpdateRequest.getUsername() != null && 

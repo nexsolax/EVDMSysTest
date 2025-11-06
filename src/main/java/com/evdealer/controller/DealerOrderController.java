@@ -381,15 +381,9 @@ public class DealerOrderController {
     @Operation(summary = "Tạo đơn hàng đại lý chi tiết", description = "Tạo đơn hàng đại lý với danh sách xe chi tiết")
     public ResponseEntity<?> createDetailedDealerOrder(@RequestBody CreateDealerOrderRequest request) {
         try {
-            // Debug: Log authentication info
             var currentUserOpt = securityUtils.getCurrentUser();
             var currentRoleOpt = securityUtils.getCurrentUserRole();
             var currentUsernameOpt = securityUtils.getCurrentUsername();
-            
-            System.out.println("DEBUG createDetailedDealerOrder:");
-            System.out.println("  currentUser present: " + currentUserOpt.isPresent());
-            System.out.println("  currentRole: " + currentRoleOpt.orElse("EMPTY"));
-            System.out.println("  currentUsername: " + currentUsernameOpt.orElse("EMPTY"));
             
             // Kiểm tra authentication
             if (!currentUserOpt.isPresent()) {
@@ -413,7 +407,6 @@ public class DealerOrderController {
                 if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
                     UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
                     request.setDealerId(userDealerId);
-                    System.out.println("DEBUG: Auto-set dealerId from current user: " + userDealerId);
                 } else {
                     Map<String, String> error = new HashMap<>();
                     error.put("error", "Cannot determine dealer. Please provide dealerId or ensure your user account is associated with a dealer");
@@ -869,7 +862,6 @@ public class DealerOrderController {
                         .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId));
                     dealerOrder.setDealer(dealer);
                     dealerOrder = dealerOrderRepository.save(dealerOrder);
-                    System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " from database");
                 } else {
                     // Try to get from current user
                     var currentUserOpt = securityUtils.getCurrentUser();
@@ -877,7 +869,6 @@ public class DealerOrderController {
                         Dealer userDealer = currentUserOpt.get().getDealer();
                         dealerOrder.setDealer(userDealer);
                         dealerOrder = dealerOrderRepository.save(dealerOrder);
-                        System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " from current user's dealer");
                     } else {
                         // Try to get default dealer (first available dealer)
                         List<Dealer> dealers = dealerService.getAllDealers();
@@ -885,7 +876,6 @@ public class DealerOrderController {
                             Dealer defaultDealer = dealers.get(0);
                             dealerOrder.setDealer(defaultDealer);
                             dealerOrder = dealerOrderRepository.save(dealerOrder);
-                            System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " using default dealer: " + defaultDealer.getDealerId());
                         } else {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Dealer order does not have a dealer associated and no dealer available");

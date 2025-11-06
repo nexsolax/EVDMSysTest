@@ -565,14 +565,12 @@ public class VehicleDeliveryController {
                         .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId));
                     dealerOrder.setDealer(dealer);
                     dealerOrderRepository.save(dealerOrder);
-                    System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " from database");
                 } else {
                     // Try to get from current user if available
                     var currentUserOpt = securityUtils.getCurrentUser();
                     if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
                         dealerOrder.setDealer(currentUserOpt.get().getDealer());
                         dealerOrderRepository.save(dealerOrder);
-                        System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " from current user");
                     } else {
                         // Try to get default dealer (first available dealer)
                         List<Dealer> dealers = dealerService.getAllDealers();
@@ -580,7 +578,6 @@ public class VehicleDeliveryController {
                             Dealer defaultDealer = dealers.get(0);
                             dealerOrder.setDealer(defaultDealer);
                             dealerOrderRepository.save(dealerOrder);
-                            System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " using default dealer: " + defaultDealer.getDealerId());
                         } else {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Dealer order must have a dealer associated. Order ID: " + dealerOrderId + ". dealer_id is NULL in database and no dealer available.");

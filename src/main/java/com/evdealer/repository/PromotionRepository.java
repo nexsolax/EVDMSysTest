@@ -31,7 +31,7 @@ public interface PromotionRepository extends JpaRepository<Promotion, UUID> {
     @Query("SELECT p FROM Promotion p WHERE p.variant.variantId = :variantId AND p.startDate <= :date AND p.endDate >= :date AND p.status = 'active'")
     List<Promotion> findActivePromotionsByVariantAndDate(@Param("variantId") Integer variantId, @Param("date") LocalDate date);
     
-    @Query("SELECT p FROM Promotion p WHERE p.title LIKE %:title%")
+    @Query("SELECT p FROM Promotion p WHERE p.title LIKE CONCAT('%', :title, '%')")
     List<Promotion> findByTitleContaining(@Param("title") String title);
 }
 

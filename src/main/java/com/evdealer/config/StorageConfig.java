@@ -40,7 +40,6 @@ public class StorageConfig implements WebMvcConfigurer {
             Path categoryPath = Paths.get(uploadDir, category);
             if (!Files.exists(categoryPath)) {
                 Files.createDirectories(categoryPath);
-                System.out.println("Created upload directory: " + categoryPath);
             }
         }
     }

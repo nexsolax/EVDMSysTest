@@ -39,8 +39,6 @@ public class OrderService {
             return orderRepository.findAllWithRelationships();
         } catch (Exception e) {
             // Log error and return empty list
-            System.err.println("Error fetching orders: " + e.getMessage());
-            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -75,6 +73,28 @@ public class OrderService {
         if (orderRepository.existsByOrderNumber(order.getOrderNumber())) {
             throw new RuntimeException("Order number already exists: " + order.getOrderNumber());
         }
+        
+        // Validate foreign keys
+        if (order.getQuotation() != null && order.getQuotation().getQuotationId() != null) {
+            order.setQuotation(quotationRepository.findById(order.getQuotation().getQuotationId())
+                    .orElseThrow(() -> new RuntimeException("Quotation not found with id: " + order.getQuotation().getQuotationId())));
+        }
+        
+        if (order.getCustomer() != null && order.getCustomer().getCustomerId() != null) {
+            order.setCustomer(customerRepository.findById(order.getCustomer().getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with id: " + order.getCustomer().getCustomerId())));
+        }
+        
+        if (order.getUser() != null && order.getUser().getUserId() != null) {
+            order.setUser(userRepository.findById(order.getUser().getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + order.getUser().getUserId())));
+        }
+        
+        if (order.getInventory() != null && order.getInventory().getInventoryId() != null) {
+            order.setInventory(vehicleInventoryRepository.findById(order.getInventory().getInventoryId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle inventory not found with id: " + order.getInventory().getInventoryId())));
+        }
+        
         return orderRepository.save(order);
     }
     
@@ -164,7 +184,6 @@ public class OrderService {
     }
     
     private String generateOrderNumber() {
-        // Generate order number in format: ORD-YYYYMMDD-XXXX
         String dateStr = LocalDate.now().toString().replace("-", "");
         String randomStr = String.format("%04d", (int) (Math.random() * 10000));
         return "ORD-" + dateStr + "-" + randomStr;

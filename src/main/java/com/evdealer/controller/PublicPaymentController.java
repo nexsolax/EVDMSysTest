@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -188,10 +189,26 @@ public class PublicPaymentController {
         try {
             var payments = customerPaymentService.getPaymentsByOrder(orderId);
             
+            List<Map<String, Object>> paymentList = payments.stream().map(payment -> {
+                Map<String, Object> paymentMap = new HashMap<>();
+                paymentMap.put("paymentId", payment.getPaymentId());
+                paymentMap.put("amount", payment.getAmount());
+                paymentMap.put("paymentMethod", payment.getPaymentMethod());
+                paymentMap.put("paymentType", payment.getPaymentType());
+                paymentMap.put("status", payment.getStatus());
+                paymentMap.put("paymentDate", payment.getPaymentDate());
+                paymentMap.put("paymentNumber", payment.getPaymentNumber());
+                paymentMap.put("notes", payment.getNotes());
+                if (payment.getOrder() != null) {
+                    paymentMap.put("orderId", payment.getOrder().getOrderId());
+                }
+                return paymentMap;
+            }).collect(java.util.stream.Collectors.toList());
+            
             Map<String, Object> response = new HashMap<>();
             response.put("orderId", orderId);
-            response.put("payments", payments);
-            response.put("totalPayments", payments.size());
+            response.put("payments", paymentList);
+            response.put("totalPayments", paymentList.size());
             response.put("totalAmount", payments.stream()
                     .map(CustomerPayment::getAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add));

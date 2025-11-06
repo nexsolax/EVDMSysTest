@@ -105,12 +105,8 @@ public class DealerQuotationService {
         DealerOrder dealerOrder = dealerOrderRepository.findByIdWithDetails(dealerOrderId)
             .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
         
-        System.out.println("DEBUG: Order found: " + dealerOrderId);
-        System.out.println("DEBUG: Order number: " + dealerOrder.getDealerOrderNumber());
-        
         // Ensure dealer is loaded - If JOIN FETCH didn't work, try to load it manually
         Dealer dealer = dealerOrder.getDealer();
-        System.out.println("DEBUG: Dealer from order: " + (dealer != null ? "NOT NULL" : "NULL"));
         if (dealer == null) {
             // Try to get dealer_id from the order using native query or EntityManager
             // First reload order without JOIN to check if dealer_id exists
@@ -122,10 +118,8 @@ public class DealerQuotationService {
                 dealer = orderWithoutJoin.getDealer();
                 if (dealer != null) {
                     UUID dealerId = dealer.getDealerId(); // Force initialization
-                    System.out.println("DEBUG: Dealer loaded from proxy. Dealer ID: " + dealerId);
                 }
             } catch (Exception e) {
-                System.out.println("DEBUG: Cannot load dealer from proxy: " + e.getMessage());
             }
             
             // If still null, try to query dealer directly from dealer_id
@@ -136,7 +130,6 @@ public class DealerQuotationService {
                     UUID dealerId = dealerIdOpt.get();
                     dealer = dealerRepository.findById(dealerId)
                         .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId + " from order " + dealerOrderId));
-                    System.out.println("DEBUG: Dealer loaded from dealer_id query. Dealer ID: " + dealerId);
                     // Update dealerOrder with the loaded dealer and save
                     dealerOrder.setDealer(dealer);
                     dealerOrderRepository.save(dealerOrder);
@@ -148,7 +141,6 @@ public class DealerQuotationService {
                         dealer = defaultDealer;
                         dealerOrder.setDealer(dealer);
                         dealerOrderRepository.save(dealerOrder);
-                        System.out.println("DEBUG: Fixed missing dealer_id for order " + dealerOrderId + " using default dealer: " + defaultDealer.getDealerId());
                     } else {
                         throw new RuntimeException("Dealer order must have a dealer associated. Order ID: " + dealerOrderId + ". dealer_id is NULL in database and no dealer available.");
                     }
@@ -158,9 +150,7 @@ public class DealerQuotationService {
             // Force initialization to ensure dealer is loaded within transaction
             try {
                 UUID dealerId = dealer.getDealerId(); // This should trigger loading if needed
-                System.out.println("DEBUG: Dealer loaded successfully. Dealer ID: " + dealerId);
             } catch (org.hibernate.LazyInitializationException e) {
-                System.out.println("DEBUG: LazyInitializationException - Dealer not loaded. Trying to reload...");
                 // Try to reload dealer directly using Hibernate session
                 try {
                     // Use Hibernate's getIdentifier method to get dealer_id from proxy
@@ -169,16 +159,13 @@ public class DealerQuotationService {
                         UUID dealerId = (UUID) initializer.getIdentifier();
                         dealer = dealerRepository.findById(dealerId)
                             .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId));
-                        System.out.println("DEBUG: Dealer reloaded successfully. Dealer ID: " + dealerId);
                     } else {
                         throw new RuntimeException("Dealer is not a Hibernate proxy, cannot extract ID");
                     }
                 } catch (Exception ex) {
-                    System.out.println("DEBUG: Error reloading dealer: " + ex.getMessage());
                     throw new RuntimeException("Failed to load dealer from order: " + ex.getMessage());
                 }
             } catch (Exception e) {
-                System.out.println("DEBUG: Error loading dealer: " + e.getMessage());
                 throw new RuntimeException("Failed to load dealer from order: " + e.getMessage());
             }
         }
@@ -221,10 +208,6 @@ public class DealerQuotationService {
         BigDecimal subtotal = BigDecimal.ZERO;
         
         for (DealerOrderItem orderItem : orderItems) {
-            // Debug logging
-            System.out.println("DEBUG: Processing orderItem - variant: " + (orderItem.getVariant() != null ? "NOT NULL" : "NULL"));
-            System.out.println("DEBUG: orderItem.unitPrice: " + orderItem.getUnitPrice());
-            
             DealerQuotationItem quotationItem = new DealerQuotationItem();
             quotationItem.setQuotation(quotation);
             quotationItem.setVariant(orderItem.getVariant());
@@ -235,24 +218,19 @@ public class DealerQuotationService {
             BigDecimal unitPrice = null;
             if (orderItem.getUnitPrice() != null) {
                 unitPrice = orderItem.getUnitPrice();
-                System.out.println("DEBUG: Using orderItem.unitPrice: " + unitPrice);
             } else if (orderItem.getVariant() != null) {
                 try {
                     // Force load variant price if needed
                     BigDecimal variantPrice = orderItem.getVariant().getPriceBase();
                     if (variantPrice != null) {
                         unitPrice = variantPrice;
-                        System.out.println("DEBUG: Using variant.priceBase: " + unitPrice);
                     } else {
-                        System.out.println("DEBUG: WARNING - variant.priceBase is NULL");
                         unitPrice = BigDecimal.ZERO;
                     }
                 } catch (Exception e) {
-                    System.out.println("DEBUG: ERROR loading variant price: " + e.getMessage());
                     unitPrice = BigDecimal.ZERO;
                 }
             } else {
-                System.out.println("DEBUG: WARNING - orderItem.variant is NULL, using ZERO");
                 unitPrice = BigDecimal.ZERO;
             }
             
@@ -308,7 +286,6 @@ public class DealerQuotationService {
                     BigDecimal variantPrice = orderItem.getVariant().getPriceBase();
                     unitPrice = variantPrice != null ? variantPrice : BigDecimal.ZERO;
                 } catch (Exception e) {
-                    System.out.println("DEBUG: ERROR loading variant price in save loop: " + e.getMessage());
                     unitPrice = BigDecimal.ZERO;
                 }
             } else {

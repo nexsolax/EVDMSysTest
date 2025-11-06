@@ -68,8 +68,6 @@ public class DealerOrderService {
             return dealerOrderRepository.findAllWithDetails();
         } catch (Exception e) {
             // Log error and return empty list
-            System.err.println("Error fetching dealer orders: " + e.getMessage());
-            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -94,8 +92,6 @@ public class DealerOrderService {
             List<DealerOrder> orders = dealerOrderRepository.findByStatus(status);
             return orders;
         } catch (Exception e) {
-            System.err.println("Error fetching orders by status: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to get orders by status: " + e.getMessage(), e);
         }
     }
@@ -348,8 +344,6 @@ public class DealerOrderService {
             List<DealerOrder> orders = dealerOrderRepository.findByApprovalStatus(approvalStatus);
             return orders;
         } catch (Exception e) {
-            System.err.println("Error fetching orders by approval status: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("Failed to get orders by approval status: " + e.getMessage(), e);
         }
     }

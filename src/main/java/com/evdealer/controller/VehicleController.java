@@ -328,7 +328,6 @@ public class VehicleController {
             List<VehicleVariant> variants = vehicleService.getAllVariants();
             return ResponseEntity.ok(variants);
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

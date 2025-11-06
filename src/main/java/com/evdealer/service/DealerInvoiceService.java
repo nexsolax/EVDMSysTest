@@ -45,8 +45,6 @@ public class DealerInvoiceService {
             // Use findAllWithDetails to eagerly load dealerOrder
             return dealerInvoiceRepository.findAllWithDetails();
         } catch (Exception e) {
-            System.err.println("Error fetching all invoices: " + e.getMessage());
-            e.printStackTrace();
             // Return empty list if there's an issue
             return new java.util.ArrayList<>();
         }

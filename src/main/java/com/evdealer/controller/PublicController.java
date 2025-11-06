@@ -45,7 +45,6 @@ public class PublicController {
     @Autowired
     private PromotionService promotionService;
     
-    // Removed unused injected services after DTO refactor to avoid warnings
     
     @Autowired
     private VehicleComparisonService vehicleComparisonService;
@@ -218,7 +217,6 @@ public class PublicController {
     }
     
     // ==================== CUSTOMER ACTIONS (READ-ONLY) ====================
-    // Note: All CRUD operations have been moved to authenticated endpoints
     // This controller now only provides read-only access for customers
     
     // ==================== SEARCH & FILTER ====================

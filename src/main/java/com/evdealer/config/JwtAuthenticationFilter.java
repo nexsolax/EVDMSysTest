@@ -70,7 +70,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 } catch (Exception e) {
                     invalidToken = true;
                     logger.warn("JWT token extraction failed: " + e.getMessage());
-                    e.printStackTrace();
                 }
             } else {
                 // Bearer header nhưng không có token

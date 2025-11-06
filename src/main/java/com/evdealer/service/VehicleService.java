@@ -156,8 +156,6 @@ public class VehicleService {
             return vehicleModelRepository.findAllWithBrand();
         } catch (Exception e) {
             // Log error and return empty list
-            System.err.println("Error fetching models: " + e.getMessage());
-            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -316,8 +314,6 @@ public class VehicleService {
             return vehicleVariantRepository.findAllWithModel();
         } catch (Exception e) {
             // Log error and return empty list
-            System.err.println("Error fetching variants: " + e.getMessage());
-            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }

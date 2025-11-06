@@ -30,76 +30,123 @@ public class InventoryManagementController {
     
     @Autowired
     private SecurityUtils securityUtils;
+    
+    private Map<String, Object> inventoryToMap(VehicleInventory inventory) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("inventoryId", inventory.getInventoryId());
+        map.put("status", inventory.getStatus());
+        map.put("vin", inventory.getVin());
+        map.put("chassisNumber", inventory.getChassisNumber());
+        map.put("arrivalDate", inventory.getArrivalDate());
+        map.put("manufacturingDate", inventory.getManufacturingDate());
+        map.put("sellingPrice", inventory.getSellingPrice());
+        map.put("costPrice", inventory.getCostPrice());
+        map.put("warehouseLocation", inventory.getWarehouseLocation());
+        map.put("condition", inventory.getCondition() != null ? inventory.getCondition().toString() : null);
+        
+        if (inventory.getVariant() != null) {
+            map.put("variantId", inventory.getVariant().getVariantId());
+        }
+        if (inventory.getColor() != null) {
+            map.put("colorId", inventory.getColor().getColorId());
+        }
+        if (inventory.getWarehouse() != null) {
+            map.put("warehouseId", inventory.getWarehouse().getWarehouseId());
+        }
+        
+        return map;
+    }
 
     @GetMapping
     @Operation(summary = "Get all inventory", description = "Retrieve a list of all vehicle inventory")
-    public ResponseEntity<List<VehicleInventory>> getAllVehicleInventory() {
+    public ResponseEntity<?> getAllVehicleInventory() {
         List<VehicleInventory> inventory = vehicleInventoryService.getAllVehicleInventory();
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/available")
     @Operation(summary = "Get available inventory", description = "Retrieve all available vehicles in inventory")
-    public ResponseEntity<List<VehicleInventory>> getAvailableInventory() {
+    public ResponseEntity<?> getAvailableInventory() {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus("available");
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/status/{status}")
     @Operation(summary = "Get inventory by status", description = "Retrieve inventory by status")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByStatus(
+    public ResponseEntity<?> getInventoryByStatus(
             @PathVariable @Parameter(description = "Status value", example = "available") String status) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus(status);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+         return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/warehouse/{warehouseId}")
     @Operation(summary = "Get inventory by warehouse", description = "Retrieve inventory for a specific warehouse")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByWarehouse(
+    public ResponseEntity<?> getInventoryByWarehouse(
             @PathVariable @Parameter(description = "Warehouse ID") UUID warehouseId) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByWarehouse(warehouseId);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/variant/{variantId}")
     @Operation(summary = "Get inventory by variant", description = "Retrieve inventory for a specific vehicle variant")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByVariant(
+    public ResponseEntity<?> getInventoryByVariant(
             @PathVariable @Parameter(description = "Variant ID", example = "1") Integer variantId) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByVariant(variantId);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/color/{colorId}")
     @Operation(summary = "Get inventory by color", description = "Retrieve inventory for a specific color")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByColor(
+    public ResponseEntity<?> getInventoryByColor(
             @PathVariable @Parameter(description = "Color ID", example = "1") Integer colorId) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByColor(colorId);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/date-range")
     @Operation(summary = "Get inventory by date range", description = "Retrieve inventory within a date range")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByDateRange(
+    public ResponseEntity<?> getInventoryByDateRange(
             @RequestParam @Parameter(description = "Start date", example = "2024-01-01") LocalDate startDate,
             @RequestParam @Parameter(description = "End date", example = "2024-12-31") LocalDate endDate) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByArrivalDateRange(startDate, endDate);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
 
     @GetMapping("/{inventoryId}")
     @Operation(summary = "Get inventory by ID", description = "Retrieve a specific inventory item by its ID")
-    public ResponseEntity<VehicleInventory> getInventoryById(@PathVariable @Parameter(description = "Inventory ID") UUID inventoryId) {
+    public ResponseEntity<?> getInventoryById(@PathVariable @Parameter(description = "Inventory ID") UUID inventoryId) {
         return vehicleInventoryService.getInventoryById(inventoryId)
-                .map(inventory -> ResponseEntity.ok(inventory))
+                .map(inventory -> ResponseEntity.ok(inventoryToMap(inventory)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/vin/{vin}")
     @Operation(summary = "Get inventory by VIN", description = "Retrieve inventory by VIN number")
-    public ResponseEntity<VehicleInventory> getInventoryByVin(
+    public ResponseEntity<?> getInventoryByVin(
             @PathVariable @Parameter(description = "VIN number", example = "1HGBH41JXMN109186") String vin) {
         return vehicleInventoryService.getInventoryByVin(vin)
-                .map(inventory -> ResponseEntity.ok(inventory))
+                .map(inventory -> ResponseEntity.ok(inventoryToMap(inventory)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -188,7 +235,7 @@ public class InventoryManagementController {
             }
             
             VehicleInventory updatedInventory = vehicleInventoryService.updateInventoryStatus(inventoryId, status);
-            return ResponseEntity.ok(updatedInventory);
+            return ResponseEntity.ok(inventoryToMap(updatedInventory));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update inventory status: " + e.getMessage());
@@ -220,7 +267,7 @@ public class InventoryManagementController {
             }
             
             VehicleInventory soldInventory = vehicleInventoryService.updateInventoryStatus(inventoryId, "sold");
-            return ResponseEntity.ok(soldInventory);
+            return ResponseEntity.ok(inventoryToMap(soldInventory));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to mark inventory as sold: " + e.getMessage());
@@ -252,7 +299,7 @@ public class InventoryManagementController {
             }
             
             VehicleInventory reservedInventory = vehicleInventoryService.updateInventoryStatus(inventoryId, "reserved");
-            return ResponseEntity.ok(reservedInventory);
+            return ResponseEntity.ok(inventoryToMap(reservedInventory));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to mark inventory as reserved: " + e.getMessage());
@@ -300,14 +347,15 @@ public class InventoryManagementController {
 
     @GetMapping("/search")
     @Operation(summary = "Search inventory", description = "Search for inventory by VIN, chassis number, or other criteria")
-    public ResponseEntity<List<VehicleInventory>> searchInventory(
+    public ResponseEntity<?> searchInventory(
             @RequestParam @Parameter(description = "Search keyword", example = "1HGBH41JXMN109186") String keyword) {
         List<VehicleInventory> inventory = vehicleInventoryService.searchByVin(keyword);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
-    
-    // ==================== ADDITIONAL ENDPOINTS FROM VehicleInventoryController ====================
-    
+
     @GetMapping("/statuses")
     @Operation(summary = "Get all available statuses", description = "Retrieve all unique statuses used in vehicle inventory")
     public ResponseEntity<List<String>> getAllStatuses() {
@@ -395,44 +443,59 @@ public class InventoryManagementController {
     
     @GetMapping("/warehouse-location/{location}")
     @Operation(summary = "Get inventory by warehouse location", description = "Retrieve vehicle inventory for a specific warehouse location")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByWarehouseLocation(
+    public ResponseEntity<?> getInventoryByWarehouseLocation(
             @PathVariable @Parameter(description = "Warehouse location", example = "Warehouse A, Bay 1") String location) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByWarehouseLocation(location);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
-    
+
     @GetMapping("/price-range")
     @Operation(summary = "Get inventory by price range", description = "Retrieve vehicle inventory within a price range")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByPriceRange(
+    public ResponseEntity<?> getInventoryByPriceRange(
             @RequestParam @Parameter(description = "Minimum price") BigDecimal minPrice,
             @RequestParam @Parameter(description = "Maximum price") BigDecimal maxPrice) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByPriceRange(minPrice, maxPrice);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
-    
+
     @GetMapping("/manufacturing-date-range")
     @Operation(summary = "Get inventory by manufacturing date range", description = "Retrieve vehicle inventory within a manufacturing date range")
-    public ResponseEntity<List<VehicleInventory>> getInventoryByManufacturingDateRange(
+    public ResponseEntity<?> getInventoryByManufacturingDateRange(
             @RequestParam @Parameter(description = "Start date") LocalDate startDate,
             @RequestParam @Parameter(description = "End date") LocalDate endDate) {
         List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByManufacturingDateRange(startDate, endDate);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
-    
+
     @GetMapping("/search/vin")
     @Operation(summary = "Search inventory by VIN", description = "Search vehicle inventory by VIN")
-    public ResponseEntity<List<VehicleInventory>> searchByVin(
+    public ResponseEntity<?> searchByVin(
             @RequestParam @Parameter(description = "VIN number", example = "1HGBH41JXMN109186") String vin) {
         List<VehicleInventory> inventory = vehicleInventoryService.searchByVin(vin);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
-    
+
     @GetMapping("/search/chassis")
     @Operation(summary = "Search inventory by chassis number", description = "Search vehicle inventory by chassis number")
-    public ResponseEntity<List<VehicleInventory>> searchByChassisNumber(
+    public ResponseEntity<?> searchByChassisNumber(
             @RequestParam @Parameter(description = "Chassis number", example = "CH123456789") String chassisNumber) {
         List<VehicleInventory> inventory = vehicleInventoryService.searchByChassisNumber(chassisNumber);
-        return ResponseEntity.ok(inventory);
+        List<Map<String, Object>> inventoryList = inventory.stream()
+                .map(this::inventoryToMap)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(inventoryList);
     }
     
     // Support VehicleInventoryRequest for backward compatibility
@@ -453,7 +516,7 @@ public class InventoryManagementController {
             }
             
             VehicleInventory createdInventory = vehicleInventoryService.createVehicleInventoryFromRequest(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdInventory);
+            return ResponseEntity.status(HttpStatus.CREATED).body(inventoryToMap(createdInventory));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to create inventory: " + e.getMessage());
@@ -484,7 +547,7 @@ public class InventoryManagementController {
             }
             
             VehicleInventory updatedInventory = vehicleInventoryService.updateVehicleInventoryFromRequest(inventoryId, request);
-            return ResponseEntity.ok(updatedInventory);
+            return ResponseEntity.ok(inventoryToMap(updatedInventory));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update inventory: " + e.getMessage());

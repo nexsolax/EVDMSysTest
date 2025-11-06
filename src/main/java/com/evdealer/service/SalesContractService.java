@@ -2,6 +2,9 @@ package com.evdealer.service;
 
 import com.evdealer.entity.SalesContract;
 import com.evdealer.repository.SalesContractRepository;
+import com.evdealer.repository.OrderRepository;
+import com.evdealer.repository.CustomerRepository;
+import com.evdealer.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,15 @@ public class SalesContractService {
     
     @Autowired
     private SalesContractRepository salesContractRepository;
+    
+    @Autowired
+    private OrderRepository orderRepository;
+    
+    @Autowired
+    private CustomerRepository customerRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     public List<SalesContract> getAllContracts() {
         try {
@@ -84,9 +96,49 @@ public class SalesContractService {
     }
     
     public SalesContract createContract(SalesContract contract) {
+        // Validate contract number
+        if (contract.getContractNumber() == null || contract.getContractNumber().trim().isEmpty()) {
+            throw new RuntimeException("Contract number is required");
+        }
+        
         if (salesContractRepository.existsByContractNumber(contract.getContractNumber())) {
             throw new RuntimeException("Contract number already exists: " + contract.getContractNumber());
         }
+        
+        // Validate contract date
+        if (contract.getContractDate() == null) {
+            throw new RuntimeException("Contract date is required");
+        }
+        
+        // Validate contract value
+        if (contract.getContractValue() == null || 
+            contract.getContractValue().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Contract value must be greater than zero");
+        }
+        
+        // Validate delivery date
+        if (contract.getDeliveryDate() != null && contract.getContractDate() != null) {
+            if (contract.getDeliveryDate().isBefore(contract.getContractDate())) {
+                throw new RuntimeException("Delivery date must be on or after contract date");
+            }
+        }
+        
+        // Validate foreign keys
+        if (contract.getOrder() != null && contract.getOrder().getOrderId() != null) {
+            contract.setOrder(orderRepository.findById(contract.getOrder().getOrderId())
+                    .orElseThrow(() -> new RuntimeException("Order not found with id: " + contract.getOrder().getOrderId())));
+        }
+        
+        if (contract.getCustomer() != null && contract.getCustomer().getCustomerId() != null) {
+            contract.setCustomer(customerRepository.findById(contract.getCustomer().getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with id: " + contract.getCustomer().getCustomerId())));
+        }
+        
+        if (contract.getUser() != null && contract.getUser().getUserId() != null) {
+            contract.setUser(userRepository.findById(contract.getUser().getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + contract.getUser().getUserId())));
+        }
+        
         return salesContractRepository.save(contract);
     }
     
@@ -94,16 +146,58 @@ public class SalesContractService {
         SalesContract contract = salesContractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Sales contract not found with id: " + contractId));
         
+        // Validate contract number
+        if (contractDetails.getContractNumber() == null || contractDetails.getContractNumber().trim().isEmpty()) {
+            throw new RuntimeException("Contract number is required");
+        }
+        
         // Check for duplicate contract number (excluding current contract)
         if (!contract.getContractNumber().equals(contractDetails.getContractNumber()) && 
             salesContractRepository.existsByContractNumber(contractDetails.getContractNumber())) {
             throw new RuntimeException("Contract number already exists: " + contractDetails.getContractNumber());
         }
         
+        // Validate contract date
+        if (contractDetails.getContractDate() == null) {
+            throw new RuntimeException("Contract date is required");
+        }
+        
+        // Validate contract value
+        if (contractDetails.getContractValue() == null || 
+            contractDetails.getContractValue().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Contract value must be greater than zero");
+        }
+        
+        // Validate delivery date
+        if (contractDetails.getDeliveryDate() != null && contractDetails.getContractDate() != null) {
+            if (contractDetails.getDeliveryDate().isBefore(contractDetails.getContractDate())) {
+                throw new RuntimeException("Delivery date must be on or after contract date");
+            }
+        }
+        
+        // Validate foreign keys
+        if (contractDetails.getOrder() != null && contractDetails.getOrder().getOrderId() != null) {
+            contract.setOrder(orderRepository.findById(contractDetails.getOrder().getOrderId())
+                    .orElseThrow(() -> new RuntimeException("Order not found with id: " + contractDetails.getOrder().getOrderId())));
+        } else {
+            contract.setOrder(null);
+        }
+        
+        if (contractDetails.getCustomer() != null && contractDetails.getCustomer().getCustomerId() != null) {
+            contract.setCustomer(customerRepository.findById(contractDetails.getCustomer().getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with id: " + contractDetails.getCustomer().getCustomerId())));
+        } else {
+            contract.setCustomer(null);
+        }
+        
+        if (contractDetails.getUser() != null && contractDetails.getUser().getUserId() != null) {
+            contract.setUser(userRepository.findById(contractDetails.getUser().getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + contractDetails.getUser().getUserId())));
+        } else {
+            contract.setUser(null);
+        }
+        
         contract.setContractNumber(contractDetails.getContractNumber());
-        contract.setOrder(contractDetails.getOrder());
-        contract.setCustomer(contractDetails.getCustomer());
-        contract.setUser(contractDetails.getUser());
         contract.setContractDate(contractDetails.getContractDate());
         contract.setDeliveryDate(contractDetails.getDeliveryDate());
         contract.setContractValue(contractDetails.getContractValue());
@@ -134,6 +228,17 @@ public class SalesContractService {
     public SalesContract signContract(UUID contractId, LocalDate signedDate) {
         SalesContract contract = salesContractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Sales contract not found with id: " + contractId));
+        
+        // Validate signed date
+        if (signedDate == null) {
+            throw new RuntimeException("Signed date is required");
+        }
+        
+        // Validate signed date is not before contract date
+        if (contract.getContractDate() != null && signedDate.isBefore(contract.getContractDate())) {
+            throw new RuntimeException("Signed date must be on or after contract date");
+        }
+        
         contract.setSignedDate(signedDate);
         contract.setContractStatus("signed");
         return salesContractRepository.save(contract);

@@ -52,7 +52,6 @@ public class SecurityUtils {
                 }
             } catch (Exception e) {
                 // Log error but continue
-                System.out.println("DEBUG getCurrentUserId: Error finding user by username: " + e.getMessage());
             }
         }
         
@@ -165,12 +164,6 @@ public class SecurityUtils {
                     return true;
                 }
             }
-        }
-        // Debug: Log khi không có role hoặc không match
-        Optional<User> userOpt = getCurrentUser();
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            System.out.println("DEBUG hasAnyRole: currentRole=" + currentRole.orElse("EMPTY") + ", userType=" + (user.getUserType() != null ? user.getUserType().toString() : "NULL"));
         }
         return false;
     }

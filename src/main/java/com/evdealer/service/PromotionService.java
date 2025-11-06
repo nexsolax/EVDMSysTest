@@ -1,7 +1,9 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.Promotion;
+import com.evdealer.entity.VehicleVariant;
 import com.evdealer.repository.PromotionRepository;
+import com.evdealer.repository.VehicleVariantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,9 @@ public class PromotionService {
     
     @Autowired
     private PromotionRepository promotionRepository;
+    
+    @Autowired
+    private VehicleVariantRepository vehicleVariantRepository;
     
     public List<Promotion> getAllPromotions() {
         try {
@@ -60,6 +65,40 @@ public class PromotionService {
     }
     
     public Promotion createPromotion(Promotion promotion) {
+        // Validate dates
+        if (promotion.getStartDate() != null && promotion.getEndDate() != null) {
+            if (promotion.getEndDate().isBefore(promotion.getStartDate())) {
+                throw new RuntimeException("End date must be after start date");
+            }
+        }
+        
+        // Validate discount fields
+        if (promotion.getDiscountPercent() == null && promotion.getDiscountAmount() == null) {
+            throw new RuntimeException("Either discount percent or discount amount must be provided");
+        }
+        
+        // Validate discount percent range
+        if (promotion.getDiscountPercent() != null) {
+            if (promotion.getDiscountPercent().compareTo(java.math.BigDecimal.ZERO) < 0 ||
+                promotion.getDiscountPercent().compareTo(new java.math.BigDecimal("100")) > 0) {
+                throw new RuntimeException("Discount percent must be between 0 and 100");
+            }
+        }
+        
+        // Validate discount amount
+        if (promotion.getDiscountAmount() != null && 
+            promotion.getDiscountAmount().compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Discount amount must be positive");
+        }
+        
+        // Validate foreign key: variant_id
+        if (promotion.getVariant() != null && promotion.getVariant().getVariantId() != null) {
+            VehicleVariant variant = vehicleVariantRepository.findById(promotion.getVariant().getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Variant not found with id: " + promotion.getVariant().getVariantId()));
+            // Ensure variant is properly set
+            promotion.setVariant(variant);
+        }
+        
         return promotionRepository.save(promotion);
     }
     
@@ -67,7 +106,41 @@ public class PromotionService {
         Promotion promotion = promotionRepository.findById(promotionId)
                 .orElseThrow(() -> new RuntimeException("Promotion not found with id: " + promotionId));
         
-        promotion.setVariant(promotionDetails.getVariant());
+        // Validate dates
+        if (promotionDetails.getStartDate() != null && promotionDetails.getEndDate() != null) {
+            if (promotionDetails.getEndDate().isBefore(promotionDetails.getStartDate())) {
+                throw new RuntimeException("End date must be after start date");
+            }
+        }
+        
+        // Validate discount fields
+        if (promotionDetails.getDiscountPercent() == null && promotionDetails.getDiscountAmount() == null) {
+            throw new RuntimeException("Either discount percent or discount amount must be provided");
+        }
+        
+        // Validate discount percent range
+        if (promotionDetails.getDiscountPercent() != null) {
+            if (promotionDetails.getDiscountPercent().compareTo(java.math.BigDecimal.ZERO) < 0 ||
+                promotionDetails.getDiscountPercent().compareTo(new java.math.BigDecimal("100")) > 0) {
+                throw new RuntimeException("Discount percent must be between 0 and 100");
+            }
+        }
+        
+        // Validate discount amount
+        if (promotionDetails.getDiscountAmount() != null && 
+            promotionDetails.getDiscountAmount().compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Discount amount must be positive");
+        }
+        
+        // Validate foreign key: variant_id
+        if (promotionDetails.getVariant() != null && promotionDetails.getVariant().getVariantId() != null) {
+            VehicleVariant variant = vehicleVariantRepository.findById(promotionDetails.getVariant().getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Variant not found with id: " + promotionDetails.getVariant().getVariantId()));
+            promotion.setVariant(variant);
+        } else {
+            promotion.setVariant(null);
+        }
+        
         promotion.setTitle(promotionDetails.getTitle());
         promotion.setDescription(promotionDetails.getDescription());
         promotion.setDiscountPercent(promotionDetails.getDiscountPercent());

@@ -28,7 +28,35 @@ public class PublicOrderController {
     public ResponseEntity<?> createOrder(@RequestBody OrderRequest request) {
         try {
             Order createdOrder = orderService.createOrderFromRequest(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("orderId", createdOrder.getOrderId());
+            response.put("orderNumber", createdOrder.getOrderNumber());
+            response.put("status", createdOrder.getStatus());
+            response.put("orderDate", createdOrder.getOrderDate());
+            response.put("totalAmount", createdOrder.getTotalAmount());
+            response.put("depositAmount", createdOrder.getDepositAmount());
+            response.put("balanceAmount", createdOrder.getBalanceAmount());
+            response.put("paymentMethod", createdOrder.getPaymentMethod());
+            response.put("orderType", createdOrder.getOrderType() != null ? createdOrder.getOrderType().toString() : null);
+            response.put("paymentStatus", createdOrder.getPaymentStatus() != null ? createdOrder.getPaymentStatus().toString() : null);
+            response.put("deliveryStatus", createdOrder.getDeliveryStatus() != null ? createdOrder.getDeliveryStatus().toString() : null);
+            response.put("notes", createdOrder.getNotes());
+            
+            if (createdOrder.getCustomer() != null) {
+                response.put("customerId", createdOrder.getCustomer().getCustomerId());
+            }
+            if (createdOrder.getInventory() != null) {
+                response.put("inventoryId", createdOrder.getInventory().getInventoryId());
+            }
+            if (createdOrder.getQuotation() != null) {
+                response.put("quotationId", createdOrder.getQuotation().getQuotationId());
+            }
+            if (createdOrder.getUser() != null) {
+                response.put("userId", createdOrder.getUser().getUserId());
+            }
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Order creation failed: " + e.getMessage());
@@ -45,7 +73,38 @@ public class PublicOrderController {
     public ResponseEntity<?> getOrderById(@PathVariable UUID orderId) {
         try {
             return orderService.getOrderById(orderId)
-                    .map(order -> ResponseEntity.ok(order))
+                    .map(order -> {
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("orderId", order.getOrderId());
+                        response.put("orderNumber", order.getOrderNumber());
+                        response.put("status", order.getStatus());
+                        response.put("orderDate", order.getOrderDate());
+                        response.put("totalAmount", order.getTotalAmount());
+                        response.put("depositAmount", order.getDepositAmount());
+                        response.put("balanceAmount", order.getBalanceAmount());
+                        response.put("paymentMethod", order.getPaymentMethod());
+                        response.put("orderType", order.getOrderType() != null ? order.getOrderType().toString() : null);
+                        response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().toString() : null);
+                        response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().toString() : null);
+                        response.put("notes", order.getNotes());
+                        response.put("deliveryDate", order.getDeliveryDate());
+                        
+                        // Chỉ trả về ID thay vì toàn bộ entity để tránh lazy loading
+                        if (order.getCustomer() != null) {
+                            response.put("customerId", order.getCustomer().getCustomerId());
+                        }
+                        if (order.getInventory() != null) {
+                            response.put("inventoryId", order.getInventory().getInventoryId());
+                        }
+                        if (order.getQuotation() != null) {
+                            response.put("quotationId", order.getQuotation().getQuotationId());
+                        }
+                        if (order.getUser() != null) {
+                            response.put("userId", order.getUser().getUserId());
+                        }
+                        
+                        return ResponseEntity.ok(response);
+                    })
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
@@ -59,7 +118,38 @@ public class PublicOrderController {
     public ResponseEntity<?> getOrderByOrderNumber(@PathVariable String orderNumber) {
         try {
             return orderService.getOrderByOrderNumber(orderNumber)
-                    .map(order -> ResponseEntity.ok(order))
+                    .map(order -> {
+                        Map<String, Object> response = new HashMap<>();
+                        response.put("orderId", order.getOrderId());
+                        response.put("orderNumber", order.getOrderNumber());
+                        response.put("status", order.getStatus());
+                        response.put("orderDate", order.getOrderDate());
+                        response.put("totalAmount", order.getTotalAmount());
+                        response.put("depositAmount", order.getDepositAmount());
+                        response.put("balanceAmount", order.getBalanceAmount());
+                        response.put("paymentMethod", order.getPaymentMethod());
+                        response.put("orderType", order.getOrderType() != null ? order.getOrderType().toString() : null);
+                        response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().toString() : null);
+                        response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().toString() : null);
+                        response.put("notes", order.getNotes());
+                        response.put("deliveryDate", order.getDeliveryDate());
+                        
+                        // Chỉ trả về ID thay vì toàn bộ entity để tránh lazy loading
+                        if (order.getCustomer() != null) {
+                            response.put("customerId", order.getCustomer().getCustomerId());
+                        }
+                        if (order.getInventory() != null) {
+                            response.put("inventoryId", order.getInventory().getInventoryId());
+                        }
+                        if (order.getQuotation() != null) {
+                            response.put("quotationId", order.getQuotation().getQuotationId());
+                        }
+                        if (order.getUser() != null) {
+                            response.put("userId", order.getUser().getUserId());
+                        }
+                        
+                        return ResponseEntity.ok(response);
+                    })
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
@@ -75,7 +165,6 @@ public class PublicOrderController {
             // Use cancelOrder method which handles inventory status update automatically
             Order cancelledOrder = orderService.cancelOrder(orderId);
             
-            // Add cancellation reason to notes if provided
             if (reason != null && !reason.trim().isEmpty()) {
                 cancelledOrder.setNotes((cancelledOrder.getNotes() != null ? cancelledOrder.getNotes() + "\n" : "") + 
                               "Cancellation reason: " + reason);

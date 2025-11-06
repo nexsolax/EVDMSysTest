@@ -38,8 +38,6 @@ public class QuotationService {
             return quotationRepository.findAllWithRelationships();
         } catch (Exception e) {
             // Log error and return empty list
-            System.err.println("Error fetching quotations: " + e.getMessage());
-            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -102,6 +100,28 @@ public class QuotationService {
         if (quotationRepository.existsByQuotationNumber(quotation.getQuotationNumber())) {
             throw new RuntimeException("Quotation number already exists");
         }
+        
+        // Validate foreign keys
+        if (quotation.getCustomer() != null && quotation.getCustomer().getCustomerId() != null) {
+            quotation.setCustomer(customerRepository.findById(quotation.getCustomer().getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with id: " + quotation.getCustomer().getCustomerId())));
+        }
+        
+        if (quotation.getUser() != null && quotation.getUser().getUserId() != null) {
+            quotation.setUser(userRepository.findById(quotation.getUser().getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with id: " + quotation.getUser().getUserId())));
+        }
+        
+        if (quotation.getVariant() != null && quotation.getVariant().getVariantId() != null) {
+            quotation.setVariant(vehicleVariantRepository.findById(quotation.getVariant().getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Variant not found with id: " + quotation.getVariant().getVariantId())));
+        }
+        
+        if (quotation.getColor() != null && quotation.getColor().getColorId() != null) {
+            quotation.setColor(vehicleColorRepository.findById(quotation.getColor().getColorId())
+                    .orElseThrow(() -> new RuntimeException("Color not found with id: " + quotation.getColor().getColorId())));
+        }
+        
         // normalize status
         quotation.setStatus(normalizeStatus(quotation.getStatus()));
         return quotationRepository.save(quotation);
@@ -112,17 +132,29 @@ public class QuotationService {
         String quotationNumber = generateQuotationNumber();
         
         // Find related entities
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+        Customer customer = null;
+        if (request.getCustomerId() != null) {
+            customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new RuntimeException("Customer not found with ID: " + request.getCustomerId()));
+        }
         
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getUserId()));
+        User user = null;
+        if (request.getUserId() != null) {
+            user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found with ID: " + request.getUserId()));
+        }
         
-        VehicleVariant variant = vehicleVariantRepository.findById(request.getVariantId())
-                .orElseThrow(() -> new RuntimeException("Vehicle variant not found with ID: " + request.getVariantId()));
+        VehicleVariant variant = null;
+        if (request.getVariantId() != null) {
+            variant = vehicleVariantRepository.findById(request.getVariantId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle variant not found with ID: " + request.getVariantId()));
+        }
         
-        VehicleColor color = vehicleColorRepository.findById(request.getColorId())
-                .orElseThrow(() -> new RuntimeException("Vehicle color not found with ID: " + request.getColorId()));
+        VehicleColor color = null;
+        if (request.getColorId() != null) {
+            color = vehicleColorRepository.findById(request.getColorId())
+                    .orElseThrow(() -> new RuntimeException("Vehicle color not found with ID: " + request.getColorId()));
+        }
         
         // Create quotation entity
         Quotation quotation = new Quotation();
@@ -143,7 +175,6 @@ public class QuotationService {
     }
     
     private String generateQuotationNumber() {
-        // Generate quotation number in format: QUO-YYYYMMDD-XXXX
         String dateStr = LocalDate.now().toString().replace("-", "");
         String randomStr = String.format("%04d", (int) (Math.random() * 10000));
         return "QUO-" + dateStr + "-" + randomStr;

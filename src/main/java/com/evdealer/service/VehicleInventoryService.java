@@ -45,8 +45,6 @@ public class VehicleInventoryService {
             return vehicleInventoryRepository.findAllWithRelationships();
         } catch (Exception e) {
             // Log error and return empty list
-            System.err.println("Error fetching vehicle inventory: " + e.getMessage());
-            e.printStackTrace();
             return new java.util.ArrayList<>();
         }
     }
@@ -165,11 +163,6 @@ public class VehicleInventoryService {
         inventory.setColor(color);
         inventory.setWarehouse(warehouse);  // Set warehouse if provided
         
-        // Debug: Verify relationships are set
-        System.out.println("DEBUG: Setting relationships - variant: " + (variant != null ? variant.getVariantId() : "null") + 
-                         ", color: " + (color != null ? color.getColorId() : "null") + 
-                         ", warehouse: " + (warehouse != null ? warehouse.getWarehouseId() : "null"));
-        
         inventory.setVin(request.getVin().trim());
         inventory.setChassisNumber(request.getChassisNumber());
         inventory.setManufacturingDate(request.getManufacturingDate());
@@ -194,24 +187,14 @@ public class VehicleInventoryService {
         // Save inventory and flush to ensure relationships are persisted
         VehicleInventory savedInventory = vehicleInventoryRepository.save(inventory);
         
-        // Debug: Check relationships before flush
-        System.out.println("DEBUG: Before flush - variant: " + (savedInventory.getVariant() != null ? savedInventory.getVariant().getVariantId() : "null") + 
-                         ", color: " + (savedInventory.getColor() != null ? savedInventory.getColor().getColorId() : "null") + 
-                         ", warehouse: " + (savedInventory.getWarehouse() != null ? savedInventory.getWarehouse().getWarehouseId() : "null"));
-        
         entityManager.flush(); // Force immediate persistence to database
         entityManager.clear(); // Clear persistence context to force reload from database
         
         // Reload with relationships to ensure variant, color, and warehouse are loaded
         Optional<VehicleInventory> reloaded = vehicleInventoryRepository.findByIdWithRelationships(savedInventory.getInventoryId());
         
-        // Debug: Check relationships after reload
         if (reloaded.isPresent()) {
-            VehicleInventory reloadedInventory = reloaded.get();
-            System.out.println("DEBUG: After reload - variant: " + (reloadedInventory.getVariant() != null ? reloadedInventory.getVariant().getVariantId() : "null") + 
-                             ", color: " + (reloadedInventory.getColor() != null ? reloadedInventory.getColor().getColorId() : "null") + 
-                             ", warehouse: " + (reloadedInventory.getWarehouse() != null ? reloadedInventory.getWarehouse().getWarehouseId() : "null"));
-            return reloadedInventory;
+            return reloaded.get();
         }
         
         return savedInventory;
@@ -258,8 +241,6 @@ public class VehicleInventoryService {
         }
         
         // Update warehouse if provided
-        // Note: If warehouseId is null in request, we don't update warehouse (keep existing)
-        // To clear warehouse, frontend should send a special flag or use a separate endpoint
         if (request.getWarehouseId() != null) {
             com.evdealer.entity.Warehouse warehouse = warehouseRepository.findById(request.getWarehouseId())
                     .orElseThrow(() -> new RuntimeException("Warehouse not found with id: " + request.getWarehouseId()));
