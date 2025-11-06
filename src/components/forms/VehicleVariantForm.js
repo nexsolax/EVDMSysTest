@@ -266,19 +266,26 @@ export default function VehicleVariantForm({ variant, mode = 'view', onSubmit, o
       }
 
       // Convert các số khác nếu cần - chỉ các field có trong API
-      // Theo API: batteryCapacity, rangeKm, powerKw, acceleration0100, topSpeed, 
-      // chargingTimeFast, chargingTimeSlow là Integer/Number
-      const numericFields = ['batteryCapacity', 'rangeKm', 'powerKw', 'acceleration0100', 'topSpeed', 
-                             'chargingTimeFast', 'chargingTimeSlow'];
-      numericFields.forEach(field => {
+      // Theo FIELD_REFERENCE_GUIDE.md line 110-116:
+      // - powerKw: Integer (optional)
+      // - rangeKm: Integer (optional)
+      // - topSpeed: Integer (optional)
+      // - chargingTimeFast: Integer (optional)
+      // - chargingTimeSlow: Integer (optional)
+      // - batteryCapacity: BigDecimal (optional) - hỗ trợ decimal
+      // - acceleration0100: BigDecimal (optional)
+      const integerFields = ['powerKw', 'rangeKm', 'topSpeed', 'chargingTimeFast', 'chargingTimeSlow'];
+      integerFields.forEach(field => {
         if (cleanedData[field] !== undefined && cleanedData[field] !== null && cleanedData[field] !== '') {
-          // Convert sang Integer cho các field này (theo API là Integer)
-          if (field === 'rangeKm' || field === 'topSpeed' || field === 'chargingTimeFast' || field === 'chargingTimeSlow') {
-            cleanedData[field] = typeof cleanedData[field] === 'string' ? parseInt(cleanedData[field], 10) : Math.round(cleanedData[field]);
-          } else {
-            // batteryCapacity, powerKw, acceleration0100 là Number (có thể có decimal)
-            cleanedData[field] = typeof cleanedData[field] === 'string' ? parseFloat(cleanedData[field]) : cleanedData[field];
-          }
+          cleanedData[field] = typeof cleanedData[field] === 'string' ? parseInt(cleanedData[field], 10) : Math.round(cleanedData[field]);
+        }
+      });
+      
+      // BigDecimal fields (có thể có decimal)
+      const decimalFields = ['batteryCapacity', 'acceleration0100'];
+      decimalFields.forEach(field => {
+        if (cleanedData[field] !== undefined && cleanedData[field] !== null && cleanedData[field] !== '') {
+          cleanedData[field] = typeof cleanedData[field] === 'string' ? parseFloat(cleanedData[field]) : cleanedData[field];
         }
       });
 

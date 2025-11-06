@@ -130,15 +130,23 @@ const Profile = () => {
     try {
       setSaving(true);
       
-      // Prepare update data
+      // Required fields
       const updateData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        dateOfBirth: formData.dateOfBirth || null
+        firstName: formData.firstName?.trim() || '',
+        lastName: formData.lastName?.trim() || '',
+        email: formData.email?.trim() || ''
       };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.phone?.trim()) {
+        updateData.phone = formData.phone.trim();
+      }
+      if (formData.address?.trim()) {
+        updateData.address = formData.address.trim();
+      }
+      if (formData.dateOfBirth?.trim()) {
+        updateData.dateOfBirth = formData.dateOfBirth.trim(); // Format: YYYY-MM-DD
+      }
 
       // Update user profile
       await userAPI.updateUser(user.userId, updateData);

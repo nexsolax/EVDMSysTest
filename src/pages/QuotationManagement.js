@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Plus, DollarSign, Calendar, User } from 'lucide-react';
-import { quotationAPI } from '../services/api';
+import { quotationAPI, orderAPI } from '../services/api';
 import { getStatusBadge as getStatusBadgeUtil } from '../utils/statusBadges';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -74,7 +74,20 @@ const QuotationManagement = () => {
   const handleUpdateStatus = async (quotation, newStatus) => {
     try {
       await quotationAPI.updateQuotationStatus(quotation.quotationId, newStatus);
-      toast.success(`Cập nhật trạng thái báo giá thành công`);
+      
+      // Theo guide: Khi nhân viên cập nhật quotation status thành "accepted", cần cập nhật Order.status thành "confirmed"
+      if (newStatus === 'accepted' && quotation.orderId) {
+        try {
+          await orderAPI.updateOrderStatus(quotation.orderId, 'confirmed');
+          toast.success('Đã cập nhật trạng thái báo giá và đơn hàng thành công');
+        } catch (orderError) {
+          console.error('Error updating order status:', orderError);
+          toast.success('Đã cập nhật trạng thái báo giá thành công, nhưng không thể cập nhật trạng thái đơn hàng');
+        }
+      } else {
+        toast.success(`Cập nhật trạng thái báo giá thành công`);
+      }
+      
       loadQuotations();
     } catch (error) {
       console.error('Error updating quotation status:', error);

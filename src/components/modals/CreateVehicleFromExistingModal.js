@@ -342,50 +342,63 @@ const CreateVehicleFromExistingModal = ({ isOpen, onClose, onSave }) => {
     setSuccess('');
 
     try {
-      // Prepare data for existing data mode only
+      // Required fields
       const submitData = {
         existingBrandId: parseInt(formData.existingBrandId),
         existingModelId: parseInt(formData.existingModelId),
         existingColorId: parseInt(formData.existingColorId),
         existingWarehouseId: formData.existingWarehouseId,
         variant: {
-          variantName: formData.variant.variantName,
-          batteryCapacity: formData.variant.batteryCapacity ? parseFloat(formData.variant.batteryCapacity) : null,
-          rangeKm: formData.variant.rangeKm ? parseInt(formData.variant.rangeKm) : null,
-          powerKw: formData.variant.powerKw ? parseFloat(formData.variant.powerKw) : null,
-          acceleration0100: formData.variant.acceleration0100 ? parseFloat(formData.variant.acceleration0100) : null,
-          topSpeed: formData.variant.topSpeed ? parseInt(formData.variant.topSpeed) : null,
-          chargingTimeFast: formData.variant.chargingTimeFast ? parseInt(formData.variant.chargingTimeFast) : null,
-          chargingTimeSlow: formData.variant.chargingTimeSlow ? parseInt(formData.variant.chargingTimeSlow) : null,
-          priceBase: formData.variant.priceBase ? parseFloat(formData.variant.priceBase) : null
+          variantName: formData.variant.variantName // Required
         },
         inventory: {
-          warehouseLocation: formData.inventory.warehouseLocation,
-          vin: formData.inventory.vin,
-          chassisNumber: formData.inventory.chassisNumber,
-          status: formData.inventory.status,
-          sellingPrice: formData.inventory.sellingPrice ? parseFloat(formData.inventory.sellingPrice) : null,
-          notes: `Created via frontend - ${new Date().toISOString()}`
+          vin: formData.inventory.vin, // Required
+          status: formData.inventory.status || 'available' // Required
         }
       };
-
-      // Build payload to validate against schema naming (batteryKwh, stockStatus)
-      const payloadForValidation = {
-        ...submitData,
-        variant: {
-          variantName: submitData.variant.variantName,
-          priceBase: submitData.variant.priceBase ?? undefined,
-          batteryKwh: submitData.variant.batteryCapacity ?? undefined,
-          rangeKm: submitData.variant.rangeKm ?? undefined
-        },
-        inventory: {
-          vin: submitData.inventory.vin,
-          warehouseLocation: submitData.inventory.warehouseLocation || undefined,
-          stockStatus: submitData.inventory.status || undefined,
-          sellingPrice: submitData.inventory.sellingPrice ?? undefined,
-          notes: submitData.inventory.notes || undefined
-        }
-      };
+      
+      // Optional fields for variant - chỉ thêm nếu có giá trị
+      if (formData.variant.priceBase) {
+        submitData.variant.priceBase = parseFloat(formData.variant.priceBase);
+      }
+      if (formData.variant.batteryCapacity) {
+        submitData.variant.batteryCapacity = parseFloat(formData.variant.batteryCapacity);
+      }
+      if (formData.variant.rangeKm) {
+        submitData.variant.rangeKm = parseInt(formData.variant.rangeKm, 10);
+      }
+      if (formData.variant.powerKw) {
+        submitData.variant.powerKw = parseFloat(formData.variant.powerKw);
+      }
+      if (formData.variant.acceleration0100) {
+        submitData.variant.acceleration0100 = parseFloat(formData.variant.acceleration0100);
+      }
+      if (formData.variant.topSpeed) {
+        submitData.variant.topSpeed = parseInt(formData.variant.topSpeed, 10);
+      }
+      if (formData.variant.chargingTimeFast) {
+        submitData.variant.chargingTimeFast = parseInt(formData.variant.chargingTimeFast, 10);
+      }
+      if (formData.variant.chargingTimeSlow) {
+        submitData.variant.chargingTimeSlow = parseInt(formData.variant.chargingTimeSlow, 10);
+      }
+      
+      // Optional fields for inventory - chỉ thêm nếu có giá trị
+      if (formData.inventory.warehouseLocation?.trim()) {
+        submitData.inventory.warehouseLocation = formData.inventory.warehouseLocation.trim();
+      }
+      if (formData.inventory.chassisNumber?.trim()) {
+        submitData.inventory.chassisNumber = formData.inventory.chassisNumber.trim();
+      }
+      if (formData.inventory.sellingPrice) {
+        submitData.inventory.sellingPrice = parseFloat(formData.inventory.sellingPrice);
+      }
+      if (formData.inventory.notes?.trim()) {
+        submitData.inventory.notes = formData.inventory.notes.trim();
+      } else {
+        // Auto-generate notes if not provided
+        submitData.inventory.notes = `Created via frontend - ${new Date().toISOString()}`;
+      }
 
       // Validation removed - backend will validate
 

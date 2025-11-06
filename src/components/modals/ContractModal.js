@@ -9,11 +9,12 @@ const ContractModal = ({ contract, isOpen, onClose, onSave, mode = 'view' }) => 
     customerId: '',
     orderId: '',
     vehicleId: '',
+    contractNumber: '', // Theo guide: required, unique
     contractDate: '',
     deliveryDate: '',
-    contractAmount: '',
+    contractValue: '', // Theo guide: required, > 0 (đổi từ contractAmount)
     paymentTerms: '',
-    warrantyPeriod: '',
+    warrantyPeriodMonths: '', // Theo guide: optional, default 24 (đổi từ warrantyPeriod)
     status: 'draft',
     notes: ''
   });
@@ -35,12 +36,13 @@ useEffect(() => {
             customerId: contract.customer?.customerId || contract.customerId || '',
             orderId: contract.order?.orderId || contract.orderId || '',
             vehicleId: contract.vehicle?.vehicleId || contract.vehicleId || '',
+            contractNumber: contract.contractNumber || '',
             contractDate: contract.contractDate || '',
             deliveryDate: contract.deliveryDate || '',
-            contractAmount: contract.totalAmount || contract.contractAmount || '',
+            contractValue: contract.contractValue || contract.totalAmount || contract.contractAmount || '',
             paymentTerms: contract.paymentTerms || '',
-            warrantyPeriod: contract.warrantyPeriod || '',
-            status: contract.status || 'draft',
+            warrantyPeriodMonths: contract.warrantyPeriodMonths || contract.warrantyPeriod || '',
+            status: contract.status || contract.contractStatus || 'draft', // Hỗ trợ cả status và contractStatus (theo FIELD_REFERENCE_GUIDE.md line 752)
             notes: contract.notes || ''
           });
         }
@@ -86,11 +88,12 @@ useEffect(() => {
         customerId: contractData.customer?.customerId || contractData.customerId || '',
         orderId: contractData.order?.orderId || contractData.orderId || '',
         vehicleId: contractData.vehicle?.vehicleId || contractData.vehicleId || '',
+        contractNumber: contractData.contractNumber || '',
         contractDate: contractData.contractDate || '',
         deliveryDate: contractData.deliveryDate || '',
-        contractAmount: contractData.totalAmount || contractData.contractAmount || '',
+        contractValue: contractData.contractValue || contractData.totalAmount || contractData.contractAmount || '',
         paymentTerms: contractData.paymentTerms || '',
-        warrantyPeriod: contractData.warrantyPeriod || '',
+        warrantyPeriodMonths: contractData.warrantyPeriodMonths || contractData.warrantyPeriod || '',
         status: contractData.status || 'draft',
         notes: contractData.notes || ''
       });
@@ -116,7 +119,39 @@ useEffect(() => {
 
     try {
       setLoading(true);
-      await onSave(contract.contractId, formData);
+      
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 745-752)
+      const submitData = {
+        contractNumber: formData.contractNumber.trim(),
+        contractDate: formData.contractDate, // Format: YYYY-MM-DD
+        contractValue: parseFloat(formData.contractValue),
+        contractStatus: formData.status || 'draft' // contractStatus hoặc status
+      };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.customerId) {
+        submitData.customerId = formData.customerId;
+      }
+      if (formData.orderId) {
+        submitData.orderId = formData.orderId;
+      }
+      if (formData.vehicleId) {
+        submitData.vehicleId = formData.vehicleId;
+      }
+      if (formData.deliveryDate?.trim()) {
+        submitData.deliveryDate = formData.deliveryDate.trim(); // Format: YYYY-MM-DD
+      }
+      if (formData.paymentTerms?.trim()) {
+        submitData.paymentTerms = formData.paymentTerms.trim();
+      }
+      if (formData.warrantyPeriodMonths) {
+        submitData.warrantyPeriodMonths = parseInt(formData.warrantyPeriodMonths, 10);
+      }
+      if (formData.notes?.trim()) {
+        submitData.notes = formData.notes.trim();
+      }
+      
+      await onSave(contract.contractId, submitData);
       onClose();
     } catch (error) {
       console.error('Error saving contract:', error);
@@ -230,16 +265,31 @@ useEffect(() => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="contractAmount">Giá trị hợp đồng (VNĐ) - Lấy từ Order</label>
+              <label htmlFor="contractNumber">Số hợp đồng *</label>
               <input
-                type="number"
-                id="contractAmount"
-                name="contractAmount"
-                value={formData.contractAmount}
+                type="text"
+                id="contractNumber"
+                name="contractNumber"
+                value={formData.contractNumber}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
-                min="0"
+                required
+                placeholder="HD-2025-001"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="contractValue">Giá trị hợp đồng (VNĐ) *</label>
+              <input
+                type="number"
+                id="contractValue"
+                name="contractValue"
+                value={formData.contractValue}
+                onChange={handleInputChange}
+                disabled={mode === 'view'}
+                className="form-input"
+                min="0.01"
                 step="1000000"
                 required
               />
@@ -267,12 +317,12 @@ useEffect(() => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="warrantyPeriod">Thời gian bảo hành (tháng)</label>
+              <label htmlFor="warrantyPeriodMonths">Thời gian bảo hành (tháng)</label>
               <input
                 type="number"
-                id="warrantyPeriod"
-                name="warrantyPeriod"
-                value={formData.warrantyPeriod}
+                id="warrantyPeriodMonths"
+                name="warrantyPeriodMonths"
+                value={formData.warrantyPeriodMonths}
                 onChange={handleInputChange}
                 disabled={mode === 'view'}
                 className="form-input"
@@ -326,7 +376,7 @@ useEffect(() => {
               </div>
               <div className="info-item">
                 <DollarSign size={16} />
-                <span>Giá trị hợp đồng: {formData.contractAmount ? new Intl.NumberFormat('vi-VN').format(formData.contractAmount) + ' VNĐ' : 'N/A'}</span>
+                <span>Giá trị hợp đồng: {formData.contractValue ? new Intl.NumberFormat('vi-VN').format(formData.contractValue) + ' VNĐ' : 'N/A'}</span>
               </div>
               <div className="info-item">
                 <FileText size={16} />

@@ -136,14 +136,20 @@ export default function VehicleColorForm({ color, mode = 'view', onSubmit, onCan
         }
       }
 
-      // Chuẩn hóa data trước khi submit (loại bỏ undefined, giữ lại empty string cho swatch)
+      // Chuẩn hóa data trước khi submit - loại bỏ null/undefined/empty cho optional fields
       const submitData = {
-        colorName: data.colorName?.trim() || '',
-        colorCode: data.colorCode?.trim() || '',
-        colorSwatchUrl: data.colorSwatchUrl || '',
-        colorSwatchPath: data.colorSwatchPath || '',
+        colorName: data.colorName?.trim() || '', // Required
+        colorCode: data.colorCode?.trim() || '', // Optional nhưng frontend yêu cầu
         isActive: data.isActive !== undefined ? data.isActive : true
       };
+      
+      // Chỉ thêm optional fields nếu có giá trị
+      if (data.colorSwatchUrl?.trim()) {
+        submitData.colorSwatchUrl = data.colorSwatchUrl.trim();
+      }
+      if (data.colorSwatchPath?.trim()) {
+        submitData.colorSwatchPath = data.colorSwatchPath.trim();
+      }
       
       console.log('Submitting color data:', submitData);
       // Submit data

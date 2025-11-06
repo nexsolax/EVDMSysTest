@@ -331,7 +331,16 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
     e.preventDefault();
     if (mode === 'view') return;
     
-    // Validate VIN before submitting
+    // Validate required fields before submitting
+    if (!formData.variantId) {
+      toast.error('Vui lòng chọn phiên bản xe');
+      return;
+    }
+    if (!formData.colorId) {
+      toast.error('Vui lòng chọn màu xe');
+      return;
+    }
+    
     const vin = formData.vin.trim();
     if (!vin) {
       toast.error('Vui lòng nhập số VIN');
@@ -348,23 +357,53 @@ const InventoryItemModal = ({ item, isOpen, onClose, onSave, mode = 'view' }) =>
     try {
       setLoading(true);
       
-      // Prepare submit data according to VehicleInventoryRequest DTO (API_WAREHOUSE_INVENTORY_GUIDE.md)
-      // Field types: variantId (Integer), colorId (Integer), warehouseId (UUID/String), vin (String)
-      // Field mappings: purchasePrice → costPrice, location → warehouseLocation
+      // Prepare submit data according to INPUT_ORDER_GUIDE.md line 1730-1750
+      // Field names theo guide: costPrice (không phải purchasePrice), warehouseLocation (không phải location)
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 272-275)
       const submitData = {
-        variantId: formData.variantId ? parseInt(formData.variantId, 10) : null,
-        colorId: formData.colorId ? parseInt(formData.colorId, 10) : null,
-        warehouseId: formData.warehouseId && formData.warehouseId.toString().trim() !== '' 
-          ? formData.warehouseId.toString().trim() // UUID as string, not integer
-          : null,
-        vin: vin, // Use trimmed VIN (required, max 17 chars, unique)
-        chassisNumber: formData.chassisNumber?.trim() || null, // Optional, max 50 chars
-        manufacturingDate: formData.manufacturingDate || null, // Optional, format: yyyy-MM-dd
-        purchasePrice: formData.purchasePrice ? parseFloat(formData.purchasePrice) : null, // Optional, BigDecimal - maps to costPrice
-        sellingPrice: formData.sellingPrice ? parseFloat(formData.sellingPrice) : null, // Optional, BigDecimal
-        location: formData.location?.trim() || null, // Optional, maps to warehouseLocation
-        status: formData.status || 'available' // Optional, default: "available"
+        variantId: parseInt(formData.variantId, 10), // Required - Integer
+        colorId: parseInt(formData.colorId, 10), // Required - Integer
+        vin: vin // Required, unique, 17 chars
       };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.warehouseId && formData.warehouseId.toString().trim() !== '') {
+        submitData.warehouseId = formData.warehouseId.toString().trim(); // UUID as string
+      }
+      if (formData.location?.trim()) {
+        submitData.warehouseLocation = formData.location.trim(); // Theo guide: warehouseLocation
+      }
+      if (formData.chassisNumber?.trim()) {
+        submitData.chassisNumber = formData.chassisNumber.trim(); // Optional, max 50 chars
+      }
+      if (formData.status) {
+        submitData.status = formData.status; // Optional, default: "available" (lowercase)
+      }
+      if (formData.purchasePrice) {
+        submitData.costPrice = parseFloat(formData.purchasePrice); // Theo guide: costPrice
+      }
+      if (formData.sellingPrice) {
+        submitData.sellingPrice = parseFloat(formData.sellingPrice); // Optional, BigDecimal
+      }
+      if (formData.manufacturingDate) {
+        submitData.manufacturingDate = formData.manufacturingDate; // Optional, format: YYYY-MM-DD
+      }
+      if (formData.arrivalDate) {
+        submitData.arrivalDate = formData.arrivalDate; // Optional, format: YYYY-MM-DD - theo guide line 1743
+      }
+      if (formData.condition) {
+        submitData.condition = formData.condition; // Optional, VehicleCondition enum: NEW, USED, DEMO, DAMAGED
+      }
+      if (formData.notes?.trim()) {
+        submitData.notes = formData.notes.trim(); // Optional - theo guide line 1748
+      }
+      
+      // Loại bỏ undefined values
+      Object.keys(submitData).forEach(key => {
+        if (submitData[key] === undefined) {
+          delete submitData[key];
+        }
+      });
       
       // Log for debugging (can be removed in production)
       if (process.env.NODE_ENV === 'development') {

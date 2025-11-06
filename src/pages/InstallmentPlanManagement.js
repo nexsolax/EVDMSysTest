@@ -169,9 +169,9 @@ const InstallmentPlanManagement = () => {
       render: (plan) => formatCurrency(plan.totalAmount)
     },
     {
-      key: 'monthlyPayment',
+      key: 'monthlyPaymentAmount',
       title: 'Trả hàng tháng',
-      render: (plan) => formatCurrency(plan.monthlyPayment)
+      render: (plan) => formatCurrency(plan.monthlyPaymentAmount || plan.monthlyPayment)
     },
     {
       key: 'financeCompany',

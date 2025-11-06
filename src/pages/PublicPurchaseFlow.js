@@ -14,7 +14,9 @@ import {
   Calendar,
   Eye,
   Zap,
-  Shield
+  Shield,
+  FileCheck,
+  RefreshCw
 } from 'lucide-react';
 import { 
   publicInventoryAPI, 
@@ -24,7 +26,8 @@ import {
   publicPaymentAPI,
   publicContractAPI,
   publicDeliveryAPI,
-  publicAppointmentAPI
+  publicAppointmentAPI,
+  publicQuotationAPI
 } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import VehicleImage from '../components/VehicleImage';
@@ -43,7 +46,9 @@ const PublicPurchaseFlow = () => {
   const [selectedInventory, setSelectedInventory] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [order, setOrder] = useState(null);
+  const [quotation, setQuotation] = useState(null);
   const [contract, setContract] = useState(null);
+  const [quotationLoading, setQuotationLoading] = useState(false);
   
   // Form states
   const [customerData, setCustomerData] = useState({
@@ -96,9 +101,10 @@ const PublicPurchaseFlow = () => {
   const steps = [
     { id: 1, title: 'Xem và chọn xe', icon: Car, description: 'Xem danh sách xe và chọn xe bạn muốn mua' },
     { id: 2, title: 'Thông tin khách hàng', icon: User, description: 'Điền thông tin cá nhân để tạo tài khoản' },
-    { id: 3, title: 'Tạo đơn hàng', icon: ShoppingCart, description: 'Tạo yêu cầu mua xe và chờ báo giá' },
-    { id: 4, title: 'Thanh toán', icon: DollarSign, description: 'Thanh toán sau khi nhận báo giá từ nhân viên' },
-    { id: 5, title: 'Hoàn tất', icon: CheckCircle, description: 'Ký hợp đồng và đặt lịch giao xe' }
+    { id: 3, title: 'Tạo đơn hàng', icon: ShoppingCart, description: 'Tạo yêu cầu mua xe, status = "pending"' },
+    { id: 4, title: 'Xem và xác nhận báo giá', icon: FileCheck, description: 'Xem báo giá từ nhân viên và xác nhận chấp nhận' },
+    { id: 5, title: 'Thanh toán', icon: DollarSign, description: 'Thanh toán sau khi đã xác nhận báo giá' },
+    { id: 6, title: 'Hoàn tất', icon: CheckCircle, description: 'Xem hợp đồng và đặt lịch giao xe' }
   ];
 
   // Enrich inventory data with missing relationships
@@ -226,12 +232,18 @@ const PublicPurchaseFlow = () => {
         depositAmount: Math.round(price * 0.1),
         balanceAmount: Math.round(price * 0.9)
       }));
-      setPaymentData(prev => ({
-        ...prev,
-        amount: price
-      }));
     }
   }, [selectedInventory]);
+
+  useEffect(() => {
+    // Update payment amount when quotation is loaded
+    if (quotation && quotation.finalPrice) {
+      setPaymentData(prev => ({
+        ...prev,
+        amount: quotation.finalPrice
+      }));
+    }
+  }, [quotation]);
 
   const loadInitialData = async () => {
     try {
@@ -287,14 +299,58 @@ const PublicPurchaseFlow = () => {
       setCurrentStep(2);
     } else if (currentStep === 2) {
       // Validate customer data
-      if (!customerData.firstName || !customerData.lastName || !customerData.email || !customerData.phone) {
-        toast.error('Vui lòng điền đầy đủ thông tin bắt buộc (Họ, Tên, Email, Số điện thoại)');
+      // Theo guide line 261: firstName và lastName là required, phải có ít nhất email HOẶC phone (không bắt buộc cả 2)
+      if (!customerData.firstName || !customerData.lastName) {
+        toast.error('Vui lòng điền đầy đủ thông tin bắt buộc (Họ, Tên)');
+        return;
+      }
+      if (!customerData.email && !customerData.phone) {
+        toast.error('Vui lòng điền ít nhất Email hoặc Số điện thoại');
         return;
       }
       
       try {
         setLoading(true);
-        const response = await publicCustomerAPI.createCustomer(customerData);
+        
+        // Required fields (theo INPUT_ORDER_GUIDE.md line 261)
+        const customerPayload = {
+          firstName: customerData.firstName?.trim() || '',
+          lastName: customerData.lastName?.trim() || ''
+        };
+        
+        // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+        if (customerData.email?.trim()) {
+          customerPayload.email = customerData.email.trim();
+        }
+        if (customerData.phone?.trim()) {
+          customerPayload.phone = customerData.phone.trim();
+        }
+        if (customerData.dateOfBirth?.trim()) {
+          customerPayload.dateOfBirth = customerData.dateOfBirth.trim(); // Format: YYYY-MM-DD
+        }
+        if (customerData.address?.trim()) {
+          customerPayload.address = customerData.address.trim();
+        }
+        if (customerData.city?.trim()) {
+          customerPayload.city = customerData.city.trim();
+        }
+        if (customerData.province?.trim()) {
+          customerPayload.province = customerData.province.trim();
+        }
+        if (customerData.postalCode?.trim()) {
+          customerPayload.postalCode = customerData.postalCode.trim();
+        }
+        if (customerData.creditScore) {
+          customerPayload.creditScore = parseInt(customerData.creditScore, 10);
+        }
+        if (customerData.preferredContactMethod?.trim()) {
+          customerPayload.preferredContactMethod = customerData.preferredContactMethod.trim();
+        }
+        if (customerData.notes?.trim()) {
+          customerPayload.notes = customerData.notes.trim();
+        }
+        
+        const response = await publicCustomerAPI.createCustomer(customerPayload);
         setCustomer(response.data);
         toast.success('Đã tạo thông tin khách hàng thành công');
         setCurrentStep(3);
@@ -313,25 +369,34 @@ const PublicPurchaseFlow = () => {
       
       try {
         setLoading(true);
+        // Required fields (theo INPUT_ORDER_GUIDE.md line 320-330)
         const orderPayload = {
           customerId: customer.customerId,
           inventoryId: selectedInventory.inventoryId,
-          orderDate: orderData.orderDate,
-          orderType: orderData.orderType,
-          paymentStatus: orderData.paymentStatus,
-          deliveryStatus: orderData.deliveryStatus,
-          totalAmount: orderData.totalAmount,
-          depositAmount: orderData.depositAmount,
-          balanceAmount: orderData.balanceAmount,
-          paymentMethod: orderData.paymentMethod,
-          notes: orderData.notes || null,
-          specialRequests: orderData.specialRequests || null
+          orderDate: orderData.orderDate // Format: YYYY-MM-DD
         };
         
+        // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+        if (orderData.notes?.trim()) {
+          orderPayload.notes = orderData.notes.trim();
+        }
+        
         const response = await publicOrderAPI.createOrder(orderPayload);
-        setOrder(response.data);
-        toast.success(`Đơn hàng ${response.data.orderNumber} đã được tạo thành công!\nNhân viên sẽ liên hệ với bạn để báo giá.`);
+        const createdOrder = response.data;
+        setOrder(createdOrder);
+        
+        // Verify order status is "pending" (lowercase)
+        if (createdOrder.status && createdOrder.status !== 'pending') {
+          console.warn('Order status is not "pending":', createdOrder.status);
+        }
+        
+        toast.success(`Đơn hàng ${createdOrder.orderNumber} đã được tạo thành công!\nTrạng thái: ${createdOrder.status || 'pending'}\nNhân viên sẽ tạo báo giá cho bạn.`);
         setCurrentStep(4);
+        
+        // Try to load quotation if it exists (staff might have created it already)
+        setTimeout(() => {
+          loadQuotationForOrder(createdOrder.orderId);
+        }, 1000);
       } catch (error) {
         console.error('Error creating order:', error);
         toast.error(error.response?.data?.error || 'Không thể tạo đơn hàng');
@@ -340,9 +405,29 @@ const PublicPurchaseFlow = () => {
         setLoading(false);
       }
     } else if (currentStep === 4) {
-      // Payment step - user can proceed without payment for now
-      // They will receive quotation and can pay later
-      setCurrentStep(5);
+      // Quotation confirmation step
+      // ⚠️ LƯU Ý: Không có API public để khách hàng tự xác nhận báo giá (guide line 397)
+      // Khách hàng phải liên hệ trực tiếp với nhân viên để xác nhận
+      if (!quotation) {
+        toast.error('Chưa có báo giá. Vui lòng đợi nhân viên tạo báo giá hoặc liên hệ trực tiếp.');
+        return;
+      }
+      
+      if (quotation.status === 'accepted') {
+        // Quotation already accepted by staff, proceed to payment
+        setCurrentStep(5);
+      } else {
+        // Quotation chưa được xác nhận - yêu cầu khách hàng liên hệ nhân viên
+        toast.error(
+          'Báo giá chưa được xác nhận. Vui lòng liên hệ trực tiếp với nhân viên để xác nhận chấp nhận báo giá. ' +
+          'Sau khi nhân viên cập nhật trạng thái, bạn có thể tiếp tục thanh toán.',
+          { duration: 6000 }
+        );
+        return;
+      }
+    } else if (currentStep === 5) {
+      // Payment step - proceed to final step
+      setCurrentStep(6);
     } else {
       setCurrentStep(currentStep + 1);
     }
@@ -354,9 +439,70 @@ const PublicPurchaseFlow = () => {
     }
   };
 
+  const loadQuotationForOrder = async (orderId) => {
+    try {
+      setQuotationLoading(true);
+      const response = await publicQuotationAPI.getQuotationByOrder(orderId);
+      if (response.data) {
+        setQuotation(response.data);
+      }
+    } catch (error) {
+      // Quotation not found is okay, it means staff hasn't created it yet
+      if (error.response?.status !== 404) {
+        console.error('Error loading quotation:', error);
+      }
+      setQuotation(null);
+    } finally {
+      setQuotationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Auto-refresh quotation when on step 4 (quotation view)
+    if (currentStep === 4 && order) {
+      loadQuotationForOrder(order.orderId);
+      
+      // Set up polling to check for new quotation every 10 seconds
+      const interval = setInterval(() => {
+        loadQuotationForOrder(order.orderId);
+      }, 10000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [currentStep, order]);
+
+  // Reload order khi quay lại step 3 để cập nhật trạng thái mới nhất
+  useEffect(() => {
+    const reloadOrder = async () => {
+      if (currentStep === 3 && order?.orderId) {
+        try {
+          console.log('Reloading order to get latest status:', order.orderId);
+          const response = await publicOrderAPI.getOrder(order.orderId);
+          const updatedOrder = response.data;
+          console.log('Order reloaded, new status:', updatedOrder.status);
+          setOrder(updatedOrder);
+          
+          // Nếu có quotation, reload luôn
+          if (updatedOrder.quotationId) {
+            loadQuotationForOrder(order.orderId);
+          }
+        } catch (error) {
+          console.error('Error reloading order:', error);
+        }
+      }
+    };
+    
+    reloadOrder();
+  }, [currentStep, order?.orderId]);
+
   const handlePayment = async () => {
     if (!order) {
       toast.error('Vui lòng tạo đơn hàng trước');
+      return;
+    }
+    
+    if (!quotation || quotation.status !== 'accepted') {
+      toast.error('Vui lòng xác nhận báo giá trước khi thanh toán');
       return;
     }
     
@@ -367,35 +513,52 @@ const PublicPurchaseFlow = () => {
     
     try {
       setLoading(true);
-      const paymentPayload = {
-        orderId: order.orderId,
-        amount: paymentData.amount,
-        paymentType: paymentData.paymentType,
-        paymentMethod: paymentData.paymentMethod,
-        referenceNumber: paymentData.referenceNumber || `TXN-${Date.now()}`,
-        notes: paymentData.notes || null
-      };
+      
+      // Use quotation finalPrice if available, otherwise use order totalAmount
+      const paymentAmount = quotation?.finalPrice || order.totalAmount || paymentData.amount;
       
       let response;
       if (paymentData.paymentType === 'deposit') {
-        response = await publicPaymentAPI.createDeposit(paymentPayload);
+        // Theo guide line 440-448: deposit cần orderId (required), amount (required), paymentMethod (optional), notes (optional)
+        // Không có paymentDate và referenceNumber trong request body
+        const depositPayload = {
+          orderId: order.orderId,
+          amount: Math.min(paymentData.amount, paymentAmount * 0.1),
+          ...(paymentData.paymentMethod ? { paymentMethod: paymentData.paymentMethod } : {}),
+          ...(paymentData.notes ? { notes: paymentData.notes } : {})
+        };
+        response = await publicPaymentAPI.createDeposit(depositPayload);
+        toast.success('Đặt cọc thành công!');
       } else {
-        response = await publicPaymentAPI.createFullPayment(paymentPayload);
+        // Theo guide line 462-473: full payment KHÔNG cần truyền amount (endpoint tự động lấy từ Order)
+        const fullPaymentPayload = {
+          orderId: order.orderId,
+          ...(paymentData.paymentMethod ? { paymentMethod: paymentData.paymentMethod } : {}),
+          ...(paymentData.notes ? { notes: paymentData.notes } : {})
+        };
+        response = await publicPaymentAPI.createFullPayment(fullPaymentPayload);
+        toast.success('Thanh toán thành công!');
       }
-      toast.success('Thanh toán thành công!');
       
-      // Reload order to get updated status
+      // Reload order to get updated status (should be "paid" after full payment)
       const updatedOrder = await publicOrderAPI.getOrder(order.orderId);
       setOrder(updatedOrder.data);
       
-      // Try to load contract if available
-      try {
-        const contractsRes = await publicContractAPI.getContractsByOrder(order.orderId);
-        if (contractsRes.data && contractsRes.data.length > 0) {
-          setContract(contractsRes.data[0]);
-        }
-      } catch (e) {
-        console.log('No contract available yet');
+      // Check if order status changed to "paid" (lowercase)
+      if (updatedOrder.data.status === 'paid') {
+        toast.success('Đơn hàng đã được thanh toán đủ. Nhân viên sẽ tạo hợp đồng cho bạn.');
+        
+        // Try to load contract if available (staff might create it immediately)
+        setTimeout(async () => {
+          try {
+            const contractsRes = await publicContractAPI.getContractsByOrder(order.orderId);
+            if (contractsRes.data && contractsRes.data.length > 0) {
+              setContract(contractsRes.data[0]);
+            }
+          } catch (e) {
+            console.log('No contract available yet');
+          }
+        }, 2000);
       }
       
     } catch (error) {
@@ -414,21 +577,47 @@ const PublicPurchaseFlow = () => {
     
     try {
       setLoading(true);
+      // Theo guide line 781: appointmentDate phải là LocalDateTime (Format: ISO 8601, YYYY-MM-DDTHH:mm:ss)
+      // Input type="datetime-local" trả về "YYYY-MM-DDTHH:mm", cần thêm ":00" cho seconds
+      let appointmentDateFormatted = appointmentData.appointmentDate;
+      if (appointmentDateFormatted && !appointmentDateFormatted.includes(':')) {
+        // Nếu không có time, thêm mặc định 00:00:00
+        appointmentDateFormatted = `${appointmentDateFormatted}T00:00:00`;
+      } else if (appointmentDateFormatted && appointmentDateFormatted.split(':').length === 2) {
+        // Nếu có HH:mm nhưng không có seconds, thêm :00
+        appointmentDateFormatted = `${appointmentDateFormatted}:00`;
+      }
+      
+      // Required fields (theo INPUT_ORDER_GUIDE.md line 777-797)
       const appointmentPayload = {
-        customerName: `${customer.firstName} ${customer.lastName}`,
-        customerPhone: customer.phone,
-        customerEmail: customer.email,
-        appointmentDate: appointmentData.appointmentDate,
-        notes: appointmentData.notes || null
+        customerName: `${customer.firstName} ${customer.lastName}`.trim(), // Required
+        appointmentDate: appointmentDateFormatted // Required - LocalDateTime format: YYYY-MM-DDTHH:mm:ss
       };
       
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (customer.phone?.trim()) {
+        appointmentPayload.customerPhone = customer.phone.trim();
+      }
+      if (customer.email?.trim()) {
+        appointmentPayload.customerEmail = customer.email.trim();
+      }
+      if (appointmentData.notes?.trim()) {
+        appointmentPayload.notes = appointmentData.notes.trim();
+      }
+      
       if (appointmentData.appointmentType === 'delivery') {
-        appointmentPayload.orderId = order?.orderId;
-        appointmentPayload.deliveryAddress = appointmentData.deliveryAddress || customer.address;
+        if (order?.orderId) {
+          appointmentPayload.orderId = order.orderId; // Required for delivery
+        }
+        if (appointmentData.deliveryAddress?.trim() || customer.address?.trim()) {
+          appointmentPayload.deliveryAddress = (appointmentData.deliveryAddress || customer.address).trim();
+        }
         const response = await publicAppointmentAPI.createDeliveryAppointment(appointmentPayload);
         toast.success('Đã đặt lịch giao xe thành công!');
       } else {
-        appointmentPayload.variantId = selectedInventory?.variant?.variantId;
+        if (selectedInventory?.variant?.variantId) {
+          appointmentPayload.variantId = parseInt(selectedInventory.variant.variantId, 10); // Optional for test-drive
+        }
         const response = await publicAppointmentAPI.createTestDriveAppointment(appointmentPayload);
         toast.success('Đã đặt lịch lái thử thành công!');
       }
@@ -455,12 +644,17 @@ const PublicPurchaseFlow = () => {
       case 1:
         return selectedInventory !== null;
       case 2:
-        return customerData.firstName && customerData.lastName && customerData.email && customerData.phone;
+        // Theo guide: firstName và lastName là required, phải có ít nhất email HOẶC phone
+        return customerData.firstName && customerData.lastName && (customerData.email || customerData.phone);
       case 3:
         return customer !== null && selectedInventory !== null;
       case 4:
+        // Can proceed if quotation is accepted or if we're just viewing
         return order !== null;
       case 5:
+        // Can proceed to payment if quotation is accepted
+        return order !== null && quotation?.status === 'accepted';
+      case 6:
         return true;
       default:
         return false;
@@ -582,7 +776,7 @@ const PublicPurchaseFlow = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">Email *</label>
+                <label htmlFor="email">Email * (hoặc Số điện thoại)</label>
                 <input
                   id="email"
                   name="email"
@@ -590,12 +784,12 @@ const PublicPurchaseFlow = () => {
                   className="form-input"
                   value={customerData.email}
                   onChange={(e) => handleInputChange(e, 'customer')}
-                  required
+                  placeholder="Email hoặc số điện thoại"
                 />
               </div>
 
               <div className="form-group">
-                <label htmlFor="phone">Số điện thoại *</label>
+                <label htmlFor="phone">Số điện thoại * (hoặc Email)</label>
                 <input
                   id="phone"
                   name="phone"
@@ -603,7 +797,7 @@ const PublicPurchaseFlow = () => {
                   className="form-input"
                   value={customerData.phone}
                   onChange={(e) => handleInputChange(e, 'customer')}
-                  required
+                  placeholder="Số điện thoại hoặc email"
                 />
               </div>
 
@@ -783,6 +977,149 @@ const PublicPurchaseFlow = () => {
       case 4:
         return (
           <div className="step-content">
+            <h3>Xem và xác nhận báo giá</h3>
+            
+            {order && (
+              <div className="order-info-card">
+                <h4>Thông tin đơn hàng:</h4>
+                <p><strong>Số đơn:</strong> {order.orderNumber}</p>
+                <p><strong>Ngày đặt:</strong> {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
+                <p><strong>Trạng thái đơn hàng:</strong> <span className="badge badge-info">{order.status || 'pending'}</span></p>
+              </div>
+            )}
+
+            {quotationLoading ? (
+              <div className="loading-box">
+                <RefreshCw size={24} className="spinning" />
+                <p>Đang tải báo giá...</p>
+              </div>
+            ) : quotation ? (
+              <div className="quotation-card">
+                <div className="quotation-header">
+                  <FileCheck size={24} />
+                  <h4>Báo giá từ nhân viên</h4>
+                </div>
+                
+                <div className="quotation-details">
+                  <div className="detail-row">
+                    <span className="label">Số báo giá:</span>
+                    <span className="value">{quotation.quotationNumber || 'N/A'}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="label">Ngày tạo:</span>
+                    <span className="value">
+                      {quotation.quotationDate ? new Date(quotation.quotationDate).toLocaleDateString('vi-VN') : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="label">Trạng thái:</span>
+                    <span className={`badge ${
+                      quotation.status === 'accepted' ? 'badge-success' :
+                      quotation.status === 'sent' ? 'badge-warning' :
+                      quotation.status === 'pending' ? 'badge-info' :
+                      'badge-secondary'
+                    }`}>
+                      {quotation.status === 'accepted' ? 'Đã chấp nhận' :
+                       quotation.status === 'sent' ? 'Đã gửi' :
+                       quotation.status === 'pending' ? 'Chờ xác nhận' :
+                       quotation.status || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="label">Giá gốc:</span>
+                    <span className="value">
+                      {quotation.totalPrice ? `${Number(quotation.totalPrice).toLocaleString('vi-VN')} VNĐ` : 'N/A'}
+                    </span>
+                  </div>
+                  {quotation.discountAmount && quotation.discountAmount > 0 && (
+                    <div className="detail-row">
+                      <span className="label">Giảm giá:</span>
+                      <span className="value discount">
+                        -{Number(quotation.discountAmount).toLocaleString('vi-VN')} VNĐ
+                      </span>
+                    </div>
+                  )}
+                  <div className="detail-row highlight">
+                    <span className="label">Thành tiền:</span>
+                    <span className="value final-price">
+                      {quotation.finalPrice ? `${Number(quotation.finalPrice).toLocaleString('vi-VN')} VNĐ` : 'N/A'}
+                    </span>
+                  </div>
+                  {quotation.validUntil && (
+                    <div className="detail-row">
+                      <span className="label">Có hiệu lực đến:</span>
+                      <span className="value">
+                        {new Date(quotation.validUntil).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  )}
+                  {quotation.notes && (
+                    <div className="detail-row full-width">
+                      <span className="label">Ghi chú:</span>
+                      <span className="value">{quotation.notes}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* ⚠️ LƯU Ý: Không có API public để khách hàng tự xác nhận báo giá (guide line 397) */}
+                {quotation.status === 'sent' && (
+                  <div className="info-box warning">
+                    <FileCheck size={20} />
+                    <div>
+                      <h4>Báo giá đã được gửi</h4>
+                      <p>Vui lòng liên hệ trực tiếp với nhân viên để xác nhận chấp nhận báo giá.</p>
+                      <p>Sau khi nhân viên cập nhật trạng thái thành "accepted", bạn có thể tiếp tục thanh toán.</p>
+                      <p><strong>Liên hệ:</strong> Email: info@evdm.com | Điện thoại: 0123 456 789</p>
+                    </div>
+                  </div>
+                )}
+
+                {quotation.status === 'accepted' && (
+                  <div className="info-box success">
+                    <CheckCircle size={20} />
+                    <p>Báo giá đã được xác nhận. Bạn có thể tiến hành thanh toán.</p>
+                  </div>
+                )}
+
+                {quotation.status === 'pending' && (
+                  <div className="info-box info">
+                    <FileCheck size={20} />
+                    <p>Báo giá đang chờ xử lý. Nhân viên sẽ gửi báo giá cho bạn sớm nhất.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="info-box">
+                <RefreshCw size={24} />
+                <div>
+                  <h4>Chưa có báo giá</h4>
+                  <p>Nhân viên đang xem xét đơn hàng của bạn và sẽ tạo báo giá sớm nhất.</p>
+                  <p>Bạn có thể:</p>
+                  <ul>
+                    <li>Đợi nhân viên tạo báo giá (trang sẽ tự động cập nhật)</li>
+                    <li>Liên hệ trực tiếp với nhân viên để yêu cầu báo giá</li>
+                  </ul>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => loadQuotationForOrder(order.orderId)}
+                    disabled={quotationLoading}
+                  >
+                    <RefreshCw size={16} />
+                    {quotationLoading ? 'Đang tải...' : 'Tải lại báo giá'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="info-box">
+              <p>💡 Sau khi nhân viên tạo báo giá, bạn sẽ thấy báo giá ở đây. Vui lòng xem xét và <strong>liên hệ trực tiếp với nhân viên</strong> để xác nhận chấp nhận báo giá trước khi thanh toán.</p>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="step-content">
             <h3>Thanh toán</h3>
             
             {order && (
@@ -790,14 +1127,25 @@ const PublicPurchaseFlow = () => {
                 <h4>Thông tin đơn hàng:</h4>
                 <p><strong>Số đơn:</strong> {order.orderNumber}</p>
                 <p><strong>Ngày đặt:</strong> {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                <p><strong>Trạng thái:</strong> {order.status || 'pending'}</p>
-                <p><strong>Tổng tiền:</strong> {order.totalAmount ? `${Number(order.totalAmount).toLocaleString('vi-VN')} VNĐ` : 'N/A'}</p>
+                <p><strong>Trạng thái:</strong> <span className="badge badge-info">{order.status || 'pending'}</span></p>
+                {quotation && (
+                  <p><strong>Giá báo giá:</strong> {quotation.finalPrice ? `${Number(quotation.finalPrice).toLocaleString('vi-VN')} VNĐ` : 'N/A'}</p>
+                )}
               </div>
             )}
 
-            <div className="info-box">
-              <p>📧 Bạn sẽ nhận được báo giá từ nhân viên qua email hoặc điện thoại. Sau khi nhận báo giá, bạn có thể thanh toán tại đây.</p>
-            </div>
+            {quotation && quotation.status === 'accepted' && (
+              <div className="info-box success">
+                <CheckCircle size={20} />
+                <p>Bạn đã xác nhận báo giá. Vui lòng thanh toán để hoàn tất đơn hàng.</p>
+              </div>
+            )}
+
+            {(!quotation || quotation.status !== 'accepted') && (
+              <div className="info-box warning">
+                <p>⚠️ Vui lòng xác nhận báo giá trước khi thanh toán.</p>
+              </div>
+            )}
 
             <div className="form-grid">
               <div className="form-group">
@@ -809,10 +1157,15 @@ const PublicPurchaseFlow = () => {
                   value={paymentData.paymentType}
                   onChange={(e) => {
                     handleInputChange(e, 'payment');
-                    if (order) {
+                    if (quotation) {
                       const amount = e.target.value === 'deposit' 
-                        ? order.totalAmount * 0.1 
-                        : order.totalAmount;
+                        ? (quotation.finalPrice || 0) * 0.1 
+                        : (quotation.finalPrice || 0);
+                      setPaymentData(prev => ({ ...prev, amount }));
+                    } else if (order) {
+                      const amount = e.target.value === 'deposit' 
+                        ? (order.totalAmount || 0) * 0.1 
+                        : (order.totalAmount || 0);
                       setPaymentData(prev => ({ ...prev, amount }));
                     }
                   }}
@@ -882,7 +1235,7 @@ const PublicPurchaseFlow = () => {
             <button
               className="btn btn-primary btn-lg"
               onClick={handlePayment}
-              disabled={loading || !order}
+              disabled={loading || !order || !quotation || quotation.status !== 'accepted'}
             >
               <DollarSign size={20} />
               {loading ? 'Đang xử lý...' : 'Thanh toán'}
@@ -890,7 +1243,7 @@ const PublicPurchaseFlow = () => {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="step-content">
             <h3>Hoàn tất đơn hàng</h3>
@@ -914,7 +1267,7 @@ const PublicPurchaseFlow = () => {
                   <div>
                     <p><strong>Số hợp đồng:</strong> {contract.contractNumber}</p>
                     <p><strong>Ngày tạo:</strong> {contract.contractDate ? new Date(contract.contractDate).toLocaleDateString('vi-VN') : 'N/A'}</p>
-                    <p><strong>Trạng thái:</strong> {contract.contractStatus || 'draft'}</p>
+                    <p><strong>Trạng thái:</strong> {contract.contractStatus || contract.status || 'draft'}</p>
                     <button
                       className="btn btn-secondary"
                       onClick={async () => {

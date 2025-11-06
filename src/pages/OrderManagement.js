@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, DollarSign, Calendar, Package, User } from 'lucide-react';
-import { orderAPI } from '../services/api';
+import { ShoppingCart, Plus, DollarSign, Calendar, Package, User, FileText } from 'lucide-react';
+import { orderAPI, quotationAPI, customerAPI, inventoryAPI, paymentAPI, vehicleAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { getStatusBadge as getStatusBadgeUtil } from '../utils/statusBadges';
 import DataTable from '../components/common/DataTable';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -10,6 +11,7 @@ import '../styles/common.css';
 import './OrderManagement.css';
 
 const OrderManagement = () => {
+  const { user, hasAnyRole } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,6 +20,9 @@ const OrderManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [modalMode, setModalMode] = useState('view'); // 'view' or 'edit'
+  
+  // Check if user is EVM_STAFF or ADMIN (can create quotations)
+  const canCreateQuotation = hasAnyRole(['admin', 'evm_staff']);
 
   useEffect(() => {
     loadOrders();
@@ -27,9 +32,141 @@ const OrderManagement = () => {
     try {
       setLoading(true);
       const response = await orderAPI.getOrders();
-      setOrders(response.data || []);
+      const ordersData = response.data || [];
+      
+      // Log để debug
+      console.log('Orders loaded from API:', ordersData);
+      if (ordersData.length > 0) {
+        console.log('First order structure:', ordersData[0]);
+        console.log('First order customer:', ordersData[0].customer);
+        console.log('First order inventory:', ordersData[0].inventory);
+        console.log('First order totalAmount:', ordersData[0].totalAmount);
+      }
+      
+      // Enrich data nếu thiếu relationships
+      // Nếu orders không có customer hoặc inventory được load, load chi tiết từng order
+      const enrichedOrders = await Promise.all(
+        ordersData.map(async (order) => {
+          // Kiểm tra xem có thiếu relationships không
+          const needsEnrichment = 
+            (order.customerId && !order.customer) || 
+            (order.inventoryId && !order.inventory) ||
+            (!order.totalAmount && !order.orderAmount && !order.amount);
+          
+          if (needsEnrichment && order.orderId) {
+            try {
+              // Load chi tiết order để có đầy đủ relationships
+              const detailResponse = await orderAPI.getOrder(order.orderId);
+              const detailedOrder = detailResponse.data;
+              console.log('Enriched order:', order.orderId, detailedOrder);
+              
+              // Nếu vẫn thiếu relationships, fetch riêng
+              let customerData = detailedOrder.customer || order.customer;
+              let inventoryData = detailedOrder.inventory || order.inventory;
+              
+              if (!customerData && detailedOrder.customerId) {
+                try {
+                  const customerResponse = await customerAPI.getCustomer(detailedOrder.customerId);
+                  customerData = customerResponse.data;
+                  console.log('Fetched customer for order:', order.orderId, customerData);
+                } catch (error) {
+                  console.warn('Could not fetch customer:', error);
+                }
+              }
+              
+              if (!inventoryData && detailedOrder.inventoryId) {
+                try {
+                  const inventoryResponse = await inventoryAPI.getInventoryById(detailedOrder.inventoryId);
+                  inventoryData = inventoryResponse.data;
+                  console.log('Fetched inventory for order:', order.orderId, inventoryData);
+                } catch (error) {
+                  console.warn('Could not fetch inventory:', error);
+                }
+              }
+              
+              // Tính totalAmount từ nhiều nguồn
+              let totalAmount = detailedOrder.totalAmount || detailedOrder.orderAmount || detailedOrder.amount || order.totalAmount || order.orderAmount || order.amount;
+              
+              // Nếu vẫn không có, thử lấy từ quotation
+              if (!totalAmount && detailedOrder.quotationId) {
+                try {
+                  const quotationResponse = await quotationAPI.getQuotation(detailedOrder.quotationId);
+                  const quotation = quotationResponse.data;
+                  totalAmount = quotation.finalPrice || quotation.totalPrice || 0;
+                  console.log('Fetched totalAmount from quotation for order:', order.orderId, totalAmount);
+                } catch (error) {
+                  console.warn('Could not fetch quotation:', error);
+                }
+              }
+              
+              // Nếu vẫn không có, thử lấy từ inventory (ưu tiên variant.priceBase vì sellingPrice thường null)
+              if (!totalAmount && inventoryData) {
+                totalAmount = inventoryData.variant?.priceBase || inventoryData.sellingPrice || 0;
+                if (totalAmount) {
+                  console.log('Fetched totalAmount from inventory variant for order:', order.orderId, totalAmount);
+                }
+              }
+              
+              // Nếu vẫn không có và có variantId, thử fetch variant trực tiếp
+              if (!totalAmount && (detailedOrder.variantId || inventoryData?.variantId)) {
+                try {
+                  const variantId = detailedOrder.variantId || inventoryData?.variantId;
+                  console.log('Fetching variant for order:', order.orderId, 'variantId:', variantId);
+                  const variantResponse = await vehicleAPI.getVariant(variantId);
+                  const variant = variantResponse.data;
+                  totalAmount = variant?.priceBase || 0;
+                  if (totalAmount) {
+                    console.log('Fetched totalAmount from variant for order:', order.orderId, totalAmount);
+                    // Cập nhật inventoryData để có variant
+                    if (inventoryData) {
+                      inventoryData.variant = variant;
+                    }
+                  }
+                } catch (error) {
+                  console.warn('Could not fetch variant:', error);
+                }
+              }
+              
+              // Nếu vẫn không có, thử tính từ payments
+              if (!totalAmount) {
+                try {
+                  const paymentsResponse = await paymentAPI.getPaymentsByOrder(order.orderId);
+                  const payments = paymentsResponse.data || [];
+                  if (payments.length > 0) {
+                    totalAmount = payments
+                      .filter(p => p.status === 'completed' || p.status === 'pending')
+                      .reduce((sum, p) => sum + (parseFloat(p.amount || p.paymentAmount || 0)), 0);
+                    if (totalAmount) {
+                      console.log('Fetched totalAmount from payments for order:', order.orderId, totalAmount);
+                    }
+                  }
+                } catch (error) {
+                  console.warn('Could not fetch payments:', error);
+                }
+              }
+              
+              // Merge dữ liệu chi tiết vào order hiện tại
+              return {
+                ...order,
+                ...detailedOrder,
+                // Ưu tiên dữ liệu đã fetch
+                customer: customerData || detailedOrder.customer || order.customer,
+                inventory: inventoryData || detailedOrder.inventory || order.inventory,
+                totalAmount: totalAmount || detailedOrder.totalAmount || order.totalAmount || detailedOrder.orderAmount || order.orderAmount
+              };
+            } catch (error) {
+              console.warn('Could not load order details for:', order.orderId, error);
+              return order;
+            }
+          }
+          return order;
+        })
+      );
+      
+      setOrders(enrichedOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
+      console.error('Error response:', error.response);
       toast.error('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
@@ -123,6 +260,86 @@ const OrderManagement = () => {
     }
   };
 
+  // Bước 5: Tạo Quotation từ Order (EVM_STAFF, ADMIN)
+  const handleCreateQuotation = async (order) => {
+    if (!canCreateQuotation) {
+      toast.error('Bạn không có quyền tạo báo giá');
+      return;
+    }
+
+    if (order.status !== 'pending') {
+      toast.error('Chỉ có thể tạo báo giá cho đơn hàng có trạng thái "pending"');
+      return;
+    }
+
+    if (!order.inventory?.variantId) {
+      toast.error('Đơn hàng không có thông tin xe. Vui lòng kiểm tra lại.');
+      return;
+    }
+
+    if (!order.customer?.customerId) {
+      toast.error('Đơn hàng không có thông tin khách hàng. Vui lòng kiểm tra lại.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Calculate prices from inventory
+      const basePrice = order.inventory?.sellingPrice || order.inventory?.variant?.priceBase || order.totalAmount || 0;
+      
+      // Create quotation according to guide
+      // ⚠️ LƯU Ý: QuotationRequest không có orderId - Quotation độc lập với Order (guide line 389)
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 537-551)
+      const quotationData = {
+        variantId: order.inventory.variantId, // Required
+        totalPrice: basePrice, // Required
+        finalPrice: basePrice // Required
+      };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (order.customer?.customerId) {
+        quotationData.customerId = order.customer.customerId;
+      }
+      if (order.inventory.colorId || order.inventory.color?.colorId) {
+        quotationData.colorId = parseInt(order.inventory.colorId || order.inventory.color?.colorId, 10);
+      }
+      if (order.notes?.trim()) {
+        quotationData.notes = order.notes.trim();
+      }
+      if (basePrice > 0) {
+        quotationData.discountAmount = 0; // Có thể set discountAmount nếu cần
+      }
+      quotationData.validityDays = 30; // Integer, số ngày hiệu lực (default: 7, guide line 350)
+
+      const response = await quotationAPI.createQuotation(quotationData);
+      const createdQuotation = response.data;
+      
+      toast.success(`Báo giá ${createdQuotation.quotationNumber || createdQuotation.quotationId} đã được tạo thành công!`);
+      
+      // ⚠️ LƯU Ý: Quotation KHÔNG tự động cập nhật Order.status thành "quoted" (guide line 374-375)
+      // Nhân viên phải tự cập nhật Order.status thành "quoted" nếu cần
+      try {
+        await orderAPI.updateOrderStatus(order.orderId, 'quoted');
+        toast.success('Đã cập nhật trạng thái đơn hàng thành "quoted"');
+      } catch (statusError) {
+        console.error('Error updating order status:', statusError);
+        toast.error('Đã tạo báo giá nhưng không thể cập nhật trạng thái đơn hàng. Vui lòng cập nhật thủ công.');
+      }
+      
+      // Reload orders to get updated status
+      loadOrders();
+      
+      // Optionally navigate to quotation detail
+      // navigate(`/admin/quotations/${createdQuotation.quotationId}`);
+    } catch (error) {
+      console.error('Error creating quotation:', error);
+      toast.error(error.response?.data?.error || 'Không thể tạo báo giá');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusInfo = getStatusBadgeUtil('order', status);
     return <span className={`badge ${statusInfo.class}`}>{statusInfo.text}</span>;
@@ -146,50 +363,123 @@ const OrderManagement = () => {
       render: (order) => (
         <div className="order-number">
           <ShoppingCart size={16} />
-          {order.orderNumber}
+          {order.orderNumber || order.orderId || 'N/A'}
         </div>
       )
     },
     { 
       key: 'customer', 
       header: 'Khách hàng',
-      render: (order) => (
-        <div className="customer-info">
-          <User size={16} />
-          <div>
-            <div className="customer-name">
-              {order.customer?.firstName} {order.customer?.lastName}
+      render: (order) => {
+        const customer = order.customer;
+        // Fallback: nếu có customerId nhưng không có customer object, hiển thị ID
+        const customerId = order.customerId || customer?.customerId;
+        
+        const customerName = customer 
+          ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
+          : null;
+        const customerEmail = customer?.email;
+        
+        if (!customerName && !customerEmail && !customerId) {
+          return (
+            <div className="customer-info">
+              <User size={16} />
+              <span>N/A</span>
             </div>
-            <div className="customer-email">{order.customer?.email}</div>
+          );
+        }
+        
+        return (
+          <div className="customer-info">
+            <User size={16} />
+            <div>
+              {customerName ? (
+                <>
+                  <div className="customer-name">{customerName}</div>
+                  {customerEmail && <div className="customer-email">{customerEmail}</div>}
+                </>
+              ) : customerId ? (
+                <div className="customer-name">Customer ID: {customerId}</div>
+              ) : (
+                <span>N/A</span>
+              )}
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     { 
       key: 'vehicle', 
       header: 'Xe đặt mua',
-      render: (order) => (
-        <div className="vehicle-info">
-          <Package size={16} />
-          <div>
-            <div className="vehicle-name">
-              {order.inventory?.variant?.model?.brand?.brandName} {order.inventory?.variant?.model?.modelName}
+      render: (order) => {
+        const inventory = order.inventory;
+        const variant = inventory?.variant || order.variant;
+        const model = variant?.model || order.model;
+        const brand = model?.brand || order.brand;
+        
+        const brandName = brand?.brandName;
+        const modelName = model?.modelName;
+        const variantName = variant?.variantName;
+        const vin = inventory?.vin || order.vin;
+        
+        // Fallback: hiển thị ID nếu có
+        const inventoryId = order.inventoryId || inventory?.inventoryId;
+        const variantId = order.variantId || variant?.variantId;
+        
+        if (!brandName && !modelName && !variantName && !vin && !inventoryId && !variantId) {
+          return (
+            <div className="vehicle-info">
+              <Package size={16} />
+              <span>N/A</span>
             </div>
-            <div className="vehicle-variant">{order.inventory?.variant?.variantName}</div>
-            {order.inventory?.vin && <div className="vehicle-vin">VIN: {order.inventory.vin}</div>}
+          );
+        }
+        
+        return (
+          <div className="vehicle-info">
+            <Package size={16} />
+            <div>
+              {(brandName || modelName) ? (
+                <>
+                  {(brandName || modelName) && (
+                    <div className="vehicle-name">
+                      {brandName} {modelName}
+                    </div>
+                  )}
+                  {variantName && <div className="vehicle-variant">{variantName}</div>}
+                  {vin && <div className="vehicle-vin">VIN: {vin}</div>}
+                </>
+              ) : inventoryId ? (
+                <div className="vehicle-name">Inventory ID: {inventoryId}</div>
+              ) : variantId ? (
+                <div className="vehicle-name">Variant ID: {variantId}</div>
+              ) : (
+                <span>N/A</span>
+              )}
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     { 
       key: 'totalAmount', 
       header: 'Tổng tiền',
-      render: (order) => (
-        <div className="amount">
-          <DollarSign size={16} />
-          {order.totalAmount ? `${order.totalAmount.toLocaleString('vi-VN')} VNĐ` : 'N/A'}
-        </div>
-      )
+      render: (order) => {
+        // Debug logging chỉ khi thiếu dữ liệu
+        if (!order.totalAmount && !order.orderAmount && !order.amount && !order.finalPrice) {
+          console.warn('Order missing amount fields:', order.orderId);
+        }
+        
+        const amount = order.totalAmount || order.orderAmount || order.amount || order.finalPrice;
+        return (
+          <div className="amount">
+            <DollarSign size={16} />
+            {amount && Number(amount) > 0 
+              ? `${Number(amount).toLocaleString('vi-VN')} VNĐ` 
+              : 'N/A'}
+          </div>
+        );
+      }
     },
     { 
       key: 'status', 
@@ -199,12 +489,15 @@ const OrderManagement = () => {
     { 
       key: 'orderDate', 
       header: 'Ngày đặt hàng',
-      render: (order) => (
-        <div className="date">
-          <Calendar size={16} />
-          {order.orderDate ? new Date(order.orderDate).toLocaleDateString('vi-VN') : 'N/A'}
-        </div>
-      )
+      render: (order) => {
+        const orderDate = order.orderDate || order.createdAt;
+        return (
+          <div className="date">
+            <Calendar size={16} />
+            {orderDate ? new Date(orderDate).toLocaleDateString('vi-VN') : 'N/A'}
+          </div>
+        );
+      }
     }
   ];
 
@@ -256,6 +549,7 @@ const OrderManagement = () => {
           onConvertToContract={handleConvertToContract}
           onCancelOrder={handleCancelOrder}
           onExportPDF={handleExportPDF}
+          onCreateQuotation={canCreateQuotation ? handleCreateQuotation : undefined}
         />
 
         {/* Order Modal */}

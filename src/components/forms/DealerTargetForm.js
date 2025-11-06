@@ -17,7 +17,36 @@ export default function DealerTargetForm({ baseUrl = '', onCreated, defaultDeale
   });
 
   const onSubmit = async (values) => {
-    const created = await apiFetch(`${baseUrl}/api/dealer-targets`, { method: 'POST', body: values });
+    // Required fields (giả định theo form structure)
+    const submitData = {
+      targetName: values.targetName?.trim() || '',
+      targetYear: parseInt(values.targetYear, 10),
+      targetType: values.targetType || 'sales',
+      targetScope: values.targetScope || 'dealer',
+      targetValue: parseFloat(values.targetValue)
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.dealerId) {
+      submitData.dealerId = values.dealerId;
+    }
+    if (values.description?.trim()) {
+      submitData.description = values.description.trim();
+    }
+    if (values.targetMonth) {
+      submitData.targetMonth = parseInt(values.targetMonth, 10);
+    }
+    if (values.actualValue) {
+      submitData.actualValue = parseFloat(values.actualValue);
+    }
+    if (values.unit?.trim()) {
+      submitData.unit = values.unit.trim();
+    }
+    if (values.targetStatus?.trim()) {
+      submitData.targetStatus = values.targetStatus.trim();
+    }
+    
+    const created = await apiFetch(`${baseUrl}/api/dealer-targets`, { method: 'POST', body: submitData });
     onCreated?.(created);
   };
 

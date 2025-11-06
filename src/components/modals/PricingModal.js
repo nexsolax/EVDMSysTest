@@ -107,18 +107,66 @@ const PricingModal = ({ policy, isOpen, onClose, onSave, mode = 'view' }) => {
     try {
       setLoading(true);
       
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 633-655)
       const submitData = {
-        policyName: formData.policyName.trim(),
-        policyType: formData.policyType,
-        scope: formData.scope,
-        dealerId: formData.scope === 'DEALER' ? formData.dealerId : null,
-        variantId: formData.scope === 'VARIANT' ? formData.variantId : null,
-        policyValue: parseFloat(formData.policyValue),
-        startDate: formData.startDate || null,
-        endDate: formData.endDate || null,
-        status: formData.status,
-        description: formData.description.trim()
+        policyName: formData.policyName.trim() // Required
       };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.variantId) {
+        submitData.variantId = parseInt(formData.variantId, 10);
+      }
+      if (formData.dealerId && formData.scope === 'DEALER') {
+        submitData.dealerId = formData.dealerId;
+      }
+      if (formData.policyType?.trim()) {
+        submitData.policyType = formData.policyType.trim();
+      }
+      if (formData.scope?.trim()) {
+        submitData.scope = formData.scope.trim();
+      }
+      if (formData.basePrice) {
+        submitData.basePrice = parseFloat(formData.basePrice);
+      }
+      if (formData.discountPercent) {
+        submitData.discountPercent = parseFloat(formData.discountPercent);
+      }
+      if (formData.discountAmount) {
+        submitData.discountAmount = parseFloat(formData.discountAmount);
+      }
+      if (formData.markupPercent) {
+        submitData.markupPercent = parseFloat(formData.markupPercent);
+      }
+      if (formData.markupAmount) {
+        submitData.markupAmount = parseFloat(formData.markupAmount);
+      }
+      if (formData.startDate?.trim() || formData.effectiveDate?.trim()) {
+        submitData.effectiveDate = (formData.startDate || formData.effectiveDate).trim(); // Format: YYYY-MM-DD
+      }
+      if (formData.endDate?.trim() || formData.expiryDate?.trim()) {
+        submitData.expiryDate = (formData.endDate || formData.expiryDate).trim(); // Format: YYYY-MM-DD
+      }
+      if (formData.minQuantity) {
+        submitData.minQuantity = parseInt(formData.minQuantity, 10);
+      }
+      if (formData.maxQuantity) {
+        submitData.maxQuantity = parseInt(formData.maxQuantity, 10);
+      }
+      if (formData.customerType?.trim()) {
+        submitData.customerType = formData.customerType.trim();
+      }
+      if (formData.region?.trim()) {
+        submitData.region = formData.region.trim();
+      }
+      if (formData.status?.trim()) {
+        submitData.status = formData.status.trim(); // lowercase
+      }
+      if (formData.priority !== undefined && formData.priority !== null) {
+        submitData.priority = parseInt(formData.priority, 10);
+      }
+      if (formData.description?.trim()) {
+        submitData.description = formData.description.trim();
+      }
 
       console.log('Sending pricing policy data:', submitData);
       

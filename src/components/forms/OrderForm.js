@@ -8,7 +8,30 @@ export default function OrderForm({ baseUrl = '', onCreated }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = async (values) => {
-    const created = await apiFetch(`${baseUrl}/api/orders`, { method: 'POST', body: values });
+    // Tất cả fields trong OrderRequest đều optional (theo FIELD_REFERENCE_GUIDE.md line 192-213)
+    const submitData = {};
+    
+    // Chỉ thêm fields nếu có giá trị (không gửi null/undefined/empty)
+    if (values.quotationId) {
+      submitData.quotationId = values.quotationId;
+    }
+    if (values.customerId) {
+      submitData.customerId = values.customerId;
+    }
+    if (values.userId) {
+      submitData.userId = values.userId;
+    }
+    if (values.inventoryId) {
+      submitData.inventoryId = values.inventoryId;
+    }
+    if (values.orderDate?.trim()) {
+      submitData.orderDate = values.orderDate.trim(); // Format: YYYY-MM-DD
+    }
+    if (values.orderNumber?.trim()) {
+      submitData.orderNumber = values.orderNumber.trim();
+    }
+    
+    const created = await apiFetch(`${baseUrl}/api/orders`, { method: 'POST', body: submitData });
     onCreated?.(created);
   };
 

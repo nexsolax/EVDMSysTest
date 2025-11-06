@@ -40,12 +40,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       label: 'Tổng quan',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
-    {
-      path: '/admin/vehicle-management',
-      icon: Car,
-      label: 'Danh sách xe',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
+    
+    // === Dữ Liệu Cơ Bản (Master Data) ===
     {
       path: '/admin/vehicles',
       icon: Car,
@@ -60,39 +56,71 @@ const Sidebar = ({ isOpen, onClose }) => {
       ]
     },
     {
+      path: '/admin/inventory',
+      icon: Package,
+      label: 'Quản lý kho',
+      roles: ['admin', 'evm_staff', 'dealer_manager'],
+      submenu: [
+        { path: '/admin/inventory/warehouses', label: 'Kho' },
+        { path: '/admin/inventory/vehicles', label: 'Tồn kho xe' }
+      ]
+    },
+    
+    // === Luồng Khách Hàng Mua Xe ===
+    {
       path: '/admin/customers',
       icon: Users,
       label: 'Khách hàng',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
+      path: '/admin/orders',
+      icon: ShoppingCart,
+      label: 'Đơn hàng khách',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
       path: '/admin/quotations',
       icon: FileText,
-      label: 'Báo giá từ khách',
+      label: 'Báo giá khách',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/payments',
+      icon: CreditCard,
+      label: 'Thanh toán khách',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/contracts',
+      icon: FileText,
+      label: 'Hợp đồng bán hàng',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/appointments',
+      icon: Calendar,
+      label: 'Lịch hẹn',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    {
+      path: '/admin/feedbacks',
+      icon: MessageSquare,
+      label: 'Phản hồi',
+      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+    },
+    
+    // === Luồng Đại Lý Đặt Xe ===
+    {
+      path: '/admin/dealer-orders',
+      icon: ShoppingCart,
+      label: 'Đơn hàng đại lý',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
       path: '/admin/dealer-quotations',
       icon: FileText,
-      label: 'Báo giá từ đại lý',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
-    {
-      path: '/admin/dealer-quotation-requests',
-      icon: FileText,
-      label: 'Yêu cầu báo giá của tôi',
-      roles: ['dealer_manager', 'dealer_staff', 'admin']
-    },
-    {
-      path: '/admin/orders',
-      icon: ShoppingCart,
-      label: 'Đơn hàng',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
-    {
-      path: '/admin/dealer-orders',
-      icon: ShoppingCart,
-      label: 'Đại lý đặt xe',
+      label: 'Báo giá đại lý',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
@@ -108,50 +136,24 @@ const Sidebar = ({ isOpen, onClose }) => {
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
-      path: '/admin/contracts',
-      icon: FileText,
-      label: 'Hợp đồng',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
-    {
       path: '/admin/deliveries',
       icon: Truck,
       label: 'Giao xe',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
     },
     {
-      path: '/admin/payments',
+      path: '/admin/installment-plans',
       icon: CreditCard,
-      label: 'Thanh toán',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
+      label: 'Kế hoạch trả góp',
+      roles: ['admin', 'evm_staff', 'dealer_manager']
     },
+    
+    // === Quản Lý Bổ Sung ===
     {
       path: '/admin/promotions',
       icon: Gift,
       label: 'Khuyến mãi',
       roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
-    {
-      path: '/admin/appointments',
-      icon: Calendar,
-      label: 'Lịch hẹn lái thử',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
-    {
-      path: '/admin/feedbacks',
-      icon: MessageSquare,
-      label: 'Phản hồi & Khiếu nại',
-      roles: ['admin', 'evm_staff', 'dealer_manager', 'dealer_staff']
-    },
-    {
-      path: '/admin/inventory',
-      icon: Package,
-      label: 'Kho hàng',
-      roles: ['admin', 'evm_staff', 'dealer_manager'],
-      submenu: [
-        { path: '/admin/inventory/warehouses', label: 'Kho' },
-        { path: '/admin/inventory/vehicles', label: 'Tồn kho xe' }
-      ]
     },
     {
       path: '/admin/vehicle-images',
@@ -176,12 +178,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: DollarSign,
       label: 'Giá sỉ & Chiết khấu',
       roles: ['admin', 'evm_staff']
-    },
-    {
-      path: '/admin/installment-plans',
-      icon: CreditCard,
-      label: 'Kế hoạch trả góp',
-      roles: ['admin', 'evm_staff', 'dealer_manager']
     },
     {
       path: '/admin/dealer-targets',

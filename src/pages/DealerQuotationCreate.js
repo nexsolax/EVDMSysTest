@@ -130,11 +130,11 @@ const DealerQuotationCreate = () => {
       // Query params: evmStaffId?, discountPercentage?, notes?
       console.log('Creating quotation from order:', orderId);
       
-      // Có thể truyền thêm params nếu cần (hiện tại không có form để nhập)
+      // Theo guide line 1324-1330: Query params (tất cả optional): evmStaffId, discountPercentage, notes
       const params = {
-        // evmStaffId: user?.userId, // Optional
-        // discountPercentage: formData.discountPercentage, // Optional
-        // notes: formData.notes // Optional
+        ...(user?.userId ? { evmStaffId: user.userId } : {}), // Optional - ID nhân viên EVM tạo quotation
+        ...(formData.discountPercentage && formData.discountPercentage > 0 ? { discountPercentage: formData.discountPercentage } : {}), // Optional - Phần trăm giảm giá
+        ...(formData.notes && formData.notes.trim() ? { notes: formData.notes.trim() } : {}) // Optional - Ghi chú
       };
       
       const response = await dealerQuotationAPI.createFromOrder(orderId, params);

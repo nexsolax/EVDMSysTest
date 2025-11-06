@@ -50,7 +50,33 @@ export default function WarehouseForm({ warehouse, mode = 'view', onSubmit, onCa
   }, [warehouse, mode, reset]);
 
   const submitForm = (data) => {
-    onSubmit?.(data);
+    // Required fields (theo INPUT_ORDER_GUIDE.md line 93-99)
+    const submitData = {
+      warehouseName: data.warehouseName?.trim() || '',
+      warehouseCode: data.warehouseCode?.trim() || '',
+      address: data.address?.trim() || '',
+      city: data.city?.trim() || '',
+      province: data.province?.trim() || ''
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (data.postalCode?.trim()) {
+      submitData.postalCode = data.postalCode.trim();
+    }
+    if (data.phone?.trim()) {
+      submitData.phone = data.phone.trim();
+    }
+    if (data.email?.trim()) {
+      submitData.email = data.email.trim();
+    }
+    if (data.capacity !== undefined && data.capacity !== null && data.capacity !== '') {
+      submitData.capacity = parseInt(data.capacity, 10);
+    }
+    if (data.isActive !== undefined) {
+      submitData.isActive = data.isActive;
+    }
+    
+    onSubmit?.(submitData);
   };
 
   return (

@@ -113,7 +113,40 @@ const QuotationModal = ({ quotation, isOpen, onClose, onSave, mode = 'view' }) =
 
     try {
       setLoading(true);
-      await onSave(quotation.quotationId, formData);
+      
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 537-551)
+      const submitData = {
+        variantId: parseInt(formData.variantId, 10),
+        totalPrice: parseFloat(formData.totalPrice),
+        finalPrice: parseFloat(formData.finalPrice)
+      };
+      
+      // colorId là required nhưng có thể không có trong form, chỉ thêm nếu có
+      if (formData.colorId) {
+        submitData.colorId = parseInt(formData.colorId, 10);
+      }
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.customerId) {
+        submitData.customerId = formData.customerId;
+      }
+      if (formData.quotationDate?.trim()) {
+        submitData.quotationDate = formData.quotationDate.trim(); // Format: YYYY-MM-DD
+      }
+      if (formData.discountAmount) {
+        submitData.discountAmount = parseFloat(formData.discountAmount);
+      }
+      if (formData.validityDays) {
+        submitData.validityDays = parseInt(formData.validityDays, 10);
+      }
+      if (formData.status?.trim()) {
+        submitData.status = formData.status.trim(); // lowercase
+      }
+      if (formData.notes?.trim()) {
+        submitData.notes = formData.notes.trim();
+      }
+      
+      await onSave(quotation.quotationId, submitData);
       onClose();
     } catch (error) {
       console.error('Error saving quotation:', error);

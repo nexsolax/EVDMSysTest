@@ -109,7 +109,40 @@ const DeliveryModal = ({ delivery, isOpen, onClose, onSave, mode = 'view' }) => 
     if (mode === 'view') return;
     try {
       setLoading(true);
-      await onSave(delivery.deliveryId, formData);
+      
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 710-715)
+      const submitData = {
+        deliveryDate: formData.scheduledDate || formData.deliveryDate, // Format: YYYY-MM-DD
+        deliveryAddress: formData.deliveryAddress?.trim() || '' // Required
+      };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.customerId) {
+        submitData.customerId = formData.customerId;
+      }
+      if (formData.orderId) {
+        submitData.orderId = formData.orderId;
+      }
+      if (formData.vehicleId || formData.inventoryId) {
+        submitData.inventoryId = formData.vehicleId || formData.inventoryId;
+      }
+      if (formData.deliveryTime?.trim()) {
+        submitData.deliveryTime = formData.deliveryTime.trim(); // LocalTime format
+      }
+      if (formData.deliveryContactName?.trim()) {
+        submitData.deliveryContactName = formData.deliveryContactName.trim();
+      }
+      if (formData.deliveryContactPhone?.trim()) {
+        submitData.deliveryContactPhone = formData.deliveryContactPhone.trim();
+      }
+      if (formData.status?.trim()) {
+        submitData.deliveryStatus = formData.status.trim(); // lowercase: pending, scheduled, in_transit, delivered, cancelled
+      }
+      if (formData.notes?.trim() || formData.deliveryNotes?.trim()) {
+        submitData.deliveryNotes = (formData.notes || formData.deliveryNotes)?.trim();
+      }
+      
+      await onSave(delivery.deliveryId, submitData);
       onClose();
     } catch (error) {
       // toast already shown upstream

@@ -18,7 +18,6 @@ import DealerOrderDetail from './pages/DealerOrderDetail';
 import DealerQuotationList from './pages/DealerQuotationList';
 import DealerQuotationCreate from './pages/DealerQuotationCreate';
 import DealerQuotationDetail from './pages/DealerQuotationDetail';
-import DealerQuotationRequest from './pages/DealerQuotationRequest';
 import DealerInvoiceList from './pages/DealerInvoiceList';
 import DealerInvoiceDetail from './pages/DealerInvoiceDetail';
 import DealerPaymentManagement from './pages/DealerPaymentManagement';
@@ -36,11 +35,9 @@ import PricingManagement from './pages/PricingManagement';
 import InstallmentPlanManagement from './pages/InstallmentPlanManagement';
 import DealerTargetManagement from './pages/DealerTargetManagement';
 import VehicleComparison from './pages/VehicleComparison';
-import SalesPage from './pages/SalesPage';
 import PublicSalesPage from './pages/PublicSalesPage';
 import PublicPurchaseFlow from './pages/PublicPurchaseFlow';
 import VehicleImageManagement from './pages/VehicleImageManagement';
-import VehicleManagementUnified from './pages/VehicleManagementUnified';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import RoleManagement from './pages/RoleManagement';
@@ -92,12 +89,11 @@ function App() {
                 {/* Customer Management */}
                 <Route path="customers" element={<CustomerManagement />} />
                 
-                {/* Sales Process */}
-                <Route path="sales" element={<SalesPage />} />
+                {/* Sales Process - Luồng Khách Hàng Mua Xe */}
                 <Route path="quotations" element={<QuotationManagement />} />
                 <Route path="orders" element={<OrderManagement />} />
                 
-                {/* Dealer Order Management */}
+                {/* Dealer Order Management - Luồng Đại Lý Đặt Xe */}
                 <Route path="dealer-orders" element={<DealerOrderList />} />
                 <Route path="dealer-orders/create" element={<DealerOrderCreate />} />
                 <Route path="dealer-orders/:id" element={<DealerOrderDetail />} />
@@ -106,7 +102,6 @@ function App() {
                 <Route path="dealer-quotations" element={<DealerQuotationList />} />
                 <Route path="dealer-quotations/create" element={<DealerQuotationCreate />} />
                 <Route path="dealer-quotations/:id" element={<DealerQuotationDetail />} />
-                <Route path="dealer-quotation-requests" element={<DealerQuotationRequest />} />
                 
                 {/* Dealer Invoice Management */}
                 <Route path="dealer-invoices" element={<DealerInvoiceList />} />
@@ -181,11 +176,6 @@ function App() {
             <Route path="vehicle-images" element={
               <ProtectedRoute requiredRoles={['admin', 'evm_staff']}>
                 <VehicleImageManagement />
-              </ProtectedRoute>
-            } />
-            <Route path="vehicle-management" element={
-              <ProtectedRoute requiredRoles={['admin', 'evm_staff', 'dealer_manager']}>
-                <VehicleManagementUnified />
               </ProtectedRoute>
             } />
                 

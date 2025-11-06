@@ -91,7 +91,29 @@ const PaymentModal = ({ payment, isOpen, onClose, onSave, mode = 'view' }) => {
 
     try {
       setLoading(true);
-      await onSave(payment.paymentId, formData);
+      
+      // Required fields (theo FIELD_REFERENCE_GUIDE.md line 764-783)
+      const submitData = {
+        paymentDate: formData.paymentDate, // Format: YYYY-MM-DD
+        amount: parseFloat(formData.amount),
+        status: formData.status || 'pending'
+      };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.customerId) {
+        submitData.customerId = formData.customerId;
+      }
+      if (formData.orderId) {
+        submitData.orderId = formData.orderId;
+      }
+      if (formData.method?.trim()) {
+        submitData.paymentMethod = formData.method.trim(); // Theo guide: paymentMethod
+      }
+      if (formData.notes?.trim()) {
+        submitData.notes = formData.notes.trim();
+      }
+      
+      await onSave(payment.paymentId, submitData);
       onClose();
     } catch (e) {
       // upstream toast

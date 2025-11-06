@@ -28,7 +28,28 @@ const PaymentManagement = () => {
       setPayments(response.data || []);
     } catch (error) {
       console.error('Error loading payments:', error);
-      toast.error('Không thể tải danh sách thanh toán');
+      
+      // Better error handling for 500 errors
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+        
+        if (error.response.status === 500) {
+          const errorMessage = error.response.data?.message || error.response.data?.error || 'Lỗi server (500)';
+          toast.error(`Lỗi server: ${errorMessage}. Vui lòng kiểm tra backend logs.`);
+        } else if (error.response.status === 401) {
+          toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        } else if (error.response.status === 403) {
+          toast.error('Bạn không có quyền truy cập danh sách thanh toán.');
+        } else {
+          toast.error(`Không thể tải danh sách thanh toán (${error.response.status})`);
+        }
+      } else if (error.request) {
+        console.error('Request made but no response received:', error.request);
+        toast.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+      } else {
+        toast.error('Không thể tải danh sách thanh toán');
+      }
     } finally {
       setLoading(false);
     }

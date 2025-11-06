@@ -13,7 +13,31 @@ export default function PromotionForm({ baseUrl = '', onCreated }) {
   });
 
   const onSubmit = async (values) => {
-    const created = await apiFetch(`${baseUrl}/api/promotions`, { method: 'POST', body: values });
+    // Required fields (theo FIELD_REFERENCE_GUIDE.md line 840-845)
+    const submitData = {
+      title: values.promotionName?.trim() || values.title?.trim() || '', // Required
+      startDate: values.startDate?.trim() || '', // Required - Format: YYYY-MM-DD
+      endDate: values.endDate?.trim() || '' // Required - Format: YYYY-MM-DD
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.variantId) {
+      submitData.variantId = parseInt(values.variantId, 10);
+    }
+    if (values.discountPercent) {
+      submitData.discountPercent = parseFloat(values.discountPercent);
+    }
+    if (values.discountAmount) {
+      submitData.discountAmount = parseFloat(values.discountAmount);
+    }
+    if (values.description?.trim()) {
+      submitData.description = values.description.trim();
+    }
+    if (values.status?.trim()) {
+      submitData.status = values.status.trim(); // active, inactive, expired, cancelled
+    }
+    
+    const created = await apiFetch(`${baseUrl}/api/promotions`, { method: 'POST', body: submitData });
     onCreated?.(created);
   };
 

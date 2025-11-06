@@ -15,7 +15,44 @@ export default function InstallmentPlanForm({ baseUrl = '', onCreated, defaultOr
   });
 
   const onSubmit = async (values) => {
-    const created = await apiFetch(`${baseUrl}/api/installment-plans`, { method: 'POST', body: values });
+    // Required fields (theo INPUT_ORDER_GUIDE.md line 583-595)
+    const submitData = {
+      planType: values.planType || 'customer', // Required: "customer" hoặc "dealer"
+      totalAmount: parseFloat(values.totalAmount), // Required
+      downPaymentAmount: parseFloat(values.downPaymentAmount || 0), // Required
+      loanAmount: parseFloat(values.loanAmount || (values.totalAmount - (values.downPaymentAmount || 0))), // Required
+      monthlyPaymentAmount: parseFloat(values.monthlyPayment || values.monthlyPaymentAmount || 0), // Required
+      loanTermMonths: parseInt(values.numberOfMonths || values.loanTermMonths || 1, 10), // Required
+      interestRate: parseFloat(values.interestRate || 0.02) // Required, default: 0.02
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.orderId) {
+      submitData.orderId = values.orderId;
+    }
+    if (values.customerId) {
+      submitData.customerId = values.customerId;
+    }
+    if (values.invoiceId) {
+      submitData.invoiceId = values.invoiceId;
+    }
+    if (values.dealerId) {
+      submitData.dealerId = values.dealerId;
+    }
+    if (values.firstPaymentDate?.trim() || values.startDate?.trim()) {
+      submitData.firstPaymentDate = (values.firstPaymentDate || values.startDate).trim(); // Format: YYYY-MM-DD
+    }
+    if (values.financeCompany?.trim()) {
+      submitData.financeCompany = values.financeCompany.trim();
+    }
+    if (values.contractNumber?.trim()) {
+      submitData.contractNumber = values.contractNumber.trim();
+    }
+    if (values.notes?.trim()) {
+      submitData.notes = values.notes.trim();
+    }
+    
+    const created = await apiFetch(`${baseUrl}/api/installment-plans`, { method: 'POST', body: submitData });
     onCreated?.(created);
   };
 

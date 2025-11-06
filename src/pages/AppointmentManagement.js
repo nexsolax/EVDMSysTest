@@ -91,13 +91,12 @@ const AppointmentManagement = () => {
   };
 
   const getStatusBadge = (status) => {
+    // Appointment.status: lowercase (theo ENUM_AND_STATUS_GUIDE.md line 438-453)
     const statusMap = {
       'scheduled': { text: 'Đã lên lịch', class: 'badge-primary' },
       'confirmed': { text: 'Đã xác nhận', class: 'badge-success' },
-      'in_progress': { text: 'Đang thực hiện', class: 'badge-warning' },
       'completed': { text: 'Hoàn thành', class: 'badge-success' },
-      'cancelled': { text: 'Đã hủy', class: 'badge-danger' },
-      'no_show': { text: 'Không đến', class: 'badge-secondary' }
+      'cancelled': { text: 'Đã hủy', class: 'badge-danger' }
     };
     
     const statusInfo = statusMap[status] || { text: status, class: 'badge-secondary' };
@@ -196,56 +195,74 @@ const AppointmentManagement = () => {
     {
       key: 'appointmentId',
       label: 'ID',
-      render: (value) => value || 'N/A'
+      render: (item) => {
+        const value = item?.appointmentId;
+        return value || 'N/A';
+      }
     },
     {
       key: 'title',
       label: 'Tiêu đề',
-      render: (value) => <strong>{value || 'N/A'}</strong>
+      render: (item) => {
+        const value = item?.title;
+        return <strong>{value || 'N/A'}</strong>;
+      }
     },
     {
       key: 'appointmentType',
       label: 'Loại',
-      render: (value) => getTypeBadge(value)
+      render: (item) => {
+        const value = item?.appointmentType;
+        return getTypeBadge(value);
+      }
     },
     {
       key: 'customer',
       label: 'Khách hàng',
-      render: (value, row) => {
-        const customerId = row?.customer?.customerId;
+      render: (item) => {
+        const customerId = item?.customer?.customerId;
         return customerId ? getCustomerName(customerId) : 'N/A';
       }
     },
     {
       key: 'staff',
       label: 'Nhân viên',
-      render: (value, row) => {
-        const staffId = row?.staff?.userId;
+      render: (item) => {
+        const staffId = item?.staff?.userId;
         return staffId ? getStaffName(staffId) : 'N/A';
       }
     },
     {
       key: 'variant',
       label: 'Xe',
-      render: (value, row) => {
-        const variantId = row?.variant?.variantId;
+      render: (item) => {
+        const variantId = item?.variant?.variantId;
         return variantId ? getVariantName(variantId) : 'N/A';
       }
     },
     {
       key: 'appointmentDate',
       label: 'Ngày',
-      render: (value) => formatDate(value)
+      render: (item) => {
+        const value = item?.appointmentDate;
+        return formatDate(value);
+      }
     },
     {
       key: 'appointmentTime',
       label: 'Giờ',
-      render: (value) => formatTime(value)
+      render: (item) => {
+        const value = item?.appointmentTime;
+        return formatTime(value);
+      }
     },
     {
       key: 'status',
       label: 'Trạng thái',
-      render: (value) => getStatusBadge(value)
+      render: (item) => {
+        const value = item?.status;
+        return getStatusBadge(value);
+      }
     }
   ];
 

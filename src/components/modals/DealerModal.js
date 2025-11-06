@@ -124,21 +124,40 @@ const DealerModal = ({ dealer, isOpen, onClose, onSave, mode = 'view' }) => {
     try {
       setLoading(true);
       
+      // Required fields
       const submitData = {
         dealerCode: formData.dealerCode.trim(),
         dealerName: formData.dealerName.trim(),
         email: formData.email.trim(),
-        phone: formData.phone.trim() || null,
-        address: formData.address.trim() || null,
-        city: formData.city.trim() || null,
-        province: formData.province.trim() || null,
-        postalCode: formData.postalCode.trim() || null,
         dealerType: formData.dealerType || 'authorized',
-        licenseNumber: formData.licenseNumber.trim() || null,
-        taxCode: formData.taxCode.trim() || null,
-        commissionRate: formData.commissionRate ? parseFloat(formData.commissionRate) : null,
         status: formData.status || 'ACTIVE'
       };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.phone?.trim()) {
+        submitData.phone = formData.phone.trim();
+      }
+      if (formData.address?.trim()) {
+        submitData.address = formData.address.trim();
+      }
+      if (formData.city?.trim()) {
+        submitData.city = formData.city.trim();
+      }
+      if (formData.province?.trim()) {
+        submitData.province = formData.province.trim();
+      }
+      if (formData.postalCode?.trim()) {
+        submitData.postalCode = formData.postalCode.trim();
+      }
+      if (formData.licenseNumber?.trim()) {
+        submitData.licenseNumber = formData.licenseNumber.trim();
+      }
+      if (formData.taxCode?.trim()) {
+        submitData.taxCode = formData.taxCode.trim();
+      }
+      if (formData.commissionRate) {
+        submitData.commissionRate = parseFloat(formData.commissionRate);
+      }
 
       console.log('Sending dealer data:', submitData);
       

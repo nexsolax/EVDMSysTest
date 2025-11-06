@@ -216,21 +216,23 @@ const UserModal = ({ user, isOpen, onClose, onSave, mode = 'view' }) => {
         return mapping[role] || role?.toUpperCase();
       };
       
+      // Required fields
       const submitData = {
         username: formData.username.trim(),
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
-        phone: formData.phone.trim(),
         password: formData.password,
         userType: roleToUserType(formData.role), // Use userType enum instead of roleString
-        dealerName: formData.dealerName?.trim() || undefined, // Send dealerName (backend will find by name)
         isActive: formData.isActive
       };
       
-      // Remove dealerName if user is admin (not required)
-      if (isAdmin) {
-        delete submitData.dealerName;
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.phone?.trim()) {
+        submitData.phone = formData.phone.trim();
+      }
+      if (formData.dealerName?.trim() && !isAdmin) {
+        submitData.dealerName = formData.dealerName.trim(); // Send dealerName (backend will find by name)
       }
       
       // Log data being sent

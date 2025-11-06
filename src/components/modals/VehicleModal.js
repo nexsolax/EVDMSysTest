@@ -176,33 +176,58 @@ const VehicleModal = ({ vehicle, isOpen, onClose, onSave, mode = 'view', vehicle
       if (vehicleType === 'brand') {
         submitData = {
           brandName: formData.brandName.trim(),
-          country: formData.country?.trim() || null,
-          foundedYear: formData.foundedYear ? parseInt(formData.foundedYear) : null,
           isActive: formData.isActive !== undefined ? formData.isActive : true
         };
+        // Optional fields - chỉ thêm nếu có giá trị
+        if (formData.country?.trim()) {
+          submitData.country = formData.country.trim();
+        }
+        // foundedYear không có trong VehicleBrandRequest - không gửi
       } else if (vehicleType === 'model') {
         submitData = {
           modelName: formData.modelName.trim(),
           brandId: formData.brandId,
-          modelYear: parseInt(formData.modelYear),
-          vehicleType: formData.vehicleType || null,
-          description: formData.description?.trim() || null,
           isActive: formData.isActive !== undefined ? formData.isActive : true
         };
+        // Optional fields - chỉ thêm nếu có giá trị
+        if (formData.modelYear) {
+          submitData.modelYear = parseInt(formData.modelYear, 10);
+        }
+        if (formData.vehicleType?.trim()) {
+          submitData.vehicleType = formData.vehicleType.trim();
+        }
+        if (formData.description?.trim()) {
+          submitData.description = formData.description.trim();
+        }
       } else if (vehicleType === 'variant') {
         submitData = {
           variantName: formData.variantName.trim(),
           modelId: formData.modelId,
-          batteryCapacity: formData.batteryCapacity ? parseFloat(formData.batteryCapacity) : null,
-          rangeKm: formData.rangeKm ? parseInt(formData.rangeKm) : null,
-          powerKw: formData.powerKw ? parseFloat(formData.powerKw) : null,
-          acceleration0100: formData.acceleration0100 ? parseFloat(formData.acceleration0100) : null,
-          topSpeed: formData.topSpeed ? parseInt(formData.topSpeed) : null,
-          chargingTimeFast: formData.chargingTimeFast ? parseInt(formData.chargingTimeFast) : null,
-          chargingTimeSlow: formData.chargingTimeSlow ? parseInt(formData.chargingTimeSlow) : null,
           priceBase: parseFloat(formData.priceBase),
           isActive: formData.isActive !== undefined ? formData.isActive : true
         };
+        // Optional fields - chỉ thêm nếu có giá trị
+        if (formData.batteryCapacity) {
+          submitData.batteryCapacity = parseFloat(formData.batteryCapacity);
+        }
+        if (formData.rangeKm) {
+          submitData.rangeKm = parseInt(formData.rangeKm, 10);
+        }
+        if (formData.powerKw) {
+          submitData.powerKw = parseInt(formData.powerKw, 10); // Integer theo FIELD_REFERENCE_GUIDE.md line 110
+        }
+        if (formData.acceleration0100) {
+          submitData.acceleration0100 = parseFloat(formData.acceleration0100);
+        }
+        if (formData.topSpeed) {
+          submitData.topSpeed = parseInt(formData.topSpeed, 10);
+        }
+        if (formData.chargingTimeFast) {
+          submitData.chargingTimeFast = parseInt(formData.chargingTimeFast, 10);
+        }
+        if (formData.chargingTimeSlow) {
+          submitData.chargingTimeSlow = parseInt(formData.chargingTimeSlow, 10);
+        }
       } else if (vehicleType === 'color') {
         submitData = {
           colorName: formData.colorName.trim(),

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { X, DollarSign, CreditCard, Save } from 'lucide-react';
-import { dealerPaymentAPI, dealerInstallmentPlanAPI } from '../../services/api';
+import { dealerPaymentAPI, installmentPlanAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import './Modal.css';
 
 const DealerPaymentModal = ({ invoice, isOpen, onClose, onSave, mode = 'create' }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     invoiceId: '',
     amount: '',
@@ -95,29 +97,51 @@ const DealerPaymentModal = ({ invoice, isOpen, onClose, onSave, mode = 'create' 
 
       try {
         setLoading(true);
+        // Theo guide line 1477-1496: Phải dùng POST /api/installment-plans với planType="dealer"
+        // Không dùng /api/dealer-installment-plans
+        const dealerId = invoice?.dealerId || invoice?.dealer?.dealerId || user?.dealerId;
+        if (!dealerId) {
+          toast.error('Không tìm thấy thông tin đại lý. Vui lòng kiểm tra lại.');
+          return;
+        }
+        
         const planData = {
-          invoiceId: formData.invoiceId,
+          planType: 'dealer', // Required: "dealer" hoặc "customer" (String)
+          invoiceId: formData.invoiceId, // Required cho dealer plan
+          dealerId: dealerId, // Required cho dealer plan
           totalAmount: parseFloat(installmentPlan.totalAmount),
           downPaymentAmount: parseFloat(installmentPlan.downPaymentAmount),
           loanAmount: parseFloat(installmentPlan.loanAmount),
-          interestRate: parseFloat(installmentPlan.interestRate),
+          interestRate: parseFloat(installmentPlan.interestRate || 0.02),
           loanTermMonths: parseInt(installmentPlan.loanTermMonths),
           monthlyPaymentAmount: parseFloat(installmentPlan.monthlyPaymentAmount),
-          firstPaymentDate: installmentPlan.firstPaymentDate,
-          financeCompany: installmentPlan.financeCompany || null
+          ...(installmentPlan.firstPaymentDate ? { firstPaymentDate: installmentPlan.firstPaymentDate } : {}),
+          ...(installmentPlan.financeCompany ? { financeCompany: installmentPlan.financeCompany } : {}),
+          ...(installmentPlan.contractNumber ? { contractNumber: installmentPlan.contractNumber } : {})
         };
 
-        await dealerInstallmentPlanAPI.createPlan(planData);
+        await installmentPlanAPI.createInstallmentPlan(planData);
         toast.success('Đã tạo kế hoạch trả góp thành công');
 
         // Process down payment
+        // Required fields
         const paymentData = {
           invoiceId: formData.invoiceId,
           amount: parseFloat(installmentPlan.downPaymentAmount),
-          paymentType: 'INSTALLMENT',
-          referenceNumber: formData.referenceNumber || `TXN-DP-${Date.now()}`,
-          notes: formData.notes || 'Thanh toán đợt đầu'
+          paymentType: 'INSTALLMENT'
         };
+        
+        // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+        if (formData.referenceNumber?.trim()) {
+          paymentData.referenceNumber = formData.referenceNumber.trim();
+        } else {
+          paymentData.referenceNumber = `TXN-DP-${Date.now()}`;
+        }
+        if (formData.notes?.trim()) {
+          paymentData.notes = formData.notes.trim();
+        } else {
+          paymentData.notes = 'Thanh toán đợt đầu';
+        }
 
         await dealerPaymentAPI.processPayment(paymentData);
         toast.success('Đã thanh toán đợt đầu thành công');
@@ -139,13 +163,25 @@ const DealerPaymentModal = ({ invoice, isOpen, onClose, onSave, mode = 'create' 
 
       try {
         setLoading(true);
+        // Required fields (theo FIELD_REFERENCE_GUIDE.md line 499-508)
         const paymentData = {
           invoiceId: formData.invoiceId,
-          amount: parseFloat(formData.amount),
-          paymentType: formData.paymentType,
-          referenceNumber: formData.referenceNumber || `TXN-${Date.now()}`,
-          notes: formData.notes || null
+          amount: parseFloat(formData.amount)
         };
+        
+        // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+        if (formData.paymentType) {
+          paymentData.paymentType = formData.paymentType;
+        }
+        if (formData.referenceNumber?.trim()) {
+          paymentData.referenceNumber = formData.referenceNumber.trim();
+        } else {
+          // Auto-generate reference number nếu không có
+          paymentData.referenceNumber = `TXN-${Date.now()}`;
+        }
+        if (formData.notes?.trim()) {
+          paymentData.notes = formData.notes.trim();
+        }
 
         await dealerPaymentAPI.processPayment(paymentData);
         toast.success('Thanh toán thành công');

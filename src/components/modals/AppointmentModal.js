@@ -9,21 +9,44 @@ const AppointmentModal = ({ isOpen, onClose, vehicle }) => {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (formData) => {
-    // If formData has appointmentDate and appointmentTime, combine them
-    if (formData.appointmentDate && formData.appointmentTime) {
-      const dateTime = `${formData.appointmentDate}T${formData.appointmentTime}:00`;
-      formData.preferredDateTime = dateTime;
+    // Required fields (theo FIELD_REFERENCE_GUIDE.md line 584-597)
+    const submitData = {
+      title: formData.title?.trim() || 'Lịch hẹn',
+      appointmentDate: formData.appointmentDate // Required - LocalDateTime format: YYYY-MM-DDTHH:mm:ss
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (formData.customerId) {
+      submitData.customerId = formData.customerId;
     }
-
-    // Add vehicle info if available
-    if (vehicle) {
-      formData.inventoryId = vehicle.inventoryId || null;
-      formData.variantId = vehicle.variantId || vehicle.variant?.variantId || null;
+    if (vehicle?.inventoryId || formData.inventoryId) {
+      submitData.inventoryId = vehicle?.inventoryId || formData.inventoryId;
+    }
+    if (vehicle?.variantId || vehicle?.variant?.variantId || formData.variantId) {
+      submitData.variantId = parseInt(vehicle?.variantId || vehicle?.variant?.variantId || formData.variantId, 10);
+    }
+    if (formData.appointmentType?.trim()) {
+      submitData.appointmentType = formData.appointmentType.trim();
+    }
+    if (formData.description?.trim()) {
+      submitData.description = formData.description.trim();
+    }
+    if (formData.durationMinutes) {
+      submitData.durationMinutes = parseInt(formData.durationMinutes, 10);
+    }
+    if (formData.location?.trim()) {
+      submitData.location = formData.location.trim();
+    }
+    if (formData.status?.trim()) {
+      submitData.status = formData.status.trim(); // lowercase
+    }
+    if (formData.notes?.trim()) {
+      submitData.notes = formData.notes.trim();
     }
 
     try {
       setLoading(true);
-      await publicAppointmentAPI.createAppointment(formData);
+      await publicAppointmentAPI.createAppointment(submitData);
       toast.success('Đặt lịch hẹn thành công! Chúng tôi sẽ liên hệ lại với bạn.');
       onClose();
     } catch (error) {

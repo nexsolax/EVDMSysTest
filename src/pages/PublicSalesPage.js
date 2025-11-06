@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Phone, Mail, Car, Zap, Shield, Eye, Calendar, Quote, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { publicInventoryAPI, publicVehicleAPI } from '../services/api';
 import QuoteModal from '../components/modals/QuoteModal';
@@ -8,6 +9,7 @@ import VehicleImage from '../components/VehicleImage';
 import './PublicSalesPage.css';
 
 const PublicSalesPage = () => {
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -349,7 +351,7 @@ const PublicSalesPage = () => {
             <div className="detail-actions">
               <button 
                 className="btn-lg btn-primary"
-                onClick={() => window.location.href = `/purchase?inventoryId=${selectedVehicleDetail.inventoryId}`}
+                onClick={() => navigate(`/purchase?inventoryId=${selectedVehicleDetail.inventoryId}`)}
               >
                 <ShoppingCart className="btn-icon" />
                 Mua xe ngay
@@ -532,7 +534,7 @@ const PublicSalesPage = () => {
                       </button>
                       <button 
                         className="action-btn primary"
-                        onClick={() => window.location.href = `/purchase?inventoryId=${vehicle.inventoryId}`}
+                        onClick={() => navigate(`/purchase?inventoryId=${vehicle.inventoryId}`)}
                       >
                         <ShoppingCart className="btn-icon" />
                         Mua xe
@@ -599,7 +601,7 @@ const PublicSalesPage = () => {
                     </button>
                     <button 
                       className="action-btn primary"
-                      onClick={() => window.location.href = `/purchase?inventoryId=${vehicle.inventoryId}`}
+                      onClick={() => navigate(`/purchase?inventoryId=${vehicle.inventoryId}`)}
                     >
                       <ShoppingCart className="btn-icon" />
                       Mua xe

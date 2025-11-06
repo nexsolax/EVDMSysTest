@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Trash2, Eye, CheckCircle, PenTool } from 'lucide-react';
+import { Edit, Trash2, Eye, CheckCircle, PenTool, FileText } from 'lucide-react';
 import './DataTable.css';
 
 const DataTable = ({
@@ -31,6 +31,7 @@ const DataTable = ({
   onTerminateContract,
   onConvertToContract,
   onCancelOrder,
+  onCreateQuotation,
   actions = true,
   searchable = true,
   searchTerm = '',
@@ -57,6 +58,8 @@ const DataTable = ({
       onSendQuotation(item);
     } else if (action === 'convertToOrder' && onConvertToOrder) {
       onConvertToOrder(item);
+    } else if (action === 'createQuotation' && onCreateQuotation) {
+      onCreateQuotation(item);
     } else if (action === 'exportPDF' && onExportPDF) {
       onExportPDF(item);
     } else if (action === 'processPayment' && onProcessPayment) {
@@ -248,6 +251,15 @@ const DataTable = ({
                             title="Hủy đơn hàng"
                           >
                             Hủy
+                          </button>
+                        )}
+                        {onCreateQuotation && (
+                          <button
+                            className="action-btn create-quotation-btn"
+                            onClick={(e) => handleAction('createQuotation', item, e)}
+                            title="Tạo báo giá"
+                          >
+                            <FileText size={18} />
                           </button>
                         )}
                         {onSendContract && (

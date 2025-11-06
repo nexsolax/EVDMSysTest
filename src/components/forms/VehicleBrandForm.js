@@ -155,8 +155,26 @@ export default function VehicleBrandForm({ brand, mode = 'view', onSubmit, onCan
         }
       }
 
+      // Chuẩn hóa data theo VehicleBrandRequest (theo FIELD_REFERENCE_GUIDE.md line 150-159)
+      // Chỉ gửi các fields: brandName, country, brandLogoUrl, brandLogoPath
+      // Loại bỏ foundedYear vì không có trong Request
+      const submitData = {
+        brandName: data.brandName?.trim() || '',
+        country: data.country?.trim() || undefined,
+        brandLogoUrl: data.brandLogoUrl?.trim() || undefined,
+        brandLogoPath: data.brandLogoPath?.trim() || undefined
+      };
+      
+      // Loại bỏ undefined values
+      Object.keys(submitData).forEach(key => {
+        if (submitData[key] === undefined || submitData[key] === '') {
+          delete submitData[key];
+        }
+      });
+      
+      console.log('Submitting brand data:', submitData);
       // Submit data (selectedFile không có trong data vì nó là state riêng)
-      onSubmit?.(data);
+      onSubmit?.(submitData);
     } catch (error) {
       console.error('Error in submitForm:', error);
       toast.error('Có lỗi xảy ra khi xử lý form');

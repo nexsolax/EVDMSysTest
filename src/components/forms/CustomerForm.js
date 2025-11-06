@@ -50,9 +50,52 @@ export default function CustomerForm({
   };
 
   const creditScore = customer?.creditScore || 0;
+  
+  // Wrapper để xử lý data trước khi submit - loại bỏ null/undefined/empty cho optional fields
+  const handleFormSubmit = (data) => {
+    // Required fields (theo FIELD_REFERENCE_GUIDE.md line 44-45)
+    const submitData = {
+      firstName: data.firstName?.trim() || '',
+      lastName: data.lastName?.trim() || ''
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (theo FIELD_REFERENCE_GUIDE.md line 46-55)
+    if (data.email?.trim()) {
+      submitData.email = data.email.trim();
+    }
+    if (data.phone?.trim()) {
+      submitData.phone = data.phone.trim();
+    }
+    if (data.dateOfBirth?.trim()) {
+      submitData.dateOfBirth = data.dateOfBirth.trim(); // Format: YYYY-MM-DD
+    }
+    if (data.address?.trim()) {
+      submitData.address = data.address.trim();
+    }
+    if (data.city?.trim()) {
+      submitData.city = data.city.trim();
+    }
+    if (data.province?.trim()) {
+      submitData.province = data.province.trim();
+    }
+    if (data.postalCode?.trim()) {
+      submitData.postalCode = data.postalCode.trim();
+    }
+    if (data.creditScore !== undefined && data.creditScore !== null && data.creditScore !== '') {
+      submitData.creditScore = parseInt(data.creditScore, 10);
+    }
+    if (data.preferredContactMethod?.trim()) {
+      submitData.preferredContactMethod = data.preferredContactMethod.trim();
+    }
+    if (data.notes?.trim()) {
+      submitData.notes = data.notes.trim();
+    }
+    
+    onSubmit?.(submitData);
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="modal-form">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="modal-form">
       <div className="form-grid">
         <div className="form-group">
           <label htmlFor="firstName">Họ</label>

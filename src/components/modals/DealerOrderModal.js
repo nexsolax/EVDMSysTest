@@ -167,7 +167,63 @@ const DealerOrderModal = ({ order, isOpen, onClose, onSave, mode = 'create' }) =
 
     try {
       setLoading(true);
-      await onSave(null, formData);
+      
+      // Required fields (theo INPUT_ORDER_GUIDE.md line 1115-1138)
+      const submitData = {
+        orderDate: formData.orderDate, // Required
+        items: formData.items.map(item => ({
+          variantId: parseInt(item.variantId, 10),
+          colorId: parseInt(item.colorId, 10),
+          quantity: parseInt(item.quantity, 10)
+        }))
+      };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.dealerId) {
+        submitData.dealerId = formData.dealerId;
+      }
+      if (formData.evmStaffId) {
+        submitData.evmStaffId = formData.evmStaffId;
+      }
+      if (formData.expectedDeliveryDate?.trim()) {
+        submitData.expectedDeliveryDate = formData.expectedDeliveryDate.trim(); // Format: YYYY-MM-DD
+      }
+      if (formData.orderType?.trim()) {
+        submitData.orderType = formData.orderType.trim(); // PURCHASE, RESERVE, SAMPLE
+      }
+      if (formData.priority?.trim()) {
+        submitData.priority = formData.priority.trim(); // LOW, NORMAL, HIGH, URGENT
+      }
+      if (formData.paymentTerms?.trim()) {
+        submitData.paymentTerms = formData.paymentTerms.trim();
+      }
+      if (formData.deliveryTerms?.trim()) {
+        submitData.deliveryTerms = formData.deliveryTerms.trim();
+      }
+      if (formData.notes?.trim()) {
+        submitData.notes = formData.notes.trim();
+      }
+      
+      // Thêm optional fields cho items
+      submitData.items = formData.items.map((item, index) => {
+        const itemData = {
+          variantId: parseInt(item.variantId, 10),
+          colorId: parseInt(item.colorId, 10),
+          quantity: parseInt(item.quantity, 10)
+        };
+        if (item.unitPrice) {
+          itemData.unitPrice = parseFloat(item.unitPrice);
+        }
+        if (item.discountPercentage) {
+          itemData.discountPercentage = parseFloat(item.discountPercentage);
+        }
+        if (item.notes?.trim()) {
+          itemData.notes = item.notes.trim();
+        }
+        return itemData;
+      });
+      
+      await onSave(null, submitData);
       toast.success('Tạo đơn hàng thành công');
       onClose();
       resetForm();

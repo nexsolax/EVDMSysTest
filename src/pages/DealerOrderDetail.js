@@ -18,6 +18,7 @@ import {
   dealerOrderAPI, 
   dealerQuotationAPI, 
   dealerPaymentAPI,
+  dealerInvoiceAPI,
   deliveryAPI
 } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +35,7 @@ const DealerOrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [quotations, setQuotations] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [invoices, setInvoices] = useState([]);
   
   // Modal states
   const [showApproveModal, setShowApproveModal] = useState(false);
@@ -47,7 +49,12 @@ const DealerOrderDetail = () => {
   const isDealerManager = user?.role === 'dealer_manager' || user?.role === 'dealer_staff';
   const isAdmin = user?.role === 'admin';
   const canApprove = isEVMStaff || isAdmin;
-  const canRequestQuotation = (isDealerManager || isAdmin) && order?.approvalStatus === 'APPROVED';
+  
+  // Phân quyền theo guide:
+  // - DEALER_MANAGER chỉ có thể thao tác với order/quotation của dealer mình (own)
+  // - ADMIN có thể thao tác với tất cả (all)
+  const isOrderOwner = isAdmin || (isDealerManager && order && user?.dealerId && order.dealerId === user.dealerId);
+  const canRequestQuotation = isOrderOwner && order?.approvalStatus === 'APPROVED'; // Order phải APPROVED
 
   useEffect(() => {
     if (id) {
@@ -58,15 +65,48 @@ const DealerOrderDetail = () => {
   const loadOrderDetail = async () => {
     try {
       setLoading(true);
-      const [orderRes, quotationsRes, paymentsRes] = await Promise.all([
+      const [orderRes, quotationsRes] = await Promise.all([
         dealerOrderAPI.getDealerOrder(id),
-        dealerQuotationAPI.getQuotationsByOrder(id).catch(() => ({ data: [] })),
-        dealerPaymentAPI.getPaymentsByInvoice(id).catch(() => ({ data: [] }))
+        dealerQuotationAPI.getQuotationsByOrder(id).catch(() => ({ data: [] }))
       ]);
       
-      setOrder(orderRes.data);
+      const orderData = orderRes.data;
+      setOrder(orderData);
       setQuotations(quotationsRes.data || []);
-      setPayments(paymentsRes.data || []);
+      
+      // Load invoices và payments từ các quotation đã accepted
+      // Tìm quotation đã accepted và load invoice của nó
+      const acceptedQuotation = (quotationsRes.data || []).find(q => q.status === 'accepted');
+      if (acceptedQuotation) {
+        try {
+          // Load invoices từ order (invoice được tạo tự động khi accept quotation)
+          // API: GET /api/dealer-invoices/dealer-order/{dealerOrderId}
+          const invoicesRes = await dealerInvoiceAPI.getInvoicesByOrder(id).catch(() => ({ data: [] }));
+          const invoicesData = invoicesRes.data || [];
+          setInvoices(invoicesData);
+          
+          // Load payments từ invoices
+          if (invoicesData.length > 0) {
+            const allPayments = [];
+            for (const invoice of invoicesData) {
+              try {
+                const paymentsRes = await dealerPaymentAPI.getPaymentsByInvoice(invoice.invoiceId);
+                if (paymentsRes.data) {
+                  allPayments.push(...paymentsRes.data);
+                }
+              } catch (e) {
+                console.warn('Could not load payments for invoice:', invoice.invoiceId);
+              }
+            }
+            setPayments(allPayments);
+          }
+        } catch (e) {
+          console.warn('Could not load invoices:', e);
+        }
+      } else {
+        setInvoices([]);
+        setPayments([]);
+      }
     } catch (error) {
       console.error('Error loading order detail:', error);
       toast.error('Không thể tải thông tin đơn hàng');
@@ -110,7 +150,9 @@ const DealerOrderDetail = () => {
   // Bước 14: Yêu cầu báo giá (DEALER_MANAGER, ADMIN) - Order phải APPROVED
   const handleRequestQuotation = async () => {
     try {
-      await dealerOrderAPI.requestQuotation(id, requestQuotationNotes || undefined);
+      // Optional field - chỉ gửi nếu có giá trị (không gửi null/undefined/empty)
+      const notes = requestQuotationNotes?.trim();
+      await dealerOrderAPI.requestQuotation(id, notes || undefined);
       toast.success('Đã gửi yêu cầu báo giá');
       setShowRequestQuotationModal(false);
       setRequestQuotationNotes('');
@@ -121,15 +163,45 @@ const DealerOrderDetail = () => {
     }
   };
 
-  // Bước 17: Chấp nhận báo giá (DEALER_MANAGER, ADMIN)
+  // Bước 17: Chấp nhận báo giá (DEALER_MANAGER own, ADMIN all)
+  // Theo guide: Chỉ DEALER_MANAGER có thể accept quotation của mình
   const handleAcceptQuotation = async (quotationId) => {
+    // Kiểm tra phân quyền: Dealer Manager chỉ có thể accept quotation của chính dealer mình
+    if (isDealerManager && !isAdmin) {
+      const quotation = quotations.find(q => q.quotationId === quotationId);
+      if (quotation && order && user?.dealerId && order.dealerId !== user.dealerId) {
+        toast.error('Bạn chỉ có thể chấp nhận báo giá của đơn hàng thuộc về đại lý của bạn');
+        return;
+      }
+    }
+    
     if (!window.confirm('Bạn có chắc chắn muốn chấp nhận báo giá này? Hệ thống sẽ tự động tạo Invoice.')) {
       return;
     }
     try {
       await dealerQuotationAPI.acceptQuotation(quotationId);
       toast.success('Đã chấp nhận báo giá. Invoice đã được tạo tự động.');
-      loadOrderDetail();
+      
+      // Reload để lấy invoice mới được tạo
+      await loadOrderDetail();
+      
+      // Hiển thị thông báo với link đến invoice nếu có
+      const updatedInvoices = await dealerInvoiceAPI.getInvoicesByOrder(id).catch(() => ({ data: [] }));
+      if (updatedInvoices.data && updatedInvoices.data.length > 0) {
+        const newInvoice = updatedInvoices.data[0];
+        toast.success(
+          <div>
+            <p>Đã chấp nhận báo giá và tạo Invoice thành công!</p>
+            <button 
+              onClick={() => navigate(`/admin/dealer-invoices/${newInvoice.invoiceId}`)}
+              style={{ marginTop: '8px', padding: '4px 8px' }}
+            >
+              Xem Invoice {newInvoice.invoiceNumber}
+            </button>
+          </div>,
+          { duration: 5000 }
+        );
+      }
     } catch (error) {
       console.error('Error accepting quotation:', error);
       toast.error(error.response?.data?.error || 'Không thể chấp nhận báo giá');
@@ -180,12 +252,13 @@ const DealerOrderDetail = () => {
   };
 
   const getStatusBadge = (status) => {
-    // DealerOrder status: UPPERCASE (theo DEALER_ORDER_API_FOR_FRONTEND.md)
+    // DealerOrder status: UPPERCASE (theo ENUM_AND_STATUS_GUIDE.md line 292-305)
     const statusMap = {
       'PENDING': { label: 'Chờ duyệt', color: 'yellow' },
       'APPROVED': { label: 'Đã duyệt', color: 'green' },
       'REJECTED': { label: 'Bị từ chối', color: 'red' },
       'CONFIRMED': { label: 'Đã xác nhận', color: 'blue' },
+      'WAITING_FOR_QUOTATION': { label: 'Chờ báo giá', color: 'orange' },
       'IN_PRODUCTION': { label: 'Đang sản xuất', color: 'blue' },
       'READY_FOR_DELIVERY': { label: 'Sẵn sàng giao', color: 'purple' },
       'DELIVERED': { label: 'Đã giao', color: 'green' },
@@ -427,7 +500,8 @@ const DealerOrderDetail = () => {
                     </div>
                     <div className="quotation-actions">
                       {/* Bước 17: Accept/Reject - chỉ khi status = sent (lowercase) */}
-                      {isDealerManager && quotation.status === 'sent' && (
+                      {/* DEALER_MANAGER chỉ có thể accept quotation của chính dealer mình (own) */}
+                      {isOrderOwner && quotation.status === 'sent' && (
                         <>
                           <button
                             onClick={() => handleAcceptQuotation(quotation.quotationId)}
@@ -460,6 +534,50 @@ const DealerOrderDetail = () => {
             </div>
           )}
         </div>
+
+        {/* Invoices Section - Hiển thị sau khi accept quotation */}
+        {invoices.length > 0 && (
+          <div className="detail-section">
+            <h2>Hóa đơn ({invoices.length})</h2>
+            <div className="invoices-list">
+              {invoices.map((invoice) => (
+                <div key={invoice.invoiceId} className="invoice-card">
+                  <div className="invoice-header">
+                    <div>
+                      <strong>Số hóa đơn: {invoice.invoiceNumber || 'N/A'}</strong>
+                      <span className={`status-badge status-${
+                        invoice.status === 'paid' ? 'green' : 
+                        invoice.status === 'partially_paid' ? 'yellow' :
+                        invoice.status === 'issued' ? 'blue' :
+                        invoice.status === 'overdue' ? 'red' :
+                        'gray'
+                      }`}>
+                        {invoice.status === 'paid' ? 'Đã thanh toán đủ' : 
+                         invoice.status === 'partially_paid' ? 'Đã thanh toán một phần' :
+                         invoice.status === 'issued' ? 'Đã phát hành' :
+                         invoice.status === 'overdue' ? 'Quá hạn' :
+                         invoice.status === 'cancelled' ? 'Đã hủy' : invoice.status}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => navigate(`/admin/dealer-invoices/${invoice.invoiceId}`)}
+                      className="btn btn-primary btn-sm"
+                    >
+                      <Eye size={16} /> Xem hóa đơn
+                    </button>
+                  </div>
+                  <div className="invoice-info">
+                    <span>Tổng tiền: {invoice.totalAmount?.toLocaleString('vi-VN')} VNĐ</span>
+                    <span>Ngày phát hành: {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                    {invoice.dueDate && (
+                      <span>Hạn thanh toán: {new Date(invoice.dueDate).toLocaleDateString('vi-VN')}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Payments Section */}
         {payments.length > 0 && (

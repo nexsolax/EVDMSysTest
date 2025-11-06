@@ -35,7 +35,29 @@ const QuoteModal = ({ isOpen, onClose, vehicle }) => {
 
     try {
       setLoading(true);
-      await publicQuotationAPI.createQuotation(formData);
+      
+      // Required fields
+      const submitData = {
+        customerName: formData.customerName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim()
+      };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (formData.message?.trim()) {
+        submitData.message = formData.message.trim();
+      }
+      if (formData.preferredDate?.trim()) {
+        submitData.preferredDate = formData.preferredDate.trim(); // Format: YYYY-MM-DD
+      }
+      if (vehicle?.inventoryId || formData.vehicleId) {
+        submitData.vehicleId = vehicle?.inventoryId || formData.vehicleId;
+      }
+      if (vehicle?.variantId || vehicle?.variant?.variantId || formData.variantId) {
+        submitData.variantId = vehicle?.variantId || vehicle?.variant?.variantId || formData.variantId;
+      }
+      
+      await publicQuotationAPI.createQuotation(submitData);
       toast.success('Yêu cầu báo giá đã được gửi thành công!');
       onClose();
       setFormData({

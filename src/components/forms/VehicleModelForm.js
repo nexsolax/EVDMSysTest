@@ -104,9 +104,13 @@ export default function VehicleModelForm({ model, mode = 'view', onSubmit, onCan
     const normalizedData = {
       brandId: parseInt(data.brandId, 10), // Convert string to number (required)
       modelName: modelName.length > 100 ? modelName.substring(0, 100) : modelName, // maxLength: 100, required
-      modelYear: data.modelYear ? parseInt(data.modelYear, 10) : null, // Integer, required
       isActive: data.isActive !== undefined ? data.isActive : true // Boolean, default true
     };
+    
+    // modelYear: optional trong API, nhưng frontend yêu cầu - chỉ thêm nếu có giá trị
+    if (data.modelYear) {
+      normalizedData.modelYear = parseInt(data.modelYear, 10);
+    }
     
     // Optional fields - chỉ thêm nếu có giá trị
     if (data.vehicleType?.trim()) {

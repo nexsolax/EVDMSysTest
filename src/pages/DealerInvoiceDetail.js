@@ -33,7 +33,7 @@ const DealerInvoiceDetail = () => {
   // Modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentFormData, setPaymentFormData] = useState({
-    paymentAmount: '',
+    amount: '', // Theo guide: field name là "amount" không phải "paymentAmount"
     paymentMethod: 'BANK_TRANSFER',
     paymentDate: new Date().toISOString().split('T')[0],
     referenceNumber: '',
@@ -83,8 +83,10 @@ const DealerInvoiceDetail = () => {
   };
 
   // Bước 18: Thanh toán (DEALER_MANAGER, ADMIN)
+  // Theo guide: POST /api/dealer-payments/process-payment
+  // Field name: "amount" (không phải "paymentAmount")
   const handleProcessPayment = async () => {
-    if (!paymentFormData.paymentAmount || parseFloat(paymentFormData.paymentAmount) <= 0) {
+    if (!paymentFormData.amount || parseFloat(paymentFormData.amount) <= 0) {
       toast.error('Vui lòng nhập số tiền thanh toán hợp lệ');
       return;
     }
@@ -95,20 +97,29 @@ const DealerInvoiceDetail = () => {
     }
 
     try {
+      // Required fields (theo INPUT_ORDER_GUIDE.md line 1450-1460)
       const requestData = {
         invoiceId: id,
-        paymentAmount: parseFloat(paymentFormData.paymentAmount),
-        paymentMethod: paymentFormData.paymentMethod,
-        paymentDate: paymentFormData.paymentDate,
-        ...(paymentFormData.referenceNumber ? { referenceNumber: paymentFormData.referenceNumber.trim() } : {}),
-        ...(paymentFormData.notes ? { notes: paymentFormData.notes.trim() } : {})
+        amount: parseFloat(paymentFormData.amount), // Required - Field name: "amount"
+        paymentDate: paymentFormData.paymentDate // Required - Format: YYYY-MM-DD
       };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      if (paymentFormData.paymentMethod?.trim()) {
+        requestData.paymentMethod = paymentFormData.paymentMethod.trim(); // lowercase: bank_transfer, credit_card, debit_card, cash
+      }
+      if (paymentFormData.referenceNumber?.trim()) {
+        requestData.referenceNumber = paymentFormData.referenceNumber.trim();
+      }
+      if (paymentFormData.notes?.trim()) {
+        requestData.notes = paymentFormData.notes.trim();
+      }
 
       await dealerPaymentAPI.processPayment(requestData);
       toast.success('Thanh toán thành công');
       setShowPaymentModal(false);
       setPaymentFormData({
-        paymentAmount: '',
+        amount: '', // Field name: "amount"
         paymentMethod: 'BANK_TRANSFER',
         paymentDate: new Date().toISOString().split('T')[0],
         referenceNumber: '',
@@ -147,9 +158,10 @@ const DealerInvoiceDetail = () => {
   };
 
   const calculatePaymentSummary = () => {
+    // Theo guide: field name là "amount" (không phải "paymentAmount")
     const totalPaid = payments
       .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + (parseFloat(p.paymentAmount) || 0), 0);
+      .reduce((sum, p) => sum + (parseFloat(p.amount || p.paymentAmount) || 0), 0);
     
     const remaining = invoice ? (parseFloat(invoice.totalAmount) || 0) - totalPaid : 0;
     
@@ -313,7 +325,7 @@ const DealerInvoiceDetail = () => {
                     </div>
                   </div>
                   <div className="payment-info">
-                    <span>Số tiền: {payment.paymentAmount?.toLocaleString('vi-VN')} VNĐ</span>
+                    <span>Số tiền: {(payment.amount || payment.paymentAmount)?.toLocaleString('vi-VN')} VNĐ</span>
                     <span>Phương thức: {payment.paymentMethod || 'N/A'}</span>
                     <span>Ngày thanh toán: {payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('vi-VN') : 'N/A'}</span>
                     {payment.referenceNumber && (
@@ -340,8 +352,8 @@ const DealerInvoiceDetail = () => {
                 <label>Số tiền thanh toán *</label>
                 <input
                   type="number"
-                  value={paymentFormData.paymentAmount}
-                  onChange={(e) => setPaymentFormData(prev => ({ ...prev, paymentAmount: e.target.value }))}
+                  value={paymentFormData.amount}
+                  onChange={(e) => setPaymentFormData(prev => ({ ...prev, amount: e.target.value }))}
                   className="form-input"
                   placeholder="Nhập số tiền"
                   min="0"

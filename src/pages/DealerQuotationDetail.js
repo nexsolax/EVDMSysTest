@@ -34,6 +34,11 @@ const DealerQuotationDetail = () => {
   const isEVMStaff = user?.role === 'evm_staff' || user?.role === 'admin';
   const isDealerManager = user?.role === 'dealer_manager' || user?.role === 'dealer_staff';
   const isAdmin = user?.role === 'admin';
+  
+  // Phân quyền theo guide:
+  // - DEALER_MANAGER chỉ có thể accept quotation của dealer mình (own)
+  // - ADMIN có thể accept tất cả (all)
+  const isQuotationOwner = isAdmin || (isDealerManager && order && user?.dealerId && order.dealerId === user.dealerId);
 
   useEffect(() => {
     if (id) {
@@ -86,15 +91,25 @@ const DealerQuotationDetail = () => {
     }
   };
 
-  // Bước 17: Chấp nhận báo giá (DEALER_MANAGER, ADMIN) - Tự động tạo Invoice
+  // Bước 17: Chấp nhận báo giá (DEALER_MANAGER own, ADMIN all) - Tự động tạo Invoice
   const handleAcceptQuotation = async () => {
+    // Kiểm tra phân quyền: Dealer Manager chỉ có thể accept quotation của chính dealer mình
+    if (isDealerManager && !isAdmin) {
+      if (!isQuotationOwner) {
+        toast.error('Bạn chỉ có thể chấp nhận báo giá của đơn hàng thuộc về đại lý của bạn');
+        return;
+      }
+    }
+    
     if (!window.confirm('Bạn có chắc chắn muốn chấp nhận báo giá này? Hệ thống sẽ tự động tạo Invoice.')) {
       return;
     }
     try {
       await dealerQuotationAPI.acceptQuotation(id);
       toast.success('Đã chấp nhận báo giá. Invoice đã được tạo tự động.');
-      loadQuotationDetail();
+      
+      // Reload để lấy thông tin mới (order status sẽ chuyển thành CONFIRMED)
+      await loadQuotationDetail();
     } catch (error) {
       console.error('Error accepting quotation:', error);
       toast.error(error.response?.data?.error || 'Không thể chấp nhận báo giá');
@@ -174,9 +189,9 @@ const DealerQuotationDetail = () => {
   }
 
   // Status values: lowercase (theo DEALER_ORDER_API_FOR_FRONTEND.md)
-  const canSend = isEVMStaff && quotation.status === 'pending';
-  const canAccept = isDealerManager && quotation.status === 'sent';
-  const canReject = isDealerManager && quotation.status === 'sent';
+  const canSend = isEVMStaff && quotation?.status === 'pending';
+  const canAccept = isQuotationOwner && quotation?.status === 'sent'; // DEALER_MANAGER own, ADMIN all
+  const canReject = isQuotationOwner && quotation?.status === 'sent'; // DEALER_MANAGER own, ADMIN all
 
   return (
     <div className="dealer-quotation-detail">

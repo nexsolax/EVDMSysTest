@@ -320,7 +320,10 @@ export const deliveryAPI = {
   updateDelivery: (id, data) => api.put(`/vehicle-deliveries/${id}`, data),
   updateDeliveryStatus: (id, status) => api.put(`/vehicle-deliveries/${id}/status?status=${status}`),
   scheduleDelivery: (id) => api.post(`/vehicle-deliveries/${id}/schedule`),
-  confirmDelivery: (id) => api.put(`/vehicle-deliveries/${id}/confirm`),
+  // Theo guide line 1607-1612: confirmDelivery cần request body với userId (User object)
+  confirmDelivery: (id, userId) => api.put(`/vehicle-deliveries/${id}/confirm`, userId ? { userId } : {}),
+  // Theo guide line 1637-1647: dealer-confirm endpoint cho DEALER_MANAGER
+  dealerConfirmDelivery: (id, data) => api.put(`/vehicle-deliveries/${id}/dealer-confirm`, data),
   getDeliveryTracking: (id) => api.get(`/vehicle-deliveries/${id}/tracking`),
   deleteDelivery: (id) => api.delete(`/vehicle-deliveries/${id}`),
 };
@@ -645,7 +648,10 @@ export const publicDeliveryAPI = {
 export const publicQuotationAPI = {
   getQuotations: () => publicApi.get('/quotations'),
   getQuotationById: (id) => publicApi.get(`/quotations/${id}`),
+  getQuotationByOrder: (orderId) => publicApi.get(`/quotations/order/${orderId}`),
+  getQuotationByOrderNumber: (orderNumber) => publicApi.get(`/quotations/order-number/${orderNumber}`),
   createQuotation: (data) => publicApi.post('/quotations', data),
+  confirmQuotation: (orderId) => publicApi.post(`/orders/${orderId}/confirm-quotation`),
 };
 
 // Notification API

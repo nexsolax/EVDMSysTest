@@ -10,7 +10,32 @@ export default function PublicPaymentForm({ baseUrl = '', onPaid, defaultOrderId
   });
 
   const onSubmit = async (values) => {
-    const res = await apiFetch(`${baseUrl}/api/public/payments`, { method: 'POST', body: values });
+    // Required fields (theo INPUT_ORDER_GUIDE.md line 441-448 và 460-470)
+    const submitData = {
+      orderId: values.orderId // Required
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.amount) {
+      submitData.amount = parseFloat(values.amount);
+    }
+    if (values.paymentMethod?.trim()) {
+      submitData.paymentMethod = values.paymentMethod.trim().toLowerCase(); // lowercase
+    }
+    if (values.notes?.trim()) {
+      submitData.notes = values.notes.trim();
+    }
+    if (values.currency?.trim()) {
+      submitData.currency = values.currency.trim();
+    }
+    if (values.cardLast4?.trim()) {
+      submitData.cardLast4 = values.cardLast4.trim();
+    }
+    if (values.returnUrl?.trim()) {
+      submitData.returnUrl = values.returnUrl.trim();
+    }
+    
+    const res = await apiFetch(`${baseUrl}/api/public/payments`, { method: 'POST', body: submitData });
     onPaid?.(res);
   };
 

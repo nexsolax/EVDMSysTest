@@ -74,7 +74,8 @@ const ContractManagement = () => {
 
   const handleSignContract = async (contract) => {
     try {
-      const signedDate = new Date().toISOString();
+      // Theo guide line 677: signedDate phải là LocalDate (Format: YYYY-MM-DD), không phải ISO string
+      const signedDate = new Date().toISOString().split('T')[0]; // Chỉ lấy phần date (YYYY-MM-DD)
       await contractAPI.signContract(contract.contractId, signedDate);
       toast.success('Ký hợp đồng thành công');
       loadContracts();
@@ -140,7 +141,7 @@ const ContractManagement = () => {
       contract.customer?.firstName?.toLowerCase().includes(searchLower) ||
       contract.customer?.lastName?.toLowerCase().includes(searchLower) ||
       contract.customer?.email?.toLowerCase().includes(searchLower) ||
-      contract.status?.toLowerCase().includes(searchLower)
+      (contract.status || contract.contractStatus)?.toLowerCase().includes(searchLower) // Hỗ trợ cả status và contractStatus
     );
   });
 
@@ -199,7 +200,7 @@ const ContractManagement = () => {
     { 
       key: 'status', 
       header: 'Trạng thái',
-      render: (contract) => getStatusBadge(contract.status)
+      render: (contract) => getStatusBadge(contract.status || contract.contractStatus) // Hỗ trợ cả status và contractStatus
     },
     { 
       key: 'signedDate', 

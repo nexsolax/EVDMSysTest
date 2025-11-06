@@ -222,25 +222,65 @@ const DealerOrderCreate = () => {
       setSubmitting(true);
       
       // Build request according to guide
+      // Theo guide line 1110-1112: Dealer Manager: dealerId tự động được set từ current user, không cần truyền
+      // EVM_STAFF/ADMIN: phải truyền dealerId
+      const isDealer = user?.role === 'dealer_manager' || user?.role === 'dealer_staff';
+      
+      // Required fields (theo INPUT_ORDER_GUIDE.md line 1115-1138)
       const request = {
-        dealerId: formData.dealerId,
-        evmStaffId: formData.evmStaffId || undefined,
-        orderDate: formData.orderDate,
-        expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
-        orderType: formData.orderType,
-        priority: formData.priority,
-        paymentTerms: formData.paymentTerms || undefined,
-        deliveryTerms: formData.deliveryTerms || undefined,
-        notes: formData.notes || undefined,
+        orderDate: formData.orderDate, // Required
         items: formData.items.map(item => ({
           variantId: item.variantId,
           colorId: item.colorId,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice || undefined,
-          discountPercentage: item.discountPercentage || undefined,
-          notes: item.notes || undefined
+          quantity: item.quantity
         }))
       };
+      
+      // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+      // Chỉ truyền dealerId nếu là EVM_STAFF/ADMIN, không truyền nếu là DEALER_MANAGER (backend tự động lấy từ current user)
+      if (!isDealer && formData.dealerId) {
+        request.dealerId = formData.dealerId;
+      }
+      if (formData.evmStaffId) {
+        request.evmStaffId = formData.evmStaffId;
+      }
+      if (formData.expectedDeliveryDate?.trim()) {
+        request.expectedDeliveryDate = formData.expectedDeliveryDate.trim(); // Format: YYYY-MM-DD
+      }
+      if (formData.orderType?.trim()) {
+        request.orderType = formData.orderType.trim(); // PURCHASE, RESERVE, SAMPLE
+      }
+      if (formData.priority?.trim()) {
+        request.priority = formData.priority.trim(); // LOW, NORMAL, HIGH, URGENT
+      }
+      if (formData.paymentTerms?.trim()) {
+        request.paymentTerms = formData.paymentTerms.trim();
+      }
+      if (formData.deliveryTerms?.trim()) {
+        request.deliveryTerms = formData.deliveryTerms.trim();
+      }
+      if (formData.notes?.trim()) {
+        request.notes = formData.notes.trim();
+      }
+      
+      // Thêm optional fields cho items
+      request.items = formData.items.map(item => {
+        const itemData = {
+          variantId: item.variantId,
+          colorId: item.colorId,
+          quantity: item.quantity
+        };
+        if (item.unitPrice) {
+          itemData.unitPrice = parseFloat(item.unitPrice);
+        }
+        if (item.discountPercentage) {
+          itemData.discountPercentage = parseFloat(item.discountPercentage);
+        }
+        if (item.notes?.trim()) {
+          itemData.notes = item.notes.trim();
+        }
+        return itemData;
+      });
 
       console.log('Submitting dealer order:', request);
       

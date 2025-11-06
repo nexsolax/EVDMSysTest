@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, Plus, Calendar, Package, MapPin, User } from 'lucide-react';
 import { deliveryAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { getStatusBadge as getStatusBadgeUtil } from '../utils/statusBadges';
 import DataTable from '../components/common/DataTable';
 import DeliveryModal from '../components/modals/DeliveryModal';
@@ -10,6 +11,7 @@ import '../styles/common.css';
 import './DeliveryManagement.css';
 
 const DeliveryManagement = () => {
+  const { user } = useAuth();
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,6 +19,11 @@ const DeliveryManagement = () => {
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [showDeliveryModal, setShowDeliveryModal] = useState(false);
   const [modalMode, setModalMode] = useState('view');
+  
+  // Role checks
+  const isEVMStaff = user?.role === 'evm_staff' || user?.role === 'admin';
+  const isDealerManager = user?.role === 'dealer_manager' || user?.role === 'dealer_staff';
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     loadDeliveries();
@@ -94,14 +101,36 @@ const DeliveryManagement = () => {
     }
   };
 
+  // Theo guide line 1607-1612: confirmDelivery cần request body với userId (User object)
   const handleComplete = async (delivery) => {
     try {
-      await deliveryAPI.confirmDelivery(delivery.deliveryId);
+      // Theo guide: Request body là User object (chỉ cần userId)
+      const userId = user?.userId || user?.id;
+      await deliveryAPI.confirmDelivery(delivery.deliveryId, userId);
       toast.success('Xác nhận giao xe thành công');
       loadDeliveries();
     } catch (error) {
       console.error('Error confirming delivery:', error);
       toast.error('Không thể xác nhận giao xe');
+    }
+  };
+
+  // Theo guide line 1637-1647: dealer-confirm endpoint cho DEALER_MANAGER
+  const handleDealerConfirm = async (delivery) => {
+    const dealerNotes = window.prompt('Nhập ghi chú xác nhận nhận hàng (tùy chọn):');
+    const condition = window.prompt('Nhập tình trạng xe (GOOD, DAMAGED, SCRATCHED, etc.) - mặc định: GOOD:', 'GOOD') || 'GOOD';
+    
+    try {
+      const confirmData = {
+        ...(dealerNotes ? { dealerNotes } : {}),
+        condition: condition
+      };
+      await deliveryAPI.dealerConfirmDelivery(delivery.deliveryId, confirmData);
+      toast.success('Đã xác nhận nhận hàng thành công');
+      loadDeliveries();
+    } catch (error) {
+      console.error('Error dealer confirming delivery:', error);
+      toast.error('Không thể xác nhận nhận hàng');
     }
   };
 

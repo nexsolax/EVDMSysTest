@@ -144,12 +144,13 @@ const DealerOrderList = () => {
   };
 
   const getStatusBadge = (status) => {
-    // DealerOrder status: UPPERCASE (theo DEALER_ORDER_API_FOR_FRONTEND.md)
+    // DealerOrder status: UPPERCASE (theo ENUM_AND_STATUS_GUIDE.md line 292-305)
     const statusMap = {
       'PENDING': { label: 'Chờ duyệt', color: 'yellow' },
       'APPROVED': { label: 'Đã duyệt', color: 'green' },
       'REJECTED': { label: 'Bị từ chối', color: 'red' },
       'CONFIRMED': { label: 'Đã xác nhận', color: 'blue' },
+      'WAITING_FOR_QUOTATION': { label: 'Chờ báo giá', color: 'orange' },
       'IN_PRODUCTION': { label: 'Đang sản xuất', color: 'blue' },
       'READY_FOR_DELIVERY': { label: 'Sẵn sàng giao', color: 'purple' },
       'DELIVERED': { label: 'Đã giao', color: 'green' },

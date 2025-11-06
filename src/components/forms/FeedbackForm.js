@@ -13,10 +13,33 @@ export default function FeedbackForm({ baseUrl = '', onSubmitted, defaultCustome
   });
 
   const onSubmit = async (values) => {
+    // Required fields (theo INPUT_ORDER_GUIDE.md line 896-906 và FIELD_REFERENCE_GUIDE.md line 865-867)
+    const submitData = {
+      message: values.message?.trim() || '', // Required
+      rating: values.rating || 5 // Required, 1-5
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.customerId) {
+      submitData.customerId = values.customerId;
+    }
+    if (values.feedbackType?.trim()) {
+      submitData.feedbackType = values.feedbackType.trim(); // general, product, service, delivery, payment, complaint, suggestion
+    }
+    if (values.subject?.trim()) {
+      submitData.subject = values.subject.trim();
+    }
+    if (values.orderId) {
+      submitData.orderId = values.orderId;
+    }
+    if (values.variantId) {
+      submitData.variantId = parseInt(values.variantId, 10);
+    }
+    
     if (onSubmitted) {
-      await onSubmitted(values);
+      await onSubmitted(submitData);
     } else {
-      const result = await apiFetch(`${baseUrl}/api/customer-feedbacks`, { method: 'POST', body: values });
+      const result = await apiFetch(`${baseUrl}/api/customer-feedbacks`, { method: 'POST', body: submitData });
       onSubmitted?.(result);
     }
   };

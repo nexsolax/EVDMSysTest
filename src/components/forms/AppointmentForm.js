@@ -14,21 +14,53 @@ export default function AppointmentForm({ baseUrl = '', onCreated, defaultVarian
   });
 
   const onSubmit = async (values) => {
+    // Required fields (theo FIELD_REFERENCE_GUIDE.md line 584-597)
+    const submitData = {
+      customerId: values.customerId,
+      title: values.title || 'Lịch hẹn' // Required
+    };
+    
     // Convert appointmentDate + appointmentTime to appointmentDate if needed
+    // Required - LocalDateTime format: YYYY-MM-DDTHH:mm:ss
     if (values.appointmentDate && values.appointmentTime) {
-      values.appointmentDate = `${values.appointmentDate}T${values.appointmentTime}:00`;
-      delete values.appointmentTime;
+      submitData.appointmentDate = `${values.appointmentDate}T${values.appointmentTime}:00`;
+    } else if (values.preferredDateTime) {
+      submitData.appointmentDate = values.preferredDateTime;
+    } else if (values.appointmentDate) {
+      submitData.appointmentDate = `${values.appointmentDate}T10:00:00`; // Default time
+    } else {
+      // Fallback: use current date/time
+      const now = new Date();
+      submitData.appointmentDate = now.toISOString().slice(0, 19);
     }
     
-    // Remove preferredDateTime if appointmentDate is provided
-    if (values.appointmentDate) {
-      delete values.preferredDateTime;
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.variantId) {
+      submitData.variantId = parseInt(values.variantId, 10);
+    }
+    if (values.appointmentType?.trim()) {
+      submitData.appointmentType = values.appointmentType.trim();
+    }
+    if (values.description?.trim()) {
+      submitData.description = values.description.trim();
+    }
+    if (values.durationMinutes) {
+      submitData.durationMinutes = parseInt(values.durationMinutes, 10);
+    }
+    if (values.location?.trim()) {
+      submitData.location = values.location.trim();
+    }
+    if (values.status?.trim()) {
+      submitData.status = values.status.trim(); // lowercase
+    }
+    if (values.notes?.trim()) {
+      submitData.notes = values.notes.trim();
     }
     
     if (onCreated) {
-      await onCreated(values);
+      await onCreated(submitData);
     } else {
-      const created = await apiFetch(`${baseUrl}/api/appointments`, { method: 'POST', body: values });
+      const created = await apiFetch(`${baseUrl}/api/appointments`, { method: 'POST', body: submitData });
       onCreated?.(created);
     }
   };

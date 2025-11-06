@@ -29,13 +29,13 @@ const DELIVERY_STATUS = {
   cancelled: { class: 'badge-gray', text: 'Đã hủy' }
 };
 
+// CustomerPayment và DealerPayment status: lowercase (theo ENUM_AND_STATUS_GUIDE.md line 395-413 và FIELD_REFERENCE_GUIDE.md line 786)
 const PAYMENT_STATUS = {
-  PENDING: { class: 'badge-warning', text: 'Chờ xử lý' },
-  PROCESSING: { class: 'badge-info', text: 'Đang xử lý' },
-  COMPLETED: { class: 'badge-success', text: 'Hoàn thành' },
-  FAILED: { class: 'badge-danger', text: 'Thất bại' },
-  CANCELLED: { class: 'badge-gray', text: 'Đã hủy' },
-  REFUNDED: { class: 'badge-gray', text: 'Đã hoàn tiền' }
+  pending: { class: 'badge-warning', text: 'Chờ xử lý' },
+  completed: { class: 'badge-success', text: 'Hoàn thành' },
+  failed: { class: 'badge-danger', text: 'Thất bại' },
+  refunded: { class: 'badge-gray', text: 'Đã hoàn tiền' },
+  cancelled: { class: 'badge-gray', text: 'Đã hủy' }
 };
 
 const QUOTATION_STATUS = {

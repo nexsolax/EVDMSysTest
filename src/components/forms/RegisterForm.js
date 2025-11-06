@@ -8,7 +8,30 @@ export default function RegisterForm({ baseUrl = '', onRegistered }) {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
   const onSubmit = async (values) => {
-    const result = await apiFetch(`${baseUrl}/api/auth/register`, { method: 'POST', body: values });
+    // Required fields (giả định theo form structure)
+    const submitData = {
+      username: values.username?.trim() || '',
+      email: values.email?.trim() || '',
+      password: values.password || '',
+      firstName: values.firstName?.trim() || '',
+      lastName: values.lastName?.trim() || ''
+    };
+    
+    // Optional fields - chỉ thêm nếu có giá trị (không gửi null/undefined/empty)
+    if (values.phone?.trim()) {
+      submitData.phone = values.phone.trim();
+    }
+    if (values.dealerId) {
+      submitData.dealerId = values.dealerId;
+    }
+    if (values.userType?.trim()) {
+      submitData.userType = values.userType.trim(); // ADMIN, EVM_STAFF, DEALER_STAFF, CUSTOMER_SUPPORT
+    }
+    if (values.status?.trim()) {
+      submitData.status = values.status.trim(); // ACTIVE, INACTIVE, LOCKED
+    }
+    
+    const result = await apiFetch(`${baseUrl}/api/auth/register`, { method: 'POST', body: submitData });
     onRegistered?.(result);
   };
 
