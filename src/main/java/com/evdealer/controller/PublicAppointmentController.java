@@ -201,7 +201,7 @@ public class PublicAppointmentController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Appointment cancelled successfully");
             response.put("appointmentId", appointmentId);
-            response.put("status", "cancelled");
+            response.put("status", AppointmentStatus.CANCELLED.getValue());
             response.put("reason", reason);
             
             return ResponseEntity.ok(response);
@@ -238,23 +238,29 @@ public class PublicAppointmentController {
     @GetMapping("/types")
     @Operation(summary = "Loại lịch hẹn", description = "Khách vãng lai có thể xem các loại lịch hẹn có sẵn")
     public ResponseEntity<?> getAppointmentTypes() {
-        Map<String, Object> types = new HashMap<>();
-        types.put("availableTypes", new String[]{
-            "test_drive", "delivery", "consultation", "maintenance"
-        });
-        types.put("typeDescriptions", Map.of(
-            "test_drive", "Lái thử xe",
-            "delivery", "Nhận xe",
-            "consultation", "Tư vấn",
-            "maintenance", "Bảo trì"
-        ));
-        types.put("duration", Map.of(
-            "test_drive", "30-60 minutes",
-            "delivery", "60-120 minutes",
-            "consultation", "30-45 minutes",
-            "maintenance", "120-240 minutes"
-        ));
-        
-        return ResponseEntity.ok(types);
+        try {
+            Map<String, Object> types = new HashMap<>();
+            types.put("availableTypes", new String[]{
+                "test_drive", "delivery", "consultation", "maintenance"
+            });
+            types.put("typeDescriptions", Map.of(
+                "test_drive", "Lái thử xe",
+                "delivery", "Nhận xe",
+                "consultation", "Tư vấn",
+                "maintenance", "Bảo trì"
+            ));
+            types.put("duration", Map.of(
+                "test_drive", "30-60 minutes",
+                "delivery", "60-120 minutes",
+                "consultation", "30-45 minutes",
+                "maintenance", "120-240 minutes"
+            ));
+            
+            return ResponseEntity.ok(types);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve appointment types: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 }

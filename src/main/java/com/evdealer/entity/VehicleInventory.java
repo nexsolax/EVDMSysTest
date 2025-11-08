@@ -67,6 +67,9 @@ public class VehicleInventory {
     @Column(name = "status", length = 50, nullable = false)
     private VehicleStatus status = VehicleStatus.AVAILABLE;
     
+    @Version
+    @Column(name = "version")
+    private Long version;
     
     @Column(name = "cost_price", precision = 15, scale = 2)
     private BigDecimal costPrice;
@@ -305,6 +308,14 @@ public class VehicleInventory {
 
     public void setReservedExpiryDate(LocalDateTime reservedExpiryDate) {
         this.reservedExpiryDate = reservedExpiryDate;
+    }
+    
+    public Long getVersion() {
+        return version;
+    }
+    
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     // Helper getters to expose foreign key IDs in JSON response

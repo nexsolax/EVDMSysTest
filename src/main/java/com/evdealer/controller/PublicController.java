@@ -53,72 +53,96 @@ public class PublicController {
     
     @GetMapping("/")
     @Operation(summary = "Trang chủ", description = "Thông tin tổng quan cho trang chủ")
-    public ResponseEntity<Map<String, Object>> getHomePage() {
-        Map<String, Object> homeData = new HashMap<>();
-        
-        // Featured vehicles (available inventory)
-        List<VehicleInventory> featuredVehicles = vehicleInventoryService.getInventoryByStatus("available");
-        homeData.put("featuredVehicles", featuredVehicles.stream().map(this::toInventoryDTO).toList());
-        
-        // Active promotions
-        List<Promotion> activePromotions = promotionService.getPromotionsByStatus("active");
-        homeData.put("activePromotions", activePromotions.stream().map(this::toPromotionDTO).toList());
-        
-        // Statistics
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalVehicles", featuredVehicles.size());
-        stats.put("activePromotions", activePromotions.size());
-        homeData.put("statistics", stats);
-        
-        return ResponseEntity.ok(homeData);
+    public ResponseEntity<?> getHomePage() {
+        try {
+            Map<String, Object> homeData = new HashMap<>();
+            
+            // Featured vehicles (available inventory)
+            List<VehicleInventory> featuredVehicles = vehicleInventoryService.getInventoryByStatus("available");
+            homeData.put("featuredVehicles", featuredVehicles.stream().map(this::toInventoryDTO).toList());
+            
+            // Active promotions
+            List<Promotion> activePromotions = promotionService.getPromotionsByStatus("active");
+            homeData.put("activePromotions", activePromotions.stream().map(this::toPromotionDTO).toList());
+            
+            // Statistics
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalVehicles", featuredVehicles.size());
+            stats.put("activePromotions", activePromotions.size());
+            homeData.put("statistics", stats);
+            
+            return ResponseEntity.ok(homeData);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve home page data: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/catalog")
     @Operation(summary = "Danh mục xe", description = "Xem tất cả xe có sẵn")
-    public ResponseEntity<Map<String, Object>> getVehicleCatalog() {
-        Map<String, Object> catalog = new HashMap<>();
-        
-        // Vehicle brands
-        List<VehicleBrand> brands = vehicleService.getAllBrands();
-        catalog.put("brands", brands.stream().map(this::toBrandDTO).toList());
-        
-        // Vehicle models
-        List<VehicleModel> models = vehicleService.getAllModels();
-        catalog.put("models", models.stream().map(this::toModelDTO).toList());
-        
-        // Vehicle variants
-        List<VehicleVariant> variants = vehicleService.getAllVariants();
-        catalog.put("variants", variants.stream().map(this::toVariantDTO).toList());
-        
-        // Vehicle colors
-        List<VehicleColor> colors = vehicleService.getAllColors();
-        catalog.put("colors", colors.stream().map(this::toColorDTO).toList());
-        
-        // Available inventory
-        List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus("available");
-        catalog.put("availableInventory", inventory.stream().map(this::toInventoryDTO).toList());
-        
-        return ResponseEntity.ok(catalog);
+    public ResponseEntity<?> getVehicleCatalog() {
+        try {
+            Map<String, Object> catalog = new HashMap<>();
+            
+            // Vehicle brands
+            List<VehicleBrand> brands = vehicleService.getAllBrands();
+            catalog.put("brands", brands.stream().map(this::toBrandDTO).toList());
+            
+            // Vehicle models
+            List<VehicleModel> models = vehicleService.getAllModels();
+            catalog.put("models", models.stream().map(this::toModelDTO).toList());
+            
+            // Vehicle variants
+            List<VehicleVariant> variants = vehicleService.getAllVariants();
+            catalog.put("variants", variants.stream().map(this::toVariantDTO).toList());
+            
+            // Vehicle colors
+            List<VehicleColor> colors = vehicleService.getAllColors();
+            catalog.put("colors", colors.stream().map(this::toColorDTO).toList());
+            
+            // Available inventory
+            List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus("available");
+            catalog.put("availableInventory", inventory.stream().map(this::toInventoryDTO).toList());
+            
+            return ResponseEntity.ok(catalog);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle catalog: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm", description = "Tìm kiếm xe theo tiêu chí")
-    public ResponseEntity<Map<String, Object>> searchVehicles(
+    public ResponseEntity<?> searchVehicles(
             @RequestParam(required = false) String brand,
             @RequestParam(required = false) String model,
             @RequestParam(required = false) String variant,
             @RequestParam(required = false) String color,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice) {
-        
-        Map<String, Object> searchResults = new HashMap<>();
-        
-        // Get all available inventory
-        List<VehicleInventory> allInventory = vehicleInventoryService.getInventoryByStatus("available");
-        searchResults.put("results", allInventory.stream().map(this::toInventoryDTO).toList());
-        searchResults.put("totalCount", allInventory.size());
-        
-        return ResponseEntity.ok(searchResults);
+        try {
+            // Validate price range if both provided
+            if (minPrice != null && maxPrice != null && minPrice > maxPrice) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "minPrice cannot be greater than maxPrice");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            Map<String, Object> searchResults = new HashMap<>();
+            
+            // Get all available inventory
+            List<VehicleInventory> allInventory = vehicleInventoryService.getInventoryByStatus("available");
+            searchResults.put("results", allInventory.stream().map(this::toInventoryDTO).toList());
+            searchResults.put("totalCount", allInventory.size());
+            
+            return ResponseEntity.ok(searchResults);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to search vehicles: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     // ==================== VEHICLE CATALOG ====================
@@ -126,94 +150,166 @@ public class PublicController {
     // Alias endpoints for backward compatibility with HomeController paths
     @GetMapping({"/brands", "/vehicle-brands"})
     @Operation(summary = "Xem danh sách thương hiệu", description = "Khách hàng có thể xem tất cả thương hiệu xe")
-    public ResponseEntity<List<VehicleBrandDTO>> getAllVehicleBrands() {
-        List<VehicleBrand> brands = vehicleService.getAllBrands();
-        return ResponseEntity.ok(brands.stream().map(this::toBrandDTO).toList());
+    public ResponseEntity<?> getAllVehicleBrands() {
+        try {
+            List<VehicleBrand> brands = vehicleService.getAllBrands();
+            return ResponseEntity.ok(brands.stream().map(this::toBrandDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle brands: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/brands/{brandId}", "/vehicle-brands/{brandId}"})
     @Operation(summary = "Xem chi tiết thương hiệu", description = "Khách hàng có thể xem chi tiết thương hiệu xe")
-    public ResponseEntity<VehicleBrandDTO> getVehicleBrandById(@PathVariable Integer brandId) {
-        return vehicleService.getBrandById(brandId)
-                .map(brand -> ResponseEntity.ok(toBrandDTO(brand)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getVehicleBrandById(@PathVariable Integer brandId) {
+        try {
+            return vehicleService.getBrandById(brandId)
+                    .map(brand -> ResponseEntity.ok(toBrandDTO(brand)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle brand: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/models", "/vehicle-models"})
     @Operation(summary = "Xem danh sách mẫu xe", description = "Khách hàng có thể xem tất cả mẫu xe")
-    public ResponseEntity<List<VehicleModelDTO>> getAllVehicleModels() {
-        List<VehicleModel> models = vehicleService.getAllModels();
-        return ResponseEntity.ok(models.stream().map(this::toModelDTO).toList());
+    public ResponseEntity<?> getAllVehicleModels() {
+        try {
+            List<VehicleModel> models = vehicleService.getAllModels();
+            return ResponseEntity.ok(models.stream().map(this::toModelDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/models/{modelId}", "/vehicle-models/{modelId}"})
     @Operation(summary = "Xem chi tiết mẫu xe", description = "Khách hàng có thể xem chi tiết mẫu xe")
-    public ResponseEntity<VehicleModelDTO> getVehicleModelById(@PathVariable Integer modelId) {
-        return vehicleService.getModelById(modelId)
-                .map(model -> ResponseEntity.ok(toModelDTO(model)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getVehicleModelById(@PathVariable Integer modelId) {
+        try {
+            return vehicleService.getModelById(modelId)
+                    .map(model -> ResponseEntity.ok(toModelDTO(model)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle model: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/variants", "/vehicle-variants"})
     @Operation(summary = "Xem danh sách phiên bản xe", description = "Khách hàng có thể xem tất cả phiên bản xe")
-    public ResponseEntity<List<VehicleVariantDTO>> getAllVehicleVariants() {
-        List<VehicleVariant> variants = vehicleService.getAllVariants();
-        return ResponseEntity.ok(variants.stream().map(this::toVariantDTO).toList());
+    public ResponseEntity<?> getAllVehicleVariants() {
+        try {
+            List<VehicleVariant> variants = vehicleService.getAllVariants();
+            return ResponseEntity.ok(variants.stream().map(this::toVariantDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle variants: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/variants/{variantId}", "/vehicle-variants/{variantId}"})
     @Operation(summary = "Xem chi tiết phiên bản xe", description = "Khách hàng có thể xem chi tiết phiên bản xe")
-    public ResponseEntity<VehicleVariantDTO> getVehicleVariantById(@PathVariable Integer variantId) {
-        return vehicleService.getVariantById(variantId)
-                .map(variant -> ResponseEntity.ok(toVariantDTO(variant)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getVehicleVariantById(@PathVariable Integer variantId) {
+        try {
+            return vehicleService.getVariantById(variantId)
+                    .map(variant -> ResponseEntity.ok(toVariantDTO(variant)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle variant: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/colors", "/vehicle-colors"})
     @Operation(summary = "Xem danh sách màu xe", description = "Khách hàng có thể xem tất cả màu xe")
-    public ResponseEntity<List<VehicleColorDTO>> getAllVehicleColors() {
-        List<VehicleColor> colors = vehicleService.getAllColors();
-        return ResponseEntity.ok(colors.stream().map(this::toColorDTO).toList());
+    public ResponseEntity<?> getAllVehicleColors() {
+        try {
+            List<VehicleColor> colors = vehicleService.getAllColors();
+            return ResponseEntity.ok(colors.stream().map(this::toColorDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle colors: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/colors/{colorId}", "/vehicle-colors/{colorId}"})
     @Operation(summary = "Xem chi tiết màu xe", description = "Khách hàng có thể xem chi tiết màu xe")
-    public ResponseEntity<VehicleColorDTO> getVehicleColorById(@PathVariable Integer colorId) {
-        return vehicleService.getColorById(colorId)
-                .map(color -> ResponseEntity.ok(toColorDTO(color)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getVehicleColorById(@PathVariable Integer colorId) {
+        try {
+            return vehicleService.getColorById(colorId)
+                    .map(color -> ResponseEntity.ok(toColorDTO(color)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle color: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/inventory/available", "/vehicle-inventory"})
     @Operation(summary = "Xem kho xe", description = "Khách hàng có thể xem xe có sẵn trong kho")
-    public ResponseEntity<List<VehicleInventoryDTO>> getAllInventory() {
-        List<VehicleInventory> inventory = vehicleInventoryService.getAllVehicleInventory();
-        return ResponseEntity.ok(inventory.stream().map(this::toInventoryDTO).toList());
+    public ResponseEntity<?> getAllInventory() {
+        try {
+            List<VehicleInventory> inventory = vehicleInventoryService.getAllVehicleInventory();
+            return ResponseEntity.ok(inventory.stream().map(this::toInventoryDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle inventory: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping({"/inventory/{inventoryId}", "/vehicle-inventory/{inventoryId}"})
     @Operation(summary = "Xem chi tiết xe trong kho", description = "Khách hàng có thể xem chi tiết xe trong kho")
-    public ResponseEntity<VehicleInventoryDTO> getInventoryById(@PathVariable UUID inventoryId) {
-        return vehicleInventoryService.getInventoryById(inventoryId)
-                .map(inventory -> ResponseEntity.ok(toInventoryDTO(inventory)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getInventoryById(@PathVariable UUID inventoryId) {
+        try {
+            return vehicleInventoryService.getInventoryById(inventoryId)
+                    .map(inventory -> ResponseEntity.ok(toInventoryDTO(inventory)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle inventory: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     // ==================== PROMOTIONS ====================
     
     @GetMapping("/promotions")
     @Operation(summary = "Xem khuyến mãi", description = "Khách hàng có thể xem tất cả khuyến mãi đang hoạt động")
-    public ResponseEntity<List<PromotionDTO>> getActivePromotions() {
-        List<Promotion> promotions = promotionService.getPromotionsByStatus("active");
-        return ResponseEntity.ok(promotions.stream().map(this::toPromotionDTO).toList());
+    public ResponseEntity<?> getActivePromotions() {
+        try {
+            List<Promotion> promotions = promotionService.getPromotionsByStatus("active");
+            return ResponseEntity.ok(promotions.stream().map(this::toPromotionDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/promotions/{promotionId}")
     @Operation(summary = "Xem chi tiết khuyến mãi", description = "Khách hàng có thể xem chi tiết khuyến mãi")
-    public ResponseEntity<PromotionDTO> getPromotionById(@PathVariable UUID promotionId) {
-        return promotionService.getPromotionById(promotionId)
-                .map(promotion -> ResponseEntity.ok(toPromotionDTO(promotion)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getPromotionById(@PathVariable UUID promotionId) {
+        try {
+            return promotionService.getPromotionById(promotionId)
+                    .map(promotion -> ResponseEntity.ok(toPromotionDTO(promotion)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     // ==================== CUSTOMER ACTIONS (READ-ONLY) ====================
@@ -223,16 +319,28 @@ public class PublicController {
     
     @GetMapping("/vehicle-inventory/status/{status}")
     @Operation(summary = "Xem xe theo trạng thái", description = "Khách hàng có thể xem xe theo trạng thái (available, sold, reserved)")
-    public ResponseEntity<List<VehicleInventoryDTO>> getInventoryByStatus(@PathVariable String status) {
-        List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus(status);
-        return ResponseEntity.ok(inventory.stream().map(this::toInventoryDTO).toList());
+    public ResponseEntity<?> getInventoryByStatus(@PathVariable String status) {
+        try {
+            List<VehicleInventory> inventory = vehicleInventoryService.getInventoryByStatus(status);
+            return ResponseEntity.ok(inventory.stream().map(this::toInventoryDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle inventory: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/vehicle-models/brand/{brandId}")
     @Operation(summary = "Xem mẫu xe theo thương hiệu", description = "Khách hàng có thể xem mẫu xe theo thương hiệu")
-    public ResponseEntity<List<VehicleModelDTO>> getModelsByBrand(@PathVariable Integer brandId) {
-        List<VehicleModel> models = vehicleService.getModelsByBrand(brandId);
-        return ResponseEntity.ok(models.stream().map(this::toModelDTO).toList());
+    public ResponseEntity<?> getModelsByBrand(@PathVariable Integer brandId) {
+        try {
+            List<VehicleModel> models = vehicleService.getModelsByBrand(brandId);
+            return ResponseEntity.ok(models.stream().map(this::toModelDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve vehicle models: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     // ==================== VEHICLE COMPARISON ====================
@@ -274,12 +382,14 @@ public class PublicController {
     
     @GetMapping({"/vehicle-compare/available", "/compare/available"})
     @Operation(summary = "Xe có thể so sánh", description = "Khách hàng có thể xem danh sách xe có thể so sánh")
-    public ResponseEntity<List<VehicleVariantDTO>> getAvailableVehiclesForComparison() {
+    public ResponseEntity<?> getAvailableVehiclesForComparison() {
         try {
             List<VehicleVariant> variants = vehicleComparisonService.getAvailableVariantsForComparison();
             return ResponseEntity.ok(variants.stream().map(this::toVariantDTO).toList());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve available vehicles for comparison: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -359,7 +469,7 @@ public class PublicController {
         dto.setVariantId(inv.getVariant() != null ? inv.getVariant().getVariantId() : null);
         dto.setColorId(inv.getColor() != null ? inv.getColor().getColorId() : null);
         dto.setWarehouseId(inv.getWarehouse() != null ? inv.getWarehouse().getWarehouseId() : null);
-        dto.setStatus(inv.getStatus());
+        dto.setStatus(inv.getStatus() != null ? inv.getStatus().getValue() : null);
         dto.setVin(inv.getVin());
         dto.setArrivalDate(inv.getArrivalDate());
         dto.setSellingPrice(inv.getSellingPrice());

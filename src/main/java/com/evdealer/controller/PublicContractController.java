@@ -1,6 +1,7 @@
 package com.evdealer.controller;
 
 import com.evdealer.entity.SalesContract;
+import com.evdealer.enums.SalesContractStatus;
 import com.evdealer.service.SalesContractService;
 import com.evdealer.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -129,7 +130,7 @@ public class PublicContractController {
             SalesContract contractEntity = contract.get();
             
             // Update contract with signature
-            contractEntity.setContractStatus("signed");
+            contractEntity.setContractStatus(SalesContractStatus.SIGNED);
             contractEntity.setSignedDate(LocalDateTime.now().toLocalDate());
             contractEntity.setNotes((contractEntity.getNotes() != null ? contractEntity.getNotes() + "\n" : "") + 
                                   "Customer signature: " + customerSignature + 
@@ -162,10 +163,10 @@ public class PublicContractController {
                         status.put("contractId", contractId);
                         status.put("contractNumber", contract.getContractNumber());
                         status.put("status", contract.getContractStatus());
-                        status.put("isSigned", "signed".equals(contract.getContractStatus()));
+                        status.put("isSigned", contract.getContractStatus() == SalesContractStatus.SIGNED);
                         status.put("signatureDate", contract.getSignedDate());
                         status.put("signatureMethod", "electronic");
-                        status.put("canSign", "draft".equals(contract.getContractStatus()) || "pending".equals(contract.getContractStatus()));
+                        status.put("canSign", contract.getContractStatus() == SalesContractStatus.DRAFT || contract.getContractStatus() == SalesContractStatus.PENDING);
                         
                         return ResponseEntity.ok(status);
                     })
@@ -191,7 +192,7 @@ public class PublicContractController {
             }
             
             SalesContract contractEntity = contract.get();
-            contractEntity.setContractStatus("rejected");
+            contractEntity.setContractStatus(SalesContractStatus.CANCELLED);
             contractEntity.setNotes((contractEntity.getNotes() != null ? contractEntity.getNotes() + "\n" : "") + 
                                   "Rejection reason: " + reason);
             
@@ -214,22 +215,28 @@ public class PublicContractController {
     @GetMapping("/template")
     @Operation(summary = "Mẫu hợp đồng", description = "Khách vãng lai có thể xem mẫu hợp đồng")
     public ResponseEntity<?> getContractTemplate() {
-        Map<String, Object> template = new HashMap<>();
-        template.put("title", "HỢP ĐỒNG MUA BÁN XE ĐIỆN");
-        template.put("sections", new String[]{
-            "Thông tin các bên",
-            "Thông tin xe",
-            "Giá cả và thanh toán",
-            "Điều khoản giao hàng",
-            "Bảo hành và bảo trì",
-            "Điều khoản chung"
-        });
-        template.put("requiredFields", new String[]{
-            "customerName", "customerId", "vehicleInfo", "totalAmount", "paymentTerms"
-        });
-        template.put("signatureRequired", true);
-        template.put("validityPeriod", "30 days");
-        
-        return ResponseEntity.ok(template);
+        try {
+            Map<String, Object> template = new HashMap<>();
+            template.put("title", "HỢP ĐỒNG MUA BÁN XE ĐIỆN");
+            template.put("sections", new String[]{
+                "Thông tin các bên",
+                "Thông tin xe",
+                "Giá cả và thanh toán",
+                "Điều khoản giao hàng",
+                "Bảo hành và bảo trì",
+                "Điều khoản chung"
+            });
+            template.put("requiredFields", new String[]{
+                "customerName", "customerId", "vehicleInfo", "totalAmount", "paymentTerms"
+            });
+            template.put("signatureRequired", true);
+            template.put("validityPeriod", "30 days");
+            
+            return ResponseEntity.ok(template);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contract template: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 }

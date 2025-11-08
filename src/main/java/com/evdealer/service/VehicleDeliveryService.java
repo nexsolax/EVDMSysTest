@@ -2,6 +2,7 @@ package com.evdealer.service;
 
 import com.evdealer.entity.User;
 import com.evdealer.entity.VehicleDelivery;
+import com.evdealer.enums.VehicleDeliveryStatus;
 import com.evdealer.repository.VehicleDeliveryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,12 @@ public class VehicleDeliveryService {
     
     @Autowired
     private VehicleDeliveryRepository vehicleDeliveryRepository;
+    
+    @Autowired
+    private com.evdealer.service.DealerOrderService dealerOrderService;
+    
+    @Autowired
+    private com.evdealer.service.DealerOrderItemService dealerOrderItemService;
     
     public List<VehicleDelivery> getAllDeliveries() {
         try {
@@ -46,7 +53,9 @@ public class VehicleDeliveryService {
     }
     
     public List<VehicleDelivery> getDeliveriesByStatus(String deliveryStatus) {
-        return vehicleDeliveryRepository.findByDeliveryStatus(deliveryStatus);
+        // Convert string to enum for validation
+        VehicleDeliveryStatus statusEnum = VehicleDeliveryStatus.fromString(deliveryStatus);
+        return vehicleDeliveryRepository.findByDeliveryStatus(statusEnum);
     }
     
     public List<VehicleDelivery> getDeliveriesByDate(LocalDate date) {
@@ -62,11 +71,13 @@ public class VehicleDeliveryService {
     }
     
     public List<VehicleDelivery> getDeliveriesByCustomerAndStatus(UUID customerId, String status) {
-        return vehicleDeliveryRepository.findByCustomerAndStatus(customerId, status);
+        // Convert string to enum for validation
+        VehicleDeliveryStatus statusEnum = VehicleDeliveryStatus.fromString(status);
+        return vehicleDeliveryRepository.findByCustomerAndStatus(customerId, statusEnum);
     }
     
     public List<VehicleDelivery> getOverdueDeliveries() {
-        return vehicleDeliveryRepository.findOverdueDeliveries(LocalDate.now());
+        return vehicleDeliveryRepository.findOverdueDeliveries(LocalDate.now(), VehicleDeliveryStatus.DELIVERED);
     }
     
     public VehicleDelivery createDelivery(VehicleDelivery delivery) {
@@ -104,7 +115,8 @@ public class VehicleDeliveryService {
     public VehicleDelivery updateDeliveryStatus(UUID deliveryId, String status) {
         VehicleDelivery delivery = vehicleDeliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Vehicle delivery not found with id: " + deliveryId));
-        delivery.setDeliveryStatus(status);
+        VehicleDeliveryStatus statusEnum = VehicleDeliveryStatus.fromString(status);
+        delivery.setDeliveryStatus(statusEnum);
         return vehicleDeliveryRepository.save(delivery);
     }
     
@@ -112,7 +124,7 @@ public class VehicleDeliveryService {
         VehicleDelivery delivery = vehicleDeliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Vehicle delivery not found with id: " + deliveryId));
         
-        delivery.setDeliveryStatus("delivered");
+        delivery.setDeliveryStatus(VehicleDeliveryStatus.DELIVERED);
         delivery.setDeliveredBy(deliveredBy);
         delivery.setDeliveryConfirmationDate(LocalDateTime.now());
         
@@ -138,10 +150,10 @@ public class VehicleDeliveryService {
         List<VehicleDelivery> deliveries = getDeliveriesByDealer(dealerId);
         long totalDeliveries = deliveries.size();
         long completedDeliveries = deliveries.stream()
-                .filter(d -> "delivered".equals(d.getDeliveryStatus()))
+                .filter(d -> d.getDeliveryStatus() == VehicleDeliveryStatus.DELIVERED)
                 .count();
         long pendingDeliveries = deliveries.stream()
-                .filter(d -> "pending".equals(d.getDeliveryStatus()))
+                .filter(d -> d.getDeliveryStatus() == VehicleDeliveryStatus.SCHEDULED || d.getDeliveryStatus() == VehicleDeliveryStatus.IN_TRANSIT)
                 .count();
         
         summary.put("totalDeliveries", totalDeliveries);
@@ -155,9 +167,10 @@ public class VehicleDeliveryService {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
         
         long totalDeliveries = vehicleDeliveryRepository.count();
-        long completedDeliveries = vehicleDeliveryRepository.countByDeliveryStatus("delivered");
-        long pendingDeliveries = vehicleDeliveryRepository.countByDeliveryStatus("pending");
-        long cancelledDeliveries = vehicleDeliveryRepository.countByDeliveryStatus("cancelled");
+        long completedDeliveries = vehicleDeliveryRepository.countByDeliveryStatus(VehicleDeliveryStatus.DELIVERED);
+        long pendingDeliveries = vehicleDeliveryRepository.countByDeliveryStatus(VehicleDeliveryStatus.SCHEDULED) + 
+                                 vehicleDeliveryRepository.countByDeliveryStatus(VehicleDeliveryStatus.IN_TRANSIT);
+        long cancelledDeliveries = vehicleDeliveryRepository.countByDeliveryStatus(VehicleDeliveryStatus.CANCELLED);
         
         stats.put("totalDeliveries", totalDeliveries);
         stats.put("completedDeliveries", completedDeliveries);
@@ -165,5 +178,54 @@ public class VehicleDeliveryService {
         stats.put("cancelledDeliveries", cancelledDeliveries);
         
         return stats;
+    }
+    
+    /**
+     * Tự động tạo VehicleDelivery sau khi DealerPayment completed và Invoice fully paid
+     * Chỉ tạo delivery nếu chưa có delivery nào cho dealer order này
+     */
+    public void createDeliveryFromDealerOrderAfterPayment(UUID dealerOrderId) {
+        // Kiểm tra xem đã có delivery chưa
+        List<VehicleDelivery> existingDeliveries = vehicleDeliveryRepository.findByDealerOrderDealerOrderId(dealerOrderId);
+        if (!existingDeliveries.isEmpty()) {
+            // Đã có delivery, không tạo mới
+            return;
+        }
+        
+        // Load dealer order
+        java.util.Optional<com.evdealer.entity.DealerOrder> dealerOrderOpt = dealerOrderService.getDealerOrderById(dealerOrderId);
+        if (dealerOrderOpt.isEmpty()) {
+            throw new RuntimeException("Dealer order not found with ID: " + dealerOrderId);
+        }
+        
+        com.evdealer.entity.DealerOrder dealerOrder = dealerOrderOpt.get();
+        
+        // Lấy items từ dealer order
+        java.util.List<com.evdealer.entity.DealerOrderItem> items = dealerOrderItemService.getItemsByDealerOrderId(dealerOrderId);
+        if (items == null || items.isEmpty()) {
+            return; // Không có items, không tạo delivery
+        }
+        
+        // Tạo delivery cho mỗi item
+        LocalDate scheduledDate = dealerOrder.getExpectedDeliveryDate() != null ? 
+            dealerOrder.getExpectedDeliveryDate() : 
+            java.time.LocalDate.now().plusDays(7); // Mặc định 7 ngày sau
+        
+        String deliveryAddress = dealerOrder.getDealer() != null && dealerOrder.getDealer().getAddress() != null ?
+            dealerOrder.getDealer().getAddress() : "";
+        
+        for (com.evdealer.entity.DealerOrderItem item : items) {
+            VehicleDelivery delivery = new VehicleDelivery();
+            delivery.setDealerOrder(dealerOrder);
+            delivery.setDealerOrderItem(item);
+            delivery.setScheduledDeliveryDate(scheduledDate);
+            delivery.setDeliveryDate(scheduledDate);
+            delivery.setDeliveryAddress(deliveryAddress);
+            delivery.setDeliveryStatus(com.evdealer.enums.VehicleDeliveryStatus.SCHEDULED);
+            delivery.setIsEarlyDelivery(false); // Không phải giao trước vì đã thanh toán đủ
+            delivery.setNotes("Tự động tạo sau khi thanh toán đủ");
+            
+            vehicleDeliveryRepository.save(delivery);
+        }
     }
 }

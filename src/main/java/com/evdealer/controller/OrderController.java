@@ -34,32 +34,56 @@ public class OrderController {
     
     @GetMapping
     @Operation(summary = "Lấy danh sách đơn hàng", description = "Lấy tất cả đơn hàng")
-    public ResponseEntity<List<OrderDTO>> getAllOrders() {
-        List<Order> orders = orderService.getAllOrders();
-        return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getAllOrders() {
+        try {
+            List<Order> orders = orderService.getAllOrders();
+            return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{orderId}")
     @Operation(summary = "Lấy đơn hàng theo ID", description = "Lấy thông tin đơn hàng theo ID")
-    public ResponseEntity<OrderDTO> getOrderById(@PathVariable UUID orderId) {
-        return orderService.getOrderById(orderId)
-                .map(order -> ResponseEntity.ok(toDTO(order)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getOrderById(@PathVariable UUID orderId) {
+        try {
+            return orderService.getOrderById(orderId)
+                    .map(order -> ResponseEntity.ok(toDTO(order)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/order-number/{orderNumber}")
     @Operation(summary = "Lấy đơn hàng theo số đơn", description = "Lấy thông tin đơn hàng theo số đơn hàng")
-    public ResponseEntity<OrderDTO> getOrderByOrderNumber(@PathVariable String orderNumber) {
-        return orderService.getOrderByOrderNumber(orderNumber)
-                .map(order -> ResponseEntity.ok(toDTO(order)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getOrderByOrderNumber(@PathVariable String orderNumber) {
+        try {
+            return orderService.getOrderByOrderNumber(orderNumber)
+                    .map(order -> ResponseEntity.ok(toDTO(order)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve order: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "Lấy đơn hàng theo khách hàng", description = "Lấy danh sách đơn hàng theo khách hàng")
-    public ResponseEntity<List<OrderDTO>> getOrdersByCustomer(@PathVariable UUID customerId) {
-        List<Order> orders = orderService.getOrdersByCustomer(customerId);
-        return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getOrdersByCustomer(@PathVariable UUID customerId) {
+        try {
+            List<Order> orders = orderService.getOrdersByCustomer(customerId);
+            return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     
@@ -89,11 +113,30 @@ public class OrderController {
     
     @GetMapping("/date-range")
     @Operation(summary = "Lấy đơn hàng theo khoảng ngày", description = "Lấy đơn hàng theo khoảng ngày")
-    public ResponseEntity<List<OrderDTO>> getOrdersByDateRange(
+    public ResponseEntity<?> getOrdersByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<Order> orders = orderService.getOrdersByDateRange(startDate, endDate);
-        return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        try {
+            // Validate date range
+            if (startDate == null || endDate == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Start date and end date are required");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            if (startDate.isAfter(endDate)) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Start date cannot be after end date");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<Order> orders = orderService.getOrdersByDateRange(startDate, endDate);
+            return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer/{customerId}/status/{status}")
@@ -134,7 +177,7 @@ public class OrderController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Cho phép tất cả user đã authenticated tạo order (bao gồm customer, dealer user, EVM_STAFF, ADMIN)
+            // Cho phép tất cả user đã authenticated tạo order (bao gồm customer, dealer user, ADMIN)
             Order createdOrder = orderService.createOrderFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdOrder));
         } catch (RuntimeException e) {
@@ -188,8 +231,8 @@ public class OrderController {
             Order existingOrder = orderService.getOrderById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
             
-            // Kiểm tra phân quyền: ADMIN, EVM_STAFF hoặc user tạo order
-            if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
+            // Kiểm tra phân quyền: ADMIN, DEALER_STAFF hoặc user tạo order
+            if (!securityUtils.isAdmin() && !securityUtils.hasAnyRole("DEALER_STAFF")) {
                 var currentUserOpt = securityUtils.getCurrentUser();
                 if (currentUserOpt.isPresent()) {
                     UUID currentUserId = currentUserOpt.get().getUserId();
@@ -201,7 +244,7 @@ public class OrderController {
                     }
                 } else {
                     Map<String, String> error = new HashMap<>();
-                    error.put("error", "Access denied. Only admin, EVM staff or the order creator can update orders");
+                    error.put("error", "Access denied. Only admin, dealer staff or the order creator can update orders");
                     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
                 }
             }
@@ -230,10 +273,10 @@ public class OrderController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update order status
-            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+            // Chỉ ADMIN hoặc DEALER_STAFF mới có thể update order status
+            if (!securityUtils.hasAnyRole("ADMIN", "DEALER_STAFF")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin or EVM staff can update order status");
+                error.put("error", "Access denied. Only admin or dealer staff can update order status");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             

@@ -2,6 +2,7 @@ package com.evdealer.service;
 
 import com.evdealer.entity.DealerOrderItem;
 import com.evdealer.enums.DealerOrderItemStatus;
+import com.evdealer.enums.VehicleStatus;
 import com.evdealer.entity.VehicleVariant;
 import com.evdealer.entity.VehicleColor;
 import com.evdealer.repository.DealerOrderItemRepository;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,13 +105,13 @@ public class DealerOrderItemService {
     public List<DealerOrderItem> getItemsByStatus(String status) {
         // Convert string to enum for validation
         DealerOrderItemStatus statusEnum = DealerOrderItemStatus.fromString(status);
-        return dealerOrderItemRepository.findByStatus(statusEnum.getValue());
+        return dealerOrderItemRepository.findByStatus(statusEnum);
     }
     
     public List<DealerOrderItem> getItemsByDealerOrderIdAndStatus(UUID dealerOrderId, String status) {
         // Convert string to enum for validation
         DealerOrderItemStatus statusEnum = DealerOrderItemStatus.fromString(status);
-        return dealerOrderItemRepository.findByDealerOrderIdAndStatus(dealerOrderId, statusEnum.getValue());
+        return dealerOrderItemRepository.findByDealerOrderIdAndStatus(dealerOrderId, statusEnum);
     }
     
     public Optional<DealerOrderItem> getItemById(UUID itemId) {
@@ -117,18 +119,26 @@ public class DealerOrderItemService {
     }
     
     public Long countPendingOrdersByVariant(Integer variantId) {
-        return dealerOrderItemRepository.countPendingOrdersByVariant(variantId);
+        List<DealerOrderItemStatus> pendingStatuses = Arrays.asList(
+            DealerOrderItemStatus.PENDING,
+            DealerOrderItemStatus.CONFIRMED
+        );
+        return dealerOrderItemRepository.countPendingOrdersByVariant(variantId, pendingStatuses);
     }
     
     public Long sumPendingQuantityByVariant(Integer variantId) {
-        Long sum = dealerOrderItemRepository.sumPendingQuantityByVariant(variantId);
+        List<DealerOrderItemStatus> pendingStatuses = Arrays.asList(
+            DealerOrderItemStatus.PENDING,
+            DealerOrderItemStatus.CONFIRMED
+        );
+        Long sum = dealerOrderItemRepository.sumPendingQuantityByVariant(variantId, pendingStatuses);
         return sum != null ? sum : 0L;
     }
     
     private void checkInventoryAvailability(Integer variantId, Integer colorId, Integer requestedQuantity) {
         // Get available inventory for this variant and color
         List<com.evdealer.entity.VehicleInventory> availableInventory = 
-            vehicleInventoryRepository.findByVariantVariantIdAndColorColorIdAndStatus(variantId, colorId, "available");
+            vehicleInventoryRepository.findByVariantVariantIdAndColorColorIdAndStatus(variantId, colorId, VehicleStatus.AVAILABLE);
         
         int availableQuantity = availableInventory.size();
         

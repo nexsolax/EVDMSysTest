@@ -43,13 +43,13 @@ public class AppointmentService {
     public List<Appointment> getAppointmentsByStatus(String status) {
         // Convert string to enum for validation
         AppointmentStatus statusEnum = AppointmentStatus.fromString(status);
-        return appointmentRepository.findByStatus(statusEnum.getValue());
+        return appointmentRepository.findByStatus(statusEnum);
     }
     
     public List<Appointment> getAppointmentsByType(String appointmentType) {
         // Convert string to enum for validation
         AppointmentType typeEnum = AppointmentType.fromString(appointmentType);
-        return appointmentRepository.findByAppointmentType(typeEnum.getValue());
+        return appointmentRepository.findByAppointmentType(typeEnum);
     }
     
     public List<Appointment> getAppointmentsByVariant(Integer variantId) {
@@ -69,7 +69,7 @@ public class AppointmentService {
     }
     
     public List<Appointment> getUpcomingAppointments() {
-        return appointmentRepository.findUpcomingAppointments(LocalDateTime.now());
+        return appointmentRepository.findUpcomingAppointments(LocalDateTime.now(), AppointmentStatus.SCHEDULED);
     }
     
     public List<Appointment> getAppointmentsByTitle(String title) {
@@ -108,7 +108,8 @@ public class AppointmentService {
     public Appointment updateAppointmentStatus(UUID appointmentId, String status) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new RuntimeException("Appointment not found with id: " + appointmentId));
-        appointment.setStatus(status);
+        AppointmentStatus statusEnum = AppointmentStatus.fromString(status);
+        appointment.setStatus(statusEnum);
         return appointmentRepository.save(appointment);
     }
 }

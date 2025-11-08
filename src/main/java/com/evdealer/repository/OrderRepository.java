@@ -1,6 +1,7 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.Order;
+import com.evdealer.enums.OrderStatus;
 import com.evdealer.enums.OrderType;
 import com.evdealer.enums.PaymentStatus;
 import com.evdealer.enums.DeliveryStatus;
@@ -42,7 +43,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByOrderDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
     @Query("SELECT o FROM Order o WHERE o.customer.customerId = :customerId AND o.status = :status")
-    List<Order> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") String status);
+    List<Order> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") OrderStatus status);
     
     @Query("SELECT o FROM Order o WHERE o.user.userId = :userId")
     List<Order> findByUserId(@Param("userId") UUID userId);
@@ -63,7 +64,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findWalkInOrdersFiltered(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
-            @Param("status") String status);
+            @Param("status") OrderStatus status);
 
     @Query("""
         SELECT o FROM Order o
@@ -76,6 +77,10 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     Page<Order> findWalkInOrdersFiltered(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
-            @Param("status") String status,
+            @Param("status") OrderStatus status,
             Pageable pageable);
+    
+    // Tìm Order theo Quotation ID
+    @Query("SELECT o FROM Order o WHERE o.quotation.quotationId = :quotationId")
+    Optional<Order> findByQuotationQuotationId(@Param("quotationId") UUID quotationId);
 }

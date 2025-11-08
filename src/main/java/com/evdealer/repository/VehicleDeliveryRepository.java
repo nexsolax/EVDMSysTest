@@ -1,6 +1,7 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.VehicleDelivery;
+import com.evdealer.enums.VehicleDeliveryStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -22,7 +23,7 @@ public interface VehicleDeliveryRepository extends JpaRepository<VehicleDelivery
     
     List<VehicleDelivery> findByCustomerCustomerId(UUID customerId);
     
-    List<VehicleDelivery> findByDeliveryStatus(String deliveryStatus);
+    List<VehicleDelivery> findByDeliveryStatus(VehicleDeliveryStatus deliveryStatus);
     
     @Query("SELECT vd FROM VehicleDelivery vd WHERE vd.deliveryDate = :date")
     List<VehicleDelivery> findByDeliveryDate(@Param("date") LocalDate date);
@@ -34,14 +35,17 @@ public interface VehicleDeliveryRepository extends JpaRepository<VehicleDelivery
     List<VehicleDelivery> findByDeliveredBy(@Param("userId") UUID userId);
     
     @Query("SELECT vd FROM VehicleDelivery vd WHERE vd.customer.customerId = :customerId AND vd.deliveryStatus = :status")
-    List<VehicleDelivery> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") String status);
+    List<VehicleDelivery> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") VehicleDeliveryStatus status);
     
-    @Query("SELECT vd FROM VehicleDelivery vd WHERE vd.deliveryDate < :date AND vd.deliveryStatus != 'delivered'")
-    List<VehicleDelivery> findOverdueDeliveries(@Param("date") LocalDate date);
+    @Query("SELECT vd FROM VehicleDelivery vd WHERE vd.deliveryDate < :date AND vd.deliveryStatus != :deliveredStatus")
+    List<VehicleDelivery> findOverdueDeliveries(@Param("date") LocalDate date, @Param("deliveredStatus") VehicleDeliveryStatus deliveredStatus);
     
     @Query("SELECT vd FROM VehicleDelivery vd WHERE CONCAT(vd.customer.firstName, ' ', vd.customer.lastName) LIKE %:customerName%")
     List<VehicleDelivery> findByCustomerNameContainingIgnoreCase(@Param("customerName") String customerName);
     
     // Additional methods for new APIs
-    long countByDeliveryStatus(String deliveryStatus);
+    long countByDeliveryStatus(VehicleDeliveryStatus deliveryStatus);
+    
+    @Query("SELECT vd FROM VehicleDelivery vd WHERE vd.dealerOrder.dealerOrderId = :dealerOrderId")
+    List<VehicleDelivery> findByDealerOrderDealerOrderId(@Param("dealerOrderId") UUID dealerOrderId);
 }

@@ -1,6 +1,8 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.SalesContract;
+import com.evdealer.entity.Order;
+import com.evdealer.enums.SalesContractStatus;
 import com.evdealer.repository.SalesContractRepository;
 import com.evdealer.repository.OrderRepository;
 import com.evdealer.repository.CustomerRepository;
@@ -76,8 +78,9 @@ public class SalesContractService {
     
     public List<SalesContract> getContractsByStatus(String contractStatus) {
         try {
-            // Repository accepts String (enum value) for backward compatibility
-            return salesContractRepository.findByContractStatus(contractStatus);
+            // Convert string to enum for validation
+            SalesContractStatus statusEnum = SalesContractStatus.fromString(contractStatus);
+            return salesContractRepository.findByContractStatus(statusEnum);
         } catch (Exception e) {
             // Return empty list if there's an issue
             return new java.util.ArrayList<>();
@@ -93,7 +96,9 @@ public class SalesContractService {
     }
     
     public List<SalesContract> getContractsByCustomerAndStatus(UUID customerId, String status) {
-        return salesContractRepository.findByCustomerAndStatus(customerId, status);
+        // Convert string to enum for validation
+        SalesContractStatus statusEnum = SalesContractStatus.fromString(status);
+        return salesContractRepository.findByCustomerAndStatus(customerId, statusEnum);
     }
     
     public SalesContract createContract(SalesContract contract) {
@@ -141,6 +146,33 @@ public class SalesContractService {
         }
         
         return salesContractRepository.save(contract);
+    }
+    
+    /**
+     * Tự động tạo SalesContract từ Order khi khách hàng thanh toán đủ
+     */
+    public SalesContract createContractFromOrder(Order order) {
+        // Kiểm tra xem đã có contract chưa
+        List<SalesContract> existingContracts = getContractsByOrder(order.getOrderId());
+        if (!existingContracts.isEmpty()) {
+            // Đã có contract, không tạo mới
+            return existingContracts.get(0);
+        }
+        
+        // Tạo contract mới
+        SalesContract contract = new SalesContract();
+        contract.setContractNumber("SC-" + System.currentTimeMillis());
+        contract.setOrder(order);
+        contract.setCustomer(order.getCustomer());
+        contract.setContractDate(java.time.LocalDate.now());
+        contract.setDeliveryDate(order.getDeliveryDate()); // Order có deliveryDate, không có expectedDeliveryDate
+        contract.setContractValue(order.getTotalAmount() != null ? order.getTotalAmount() : java.math.BigDecimal.ZERO);
+        contract.setPaymentTerms("Thanh toán đủ: " + order.getTotalAmount());
+        contract.setWarrantyPeriodMonths(24); // Mặc định 24 tháng
+        contract.setContractStatus(com.evdealer.enums.SalesContractStatus.DRAFT);
+        contract.setNotes("Tự động tạo sau khi thanh toán đủ");
+        
+        return createContract(contract);
     }
     
     public SalesContract updateContract(UUID contractId, SalesContract contractDetails) {

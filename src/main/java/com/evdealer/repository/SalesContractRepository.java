@@ -1,6 +1,7 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.SalesContract;
+import com.evdealer.enums.SalesContractStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,7 +29,7 @@ public interface SalesContractRepository extends JpaRepository<SalesContract, UU
     @Query("SELECT sc FROM SalesContract sc WHERE sc.user.userId = :userId")
     List<SalesContract> findByUserUserId(@Param("userId") UUID userId);
     
-    List<SalesContract> findByContractStatus(String contractStatus);
+    List<SalesContract> findByContractStatus(SalesContractStatus contractStatus);
     
     @Query("SELECT sc FROM SalesContract sc WHERE sc.contractDate BETWEEN :startDate AND :endDate")
     List<SalesContract> findByContractDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
@@ -37,9 +38,7 @@ public interface SalesContractRepository extends JpaRepository<SalesContract, UU
     List<SalesContract> findByDeliveryDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
     @Query("SELECT sc FROM SalesContract sc WHERE sc.customer.customerId = :customerId AND sc.contractStatus = :status")
-    List<SalesContract> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") String status);
-    
-    // Note: findByContractStatus and findByCustomerAndStatus accept String (enum value) for backward compatibility
+    List<SalesContract> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") SalesContractStatus status);
     
     boolean existsByContractNumber(String contractNumber);
 }

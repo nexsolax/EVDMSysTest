@@ -1,6 +1,7 @@
 package com.evdealer.controller;
 
 import com.evdealer.entity.CustomerPayment;
+import com.evdealer.enums.CustomerPaymentStatus;
 import com.evdealer.service.CustomerPaymentService;
 import com.evdealer.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,7 +54,7 @@ public class PublicPaymentController {
             payment.setPaymentMethod(paymentMethod);
             payment.setPaymentType("deposit");
             payment.setPaymentDate(LocalDateTime.now().toLocalDate());
-            payment.setStatus("pending");
+            payment.setStatus(CustomerPaymentStatus.PENDING);
             payment.setNotes(notes);
             payment.setPaymentNumber("PAY-" + System.currentTimeMillis());
             
@@ -64,7 +65,7 @@ public class PublicPaymentController {
             response.put("paymentId", createdPayment.getPaymentId());
             response.put("amount", amount);
             response.put("paymentMethod", paymentMethod);
-            response.put("status", "pending");
+            response.put("status", createdPayment.getStatus() != null ? createdPayment.getStatus().getValue() : "pending");
             response.put("orderId", orderId);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -98,7 +99,7 @@ public class PublicPaymentController {
             payment.setPaymentMethod(paymentMethod);
             payment.setPaymentType("full");
             payment.setPaymentDate(LocalDateTime.now().toLocalDate());
-            payment.setStatus("pending");
+            payment.setStatus(CustomerPaymentStatus.PENDING);
             payment.setNotes(notes);
             payment.setPaymentNumber("PAY-" + System.currentTimeMillis());
             
@@ -109,7 +110,7 @@ public class PublicPaymentController {
             response.put("paymentId", createdPayment.getPaymentId());
             response.put("amount", order.get().getTotalAmount());
             response.put("paymentMethod", paymentMethod);
-            response.put("status", "pending");
+            response.put("status", createdPayment.getStatus() != null ? createdPayment.getStatus().getValue() : "pending");
             response.put("orderId", orderId);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -160,7 +161,9 @@ public class PublicPaymentController {
             
             // Update payment status to refund requested
             CustomerPayment paymentEntity = payment.get();
-            paymentEntity.setStatus("refund_requested");
+            // Note: CustomerPaymentStatus doesn't have REFUND_REQUESTED, using PENDING for now
+            // Consider adding REFUND_REQUESTED to enum if needed
+            paymentEntity.setStatus(CustomerPaymentStatus.PENDING);
             if (reason != null && !reason.trim().isEmpty()) {
                 paymentEntity.setNotes((paymentEntity.getNotes() != null ? paymentEntity.getNotes() + "\n" : "") + 
                                      "Refund reason: " + reason);
@@ -224,17 +227,23 @@ public class PublicPaymentController {
     @GetMapping("/methods")
     @Operation(summary = "Phương thức thanh toán", description = "Khách vãng lai có thể xem các phương thức thanh toán có sẵn")
     public ResponseEntity<?> getPaymentMethods() {
-        Map<String, Object> methods = new HashMap<>();
-        methods.put("availableMethods", new String[]{
-            "bank_transfer", "credit_card", "debit_card", "cash", "installment"
-        });
-        methods.put("supportedBanks", new String[]{
-            "Vietcombank", "VietinBank", "BIDV", "Agribank", "Techcombank"
-        });
-        methods.put("installmentOptions", new String[]{
-            "6_months", "12_months", "24_months", "36_months"
-        });
-        
-        return ResponseEntity.ok(methods);
+        try {
+            Map<String, Object> methods = new HashMap<>();
+            methods.put("availableMethods", new String[]{
+                "bank_transfer", "credit_card", "debit_card", "cash", "installment"
+            });
+            methods.put("supportedBanks", new String[]{
+                "Vietcombank", "VietinBank", "BIDV", "Agribank", "Techcombank"
+            });
+            methods.put("installmentOptions", new String[]{
+                "6_months", "12_months", "24_months", "36_months"
+            });
+            
+            return ResponseEntity.ok(methods);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve payment methods: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 }

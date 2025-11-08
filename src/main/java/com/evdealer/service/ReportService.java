@@ -2,6 +2,8 @@ package com.evdealer.service;
 
 import com.evdealer.dto.*;
 import com.evdealer.entity.*;
+import com.evdealer.enums.OrderStatus;
+import com.evdealer.enums.VehicleStatus;
 import com.evdealer.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -46,7 +48,7 @@ public class ReportService {
         dto.setUserId(o.getUser() != null ? o.getUser().getUserId() : null);
         dto.setInventoryId(o.getInventory() != null ? o.getInventory().getInventoryId() : null);
         dto.setOrderDate(o.getOrderDate());
-        dto.setStatus(o.getStatus());
+        dto.setStatus(o.getStatus() != null ? o.getStatus().getValue() : null);
         dto.setTotalAmount(o.getTotalAmount());
         return dto;
     }
@@ -138,15 +140,15 @@ public class ReportService {
         InventoryTurnoverReportDTO dto = new InventoryTurnoverReportDTO();
 
         long availableCount = allInventory.stream()
-            .filter(inv -> "available".equals(inv.getStatus()))
+            .filter(inv -> inv.getStatus() == VehicleStatus.AVAILABLE)
             .count();
         
         long soldCount = allInventory.stream()
-            .filter(inv -> "sold".equals(inv.getStatus()))
+            .filter(inv -> inv.getStatus() == VehicleStatus.SOLD)
             .count();
         
         long reservedCount = allInventory.stream()
-            .filter(inv -> "reserved".equals(inv.getStatus()))
+            .filter(inv -> inv.getStatus() == VehicleStatus.RESERVED)
             .count();
         
         dto.setTotalInventory(allInventory.size());
@@ -159,11 +161,11 @@ public class ReportService {
     }
     
     public List<VehicleInventory> getAvailableInventory() {
-        return vehicleInventoryRepository.findByStatus("available");
+        return vehicleInventoryRepository.findByStatus(VehicleStatus.AVAILABLE);
     }
     
     public List<VehicleInventory> getSoldInventory() {
-        return vehicleInventoryRepository.findByStatus("sold");
+        return vehicleInventoryRepository.findByStatus(VehicleStatus.SOLD);
     }
     
     // Dealer Performance Report - Using DealerTarget data
@@ -266,7 +268,8 @@ public class ReportService {
     }
     
     public List<VehicleDeliveryDTO> getDeliveriesByStatus(String status) {
-        return vehicleDeliveryRepository.findByDeliveryStatus(status)
+        com.evdealer.enums.VehicleDeliveryStatus statusEnum = com.evdealer.enums.VehicleDeliveryStatus.fromString(status);
+        return vehicleDeliveryRepository.findByDeliveryStatus(statusEnum)
                 .stream().map(this::toDeliveryDTO).toList();
     }
     
@@ -291,12 +294,18 @@ public class ReportService {
     }
 
     public List<OrderDTO> getWalkInPurchases(LocalDate startDate, LocalDate endDate, String status) {
-        return orderRepository.findWalkInOrdersFiltered(startDate, endDate, status)
+        OrderStatus statusEnum = (status != null && !status.trim().isEmpty()) 
+            ? OrderStatus.fromString(status) 
+            : null;
+        return orderRepository.findWalkInOrdersFiltered(startDate, endDate, statusEnum)
                 .stream().map(this::toOrderDTO).toList();
     }
 
     public Page<OrderDTO> getWalkInPurchasesPaged(LocalDate startDate, LocalDate endDate, String status, Pageable pageable) {
-        return orderRepository.findWalkInOrdersFiltered(startDate, endDate, status, pageable)
+        OrderStatus statusEnum = (status != null && !status.trim().isEmpty()) 
+            ? OrderStatus.fromString(status) 
+            : null;
+        return orderRepository.findWalkInOrdersFiltered(startDate, endDate, statusEnum, pageable)
                 .map(this::toOrderDTO);
     }
 
@@ -307,7 +316,7 @@ public class ReportService {
         dto.setInventoryId(d.getInventory() != null ? d.getInventory().getInventoryId() : null);
         dto.setCustomerId(d.getCustomer() != null ? d.getCustomer().getCustomerId() : null);
         dto.setDeliveryDate(d.getDeliveryDate());
-        dto.setDeliveryStatus(d.getDeliveryStatus());
+        dto.setDeliveryStatus(d.getDeliveryStatus() != null ? d.getDeliveryStatus().getValue() : null);
         dto.setDeliveryAddress(d.getDeliveryAddress());
         dto.setDeliveryContactName(d.getDeliveryContactName());
         dto.setDeliveryContactPhone(d.getDeliveryContactPhone());

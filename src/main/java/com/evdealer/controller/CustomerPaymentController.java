@@ -222,10 +222,11 @@ public class CustomerPaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Chỉ ADMIN hoặc EVM_STAFF mới có thể tạo customer payment
-            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+            // Chỉ ADMIN hoặc DEALER_STAFF mới có thể tạo customer payment (internal API)
+            // Lưu ý: Public payment được xử lý qua PublicPaymentController
+            if (!securityUtils.hasAnyRole("ADMIN", "DEALER_STAFF")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin or EVM staff can create customer payments");
+                error.put("error", "Access denied. Only admin or dealer staff can create customer payments");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
@@ -255,10 +256,10 @@ public class CustomerPaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update customer payment
-            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+            // Chỉ ADMIN hoặc DEALER_STAFF mới có thể update customer payment
+            if (!securityUtils.hasAnyRole("ADMIN", "DEALER_STAFF")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin or EVM staff can update customer payments");
+                error.put("error", "Access denied. Only admin or dealer staff can update customer payments");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
@@ -288,10 +289,10 @@ public class CustomerPaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update payment status
-            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+            // Chỉ ADMIN hoặc DEALER_STAFF mới có thể update payment status
+            if (!securityUtils.hasAnyRole("ADMIN", "DEALER_STAFF")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin or EVM staff can update payment status");
+                error.put("error", "Access denied. Only admin or dealer staff can update payment status");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             

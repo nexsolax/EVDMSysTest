@@ -43,25 +43,43 @@ public class PublicCustomerController {
     @GetMapping("/{customerId}")
     @Operation(summary = "Xem khách hàng", description = "Tra cứu khách hàng theo ID")
     public ResponseEntity<?> getCustomerById(@PathVariable UUID customerId) {
-        return customerService.getCustomerById(customerId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return customerService.getCustomerById(customerId)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Xem theo email", description = "Tra cứu khách hàng theo email")
     public ResponseEntity<?> getByEmail(@PathVariable String email) {
-        return customerService.getCustomerByEmail(email)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return customerService.getCustomerByEmail(email)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 
     @GetMapping("/phone/{phone}")
     @Operation(summary = "Xem theo số điện thoại", description = "Tra cứu khách hàng theo số điện thoại")
     public ResponseEntity<?> getByPhone(@PathVariable String phone) {
-        return customerService.getCustomerByPhone(phone)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return customerService.getCustomerByPhone(phone)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 }
 

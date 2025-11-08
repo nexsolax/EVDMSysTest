@@ -1,6 +1,7 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.DealerPayment;
+import com.evdealer.enums.DealerPaymentStatus;
 import com.evdealer.repository.DealerPaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,9 @@ public class DealerPaymentService {
     
     @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByStatus(String status) {
-        return dealerPaymentRepository.findByStatus(status);
+        // Convert string to enum for validation
+        DealerPaymentStatus statusEnum = DealerPaymentStatus.fromString(status);
+        return dealerPaymentRepository.findByStatus(statusEnum);
     }
     
     @Transactional(readOnly = true)
@@ -97,7 +100,8 @@ public class DealerPaymentService {
     public DealerPayment updatePaymentStatus(UUID paymentId, String status) {
         DealerPayment dealerPayment = dealerPaymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Dealer payment not found"));
-        dealerPayment.setStatus(status);
+        DealerPaymentStatus statusEnum = DealerPaymentStatus.fromString(status);
+        dealerPayment.setStatus(statusEnum);
         return dealerPaymentRepository.save(dealerPayment);
     }
     
@@ -116,13 +120,13 @@ public class DealerPaymentService {
         
         List<DealerPayment> payments = getPaymentsByDealer(dealerId);
         java.math.BigDecimal totalPaid = payments.stream()
-                .filter(p -> "COMPLETED".equals(p.getStatus()))
+                .filter(p -> p.getStatus() == DealerPaymentStatus.COMPLETED)
                 .map(DealerPayment::getAmount)
                 .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
         
         long totalPayments = payments.size();
         long completedPayments = payments.stream()
-                .filter(p -> "COMPLETED".equals(p.getStatus()))
+                .filter(p -> p.getStatus() == DealerPaymentStatus.COMPLETED)
                 .count();
         
         summary.put("totalPayments", totalPayments);
@@ -136,9 +140,9 @@ public class DealerPaymentService {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
         
         long totalPayments = dealerPaymentRepository.count();
-        long completedPayments = dealerPaymentRepository.countByStatus("COMPLETED");
-        long pendingPayments = dealerPaymentRepository.countByStatus("PENDING");
-        long failedPayments = dealerPaymentRepository.countByStatus("FAILED");
+        long completedPayments = dealerPaymentRepository.countByStatus(DealerPaymentStatus.COMPLETED);
+        long pendingPayments = dealerPaymentRepository.countByStatus(DealerPaymentStatus.PENDING);
+        long failedPayments = dealerPaymentRepository.countByStatus(DealerPaymentStatus.FAILED);
         
         stats.put("totalPayments", totalPayments);
         stats.put("completedPayments", completedPayments);

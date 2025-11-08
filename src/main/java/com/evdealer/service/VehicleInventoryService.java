@@ -50,7 +50,8 @@ public class VehicleInventoryService {
     }
     
     public List<VehicleInventory> getInventoryByStatus(String status) {
-        return vehicleInventoryRepository.findByStatus(status);
+        VehicleStatus statusEnum = VehicleStatus.fromString(status);
+        return vehicleInventoryRepository.findByStatus(statusEnum);
     }
     
     public List<VehicleInventory> getInventoryByVariant(Integer variantId) {
@@ -179,9 +180,9 @@ public class VehicleInventoryService {
         // Normalize and set status
         if (request.getStatus() != null) {
             VehicleStatus normalizedStatus = VehicleStatus.fromString(request.getStatus());
-            inventory.setStatus(normalizedStatus.getValue());
+            inventory.setStatus(normalizedStatus);
         } else {
-            inventory.setStatus(VehicleStatus.AVAILABLE.getValue());
+            inventory.setStatus(VehicleStatus.AVAILABLE);
         }
         
         // Save inventory and flush to ensure relationships are persisted
@@ -275,7 +276,7 @@ public class VehicleInventoryService {
         }
         if (request.getStatus() != null) {
             VehicleStatus normalizedStatus = VehicleStatus.fromString(request.getStatus());
-            inventory.setStatus(normalizedStatus.getValue());
+            inventory.setStatus(normalizedStatus);
         }
         
         // Save inventory and flush to ensure relationships are persisted
@@ -300,7 +301,7 @@ public class VehicleInventoryService {
         
         // Normalize status using enum
         VehicleStatus normalizedStatus = VehicleStatus.fromString(status);
-        vehicleInventory.setStatus(normalizedStatus.getValue());
+        vehicleInventory.setStatus(normalizedStatus);
         
         return vehicleInventoryRepository.save(vehicleInventory);
     }
@@ -312,10 +313,12 @@ public class VehicleInventoryService {
         
         // Normalize status before saving
         if (inventory.getStatus() != null) {
-            VehicleStatus normalizedStatus = VehicleStatus.fromString(inventory.getStatus());
-            inventory.setStatus(normalizedStatus.getValue());
+            // Status is already VehicleStatus enum, no need to parse
+            // Just ensure it's valid
+            VehicleStatus currentStatus = inventory.getStatus();
+            inventory.setStatus(currentStatus);
         } else {
-            inventory.setStatus(VehicleStatus.AVAILABLE.getValue());
+            inventory.setStatus(VehicleStatus.AVAILABLE);
         }
         
         return vehicleInventoryRepository.save(inventory);
@@ -330,14 +333,11 @@ public class VehicleInventoryService {
         int updatedCount = 0;
         
         for (VehicleInventory inventory : allInventory) {
-            String currentStatus = inventory.getStatus();
+            VehicleStatus currentStatus = inventory.getStatus();
             if (currentStatus != null) {
-                VehicleStatus normalizedStatus = VehicleStatus.fromString(currentStatus);
-                if (!normalizedStatus.getValue().equals(currentStatus)) {
-                    inventory.setStatus(normalizedStatus.getValue());
-                    vehicleInventoryRepository.save(inventory);
-                    updatedCount++;
-                }
+                // Status is already VehicleStatus enum, no normalization needed
+                // This method is kept for backward compatibility but should not modify anything
+                // as status is already an enum
             }
         }
         

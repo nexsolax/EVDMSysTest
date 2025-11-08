@@ -1,11 +1,14 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.VehicleInventory;
+import com.evdealer.enums.VehicleStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import jakarta.persistence.LockModeType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -30,7 +33,7 @@ public interface VehicleInventoryRepository extends JpaRepository<VehicleInvento
     boolean existsByVin(String vin);
     
     @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.status = :status")
-    List<VehicleInventory> findByStatus(@Param("status") String status);
+    List<VehicleInventory> findByStatus(@Param("status") VehicleStatus status);
     
     @Query("SELECT DISTINCT vi FROM VehicleInventory vi LEFT JOIN FETCH vi.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH vi.color LEFT JOIN FETCH vi.warehouse WHERE vi.variant.variantId = :variantId")
     List<VehicleInventory> findByVariantVariantId(@Param("variantId") Integer variantId);
@@ -60,5 +63,10 @@ public interface VehicleInventoryRepository extends JpaRepository<VehicleInvento
     
     // Additional method for dealer order items
     @Query("SELECT vi FROM VehicleInventory vi WHERE vi.variant.variantId = :variantId AND vi.color.colorId = :colorId AND vi.status = :status")
-    List<VehicleInventory> findByVariantVariantIdAndColorColorIdAndStatus(@Param("variantId") Integer variantId, @Param("colorId") Integer colorId, @Param("status") String status);
+    List<VehicleInventory> findByVariantVariantIdAndColorColorIdAndStatus(@Param("variantId") Integer variantId, @Param("colorId") Integer colorId, @Param("status") VehicleStatus status);
+    
+    // Lock method for concurrent inventory reservation
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT vi FROM VehicleInventory vi WHERE vi.inventoryId = :id")
+    Optional<VehicleInventory> lockById(@Param("id") UUID id);
 }

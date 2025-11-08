@@ -1,6 +1,8 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.Appointment;
+import com.evdealer.enums.AppointmentStatus;
+import com.evdealer.enums.AppointmentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,10 +22,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByStaffId(@Param("staffId") UUID staffId);
     
     @Query("SELECT a FROM Appointment a WHERE a.status = :status")
-    List<Appointment> findByStatus(@Param("status") String status);
+    List<Appointment> findByStatus(@Param("status") AppointmentStatus status);
     
     @Query("SELECT a FROM Appointment a WHERE a.appointmentType = :appointmentType")
-    List<Appointment> findByAppointmentType(@Param("appointmentType") String appointmentType);
+    List<Appointment> findByAppointmentType(@Param("appointmentType") AppointmentType appointmentType);
     
     @Query("SELECT a FROM Appointment a WHERE a.variant.variantId = :variantId")
     List<Appointment> findByVariantId(@Param("variantId") Integer variantId);
@@ -37,8 +39,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     @Query("SELECT a FROM Appointment a WHERE a.staff.userId = :staffId AND a.appointmentDate BETWEEN :startDate AND :endDate")
     List<Appointment> findByStaffIdAndAppointmentDateBetween(@Param("staffId") UUID staffId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
     
-    @Query("SELECT a FROM Appointment a WHERE a.appointmentDate >= :date AND a.status = 'scheduled'")
-    List<Appointment> findUpcomingAppointments(@Param("date") LocalDateTime date);
+    @Query("SELECT a FROM Appointment a WHERE a.appointmentDate >= :date AND a.status = :status")
+    List<Appointment> findUpcomingAppointments(@Param("date") LocalDateTime date, @Param("status") AppointmentStatus status);
     
     @Query("SELECT a FROM Appointment a WHERE a.title LIKE %:title%")
     List<Appointment> findByTitleContaining(@Param("title") String title);

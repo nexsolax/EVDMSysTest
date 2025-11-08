@@ -1,6 +1,7 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.DealerPayment;
+import com.evdealer.enums.DealerPaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,7 +24,7 @@ public interface DealerPaymentRepository extends JpaRepository<DealerPayment, UU
     boolean existsByPaymentNumber(String paymentNumber);
     
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.status = :status")
-    List<DealerPayment> findByStatus(@Param("status") String status);
+    List<DealerPayment> findByStatus(@Param("status") DealerPaymentStatus status);
     
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.invoice.invoiceId = :invoiceId")
     List<DealerPayment> findByInvoiceInvoiceId(@Param("invoiceId") UUID invoiceId);
@@ -48,5 +49,5 @@ public interface DealerPaymentRepository extends JpaRepository<DealerPayment, UU
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentId = :paymentId")
     Optional<DealerPayment> findByIdWithDetails(@Param("paymentId") UUID paymentId);
     
-    long countByStatus(String status);
+    long countByStatus(DealerPaymentStatus status);
 }

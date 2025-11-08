@@ -1,6 +1,8 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.*;
+import com.evdealer.enums.DealerInvoiceStatus;
+import com.evdealer.enums.DealerQuotationStatus;
 import com.evdealer.repository.*;
 import com.evdealer.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -82,7 +85,8 @@ public class DealerQuotationService {
     }
     
     public List<DealerQuotation> getQuotationsByStatus(String status) {
-        return dealerQuotationRepository.findByStatus(status);
+        com.evdealer.enums.DealerQuotationStatus statusEnum = com.evdealer.enums.DealerQuotationStatus.fromString(status);
+        return dealerQuotationRepository.findByStatus(statusEnum);
     }
     
     public List<DealerQuotation> getQuotationsByEvmStaff(UUID evmStaffId) {
@@ -94,7 +98,11 @@ public class DealerQuotationService {
     }
     
     public List<DealerQuotation> getExpiredQuotations() {
-        return dealerQuotationRepository.findExpiredQuotations(LocalDate.now());
+        List<DealerQuotationStatus> expiredStatuses = Arrays.asList(
+            DealerQuotationStatus.PENDING,
+            DealerQuotationStatus.SENT
+        );
+        return dealerQuotationRepository.findExpiredQuotations(LocalDate.now(), expiredStatuses);
     }
     
     /**
@@ -182,7 +190,7 @@ public class DealerQuotationService {
         List<DealerQuotation> existingQuotations = dealerQuotationRepository.findByDealerOrderDealerOrderId(dealerOrderId);
         if (!existingQuotations.isEmpty()) {
             DealerQuotation existing = existingQuotations.stream()
-                .filter(q -> q.getStatus().equals("pending") || q.getStatus().equals("sent"))
+                .filter(q -> q.getStatus().equals(DealerQuotationStatus.PENDING) || q.getStatus().equals(DealerQuotationStatus.SENT))
                 .findFirst()
                 .orElse(null);
             if (existing != null) {
@@ -198,7 +206,7 @@ public class DealerQuotationService {
         quotation.setEvmStaff(evmStaff);
         quotation.setQuotationDate(LocalDate.now());
         quotation.setValidityDays(30);
-        quotation.setStatus("pending");
+        quotation.setStatus(DealerQuotationStatus.PENDING);
         quotation.setNotes(notes);
         quotation.setPaymentTerms(dealerOrder.getPaymentTerms() != null ? dealerOrder.getPaymentTerms().toString() : "NET_30");
         quotation.setDeliveryTerms(dealerOrder.getDeliveryTerms() != null ? dealerOrder.getDeliveryTerms().toString() : "FOB_FACTORY");
@@ -323,11 +331,11 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals("pending")) {
+        if (quotation.getStatus() != DealerQuotationStatus.PENDING) {
             throw new RuntimeException("Quotation must be in 'pending' status to send");
         }
         
-        quotation.setStatus("sent");
+        quotation.setStatus(DealerQuotationStatus.SENT);
         return dealerQuotationRepository.save(quotation);
     }
     
@@ -338,19 +346,19 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals("sent")) {
+        if (quotation.getStatus() != DealerQuotationStatus.SENT) {
             throw new RuntimeException("Quotation must be in 'sent' status to accept");
         }
         
         // Check if quotation is expired
         if (quotation.getExpiryDate() != null && quotation.getExpiryDate().isBefore(LocalDate.now())) {
-            quotation.setStatus("expired");
+            quotation.setStatus(DealerQuotationStatus.EXPIRED);
             dealerQuotationRepository.save(quotation);
             throw new RuntimeException("Quotation has expired");
         }
         
         // Update quotation status
-        quotation.setStatus("accepted");
+        quotation.setStatus(DealerQuotationStatus.ACCEPTED);
         quotation.setAcceptedAt(LocalDateTime.now());
         dealerQuotationRepository.save(quotation);
         
@@ -372,14 +380,14 @@ public class DealerQuotationService {
         invoice.setTaxAmount(quotation.getTaxAmount());
         invoice.setDiscountAmount(quotation.getDiscountAmount());
         invoice.setTotalAmount(quotation.getTotalAmount());
-        invoice.setStatus("issued");
+        invoice.setStatus(DealerInvoiceStatus.ISSUED);
         invoice.setPaymentTermsDays(30);
         invoice.setNotes("Generated from quotation: " + quotation.getQuotationNumber());
         
         DealerInvoice savedInvoice = dealerInvoiceService.createInvoice(invoice);
         
         // Update quotation to converted
-        quotation.setStatus("converted");
+        quotation.setStatus(DealerQuotationStatus.CONVERTED);
         dealerQuotationRepository.save(quotation);
         
         return savedInvoice;
@@ -392,11 +400,11 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals("sent")) {
+        if (quotation.getStatus() != DealerQuotationStatus.SENT) {
             throw new RuntimeException("Quotation must be in 'sent' status to reject");
         }
         
-        quotation.setStatus("rejected");
+        quotation.setStatus(DealerQuotationStatus.REJECTED);
         quotation.setRejectedAt(LocalDateTime.now());
         quotation.setRejectionReason(reason);
         
@@ -407,7 +415,7 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals("pending")) {
+        if (!quotation.getStatus().equals(DealerQuotationStatus.PENDING)) {
             throw new RuntimeException("Only pending quotations can be updated");
         }
         
@@ -425,7 +433,7 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals("pending")) {
+        if (!quotation.getStatus().equals(DealerQuotationStatus.PENDING)) {
             throw new RuntimeException("Only pending quotations can be deleted");
         }
         

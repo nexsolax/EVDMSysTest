@@ -28,60 +28,114 @@ public class PromotionController {
     private SecurityUtils securityUtils;
     
     @GetMapping
-    public ResponseEntity<List<PromotionDTO>> getAllPromotions() {
-        List<Promotion> promotions = promotionService.getAllPromotions();
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getAllPromotions() {
+        try {
+            List<Promotion> promotions = promotionService.getAllPromotions();
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{promotionId}")
-    public ResponseEntity<PromotionDTO> getPromotionById(@PathVariable UUID promotionId) {
-        return promotionService.getPromotionById(promotionId)
-                .map(promotion -> ResponseEntity.ok(toDTO(promotion)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getPromotionById(@PathVariable UUID promotionId) {
+        try {
+            return promotionService.getPromotionById(promotionId)
+                    .map(promotion -> ResponseEntity.ok(toDTO(promotion)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotion: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/variant/{variantId}")
-    public ResponseEntity<List<PromotionDTO>> getPromotionsByVariant(@PathVariable Integer variantId) {
-        List<Promotion> promotions = promotionService.getPromotionsByVariant(variantId);
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getPromotionsByVariant(@PathVariable Integer variantId) {
+        try {
+            List<Promotion> promotions = promotionService.getPromotionsByVariant(variantId);
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<PromotionDTO>> getPromotionsByStatus(@PathVariable String status) {
-        List<Promotion> promotions = promotionService.getPromotionsByStatus(status);
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getPromotionsByStatus(@PathVariable String status) {
+        try {
+            List<Promotion> promotions = promotionService.getPromotionsByStatus(status);
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active")
-    public ResponseEntity<List<PromotionDTO>> getActivePromotions() {
-        List<Promotion> promotions = promotionService.getActivePromotions();
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getActivePromotions() {
+        try {
+            List<Promotion> promotions = promotionService.getActivePromotions();
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/date/{date}")
-    public ResponseEntity<List<PromotionDTO>> getActivePromotionsByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<Promotion> promotions = promotionService.getActivePromotionsByDate(date);
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getActivePromotionsByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            List<Promotion> promotions = promotionService.getActivePromotionsByDate(date);
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/variant/{variantId}")
-    public ResponseEntity<List<PromotionDTO>> getActivePromotionsByVariant(@PathVariable Integer variantId) {
-        List<Promotion> promotions = promotionService.getActivePromotionsByVariant(variantId);
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getActivePromotionsByVariant(@PathVariable Integer variantId) {
+        try {
+            List<Promotion> promotions = promotionService.getActivePromotionsByVariant(variantId);
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/active/variant/{variantId}/date/{date}")
-    public ResponseEntity<List<PromotionDTO>> getActivePromotionsByVariantAndDate(
+    public ResponseEntity<?> getActivePromotionsByVariantAndDate(
             @PathVariable Integer variantId, 
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<Promotion> promotions = promotionService.getActivePromotionsByVariantAndDate(variantId, date);
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        try {
+            List<Promotion> promotions = promotionService.getActivePromotionsByVariantAndDate(variantId, date);
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/search")
-    public ResponseEntity<List<PromotionDTO>> getPromotionsByTitle(@RequestParam String title) {
-        List<Promotion> promotions = promotionService.getPromotionsByTitle(title);
-        return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getPromotionsByTitle(@RequestParam String title) {
+        try {
+            List<Promotion> promotions = promotionService.getPromotionsByTitle(title);
+            return ResponseEntity.ok(promotions.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve promotions: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping

@@ -1,6 +1,7 @@
 package com.evdealer.controller;
 
 import com.evdealer.entity.InstallmentPlan;
+import com.evdealer.enums.PlanType;
 import com.evdealer.entity.DealerInvoice;
 import com.evdealer.service.InstallmentPlanService;
 import com.evdealer.service.DealerInvoiceService;
@@ -328,7 +329,8 @@ public class InstallmentPlanController {
             
             // Kiểm tra phân quyền: DEALER_MANAGER, DEALER_STAFF, ADMIN (cho dealer plans)
             // Hoặc EVM_STAFF, ADMIN (cho customer plans)
-            if (installmentPlan.getPlanType() != null && "dealer".equalsIgnoreCase(installmentPlan.getPlanType())) {
+            PlanType planTypeEnum = installmentPlan.getPlanType() != null ? PlanType.fromString(installmentPlan.getPlanType()) : PlanType.CUSTOMER;
+            if (planTypeEnum == PlanType.DEALER) {
                 // Dealer installment plan
                 if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
                     Map<String, String> error = new HashMap<>();
@@ -394,7 +396,8 @@ public class InstallmentPlanController {
                 .orElseThrow(() -> new RuntimeException("Plan not found"));
             
             // Kiểm tra phân quyền và ownership
-            if (existingPlan.getPlanType() != null && "dealer".equalsIgnoreCase(existingPlan.getPlanType())) {
+            PlanType existingPlanType = existingPlan.getPlanType() != null ? PlanType.fromString(existingPlan.getPlanType()) : PlanType.CUSTOMER;
+            if (existingPlanType == PlanType.DEALER) {
                 // Dealer installment plan
                 if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
                     Map<String, String> error = new HashMap<>();
@@ -455,7 +458,8 @@ public class InstallmentPlanController {
                 .orElseThrow(() -> new RuntimeException("Plan not found"));
             
             // Kiểm tra phân quyền và ownership
-            if (existingPlan.getPlanType() != null && "dealer".equalsIgnoreCase(existingPlan.getPlanType())) {
+            PlanType existingPlanType = existingPlan.getPlanType() != null ? PlanType.fromString(existingPlan.getPlanType()) : PlanType.CUSTOMER;
+            if (existingPlanType == PlanType.DEALER) {
                 // Dealer installment plan
                 if (!securityUtils.hasAnyRole("DEALER_MANAGER", "DEALER_STAFF", "ADMIN")) {
                     Map<String, String> error = new HashMap<>();

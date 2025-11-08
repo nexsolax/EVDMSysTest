@@ -1,6 +1,7 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.PricingPolicy;
+import com.evdealer.enums.PricingPolicyStatus;
 import com.evdealer.repository.PricingPolicyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,9 @@ public class PricingPolicyService {
     }
     
     public List<PricingPolicy> getPricingPoliciesByStatus(String status) {
-        return pricingPolicyRepository.findByStatus(status);
+        // Convert string to enum for validation
+        PricingPolicyStatus statusEnum = PricingPolicyStatus.fromString(status);
+        return pricingPolicyRepository.findByStatus(statusEnum);
     }
     
     public List<PricingPolicy> getPricingPoliciesByType(String policyType) {
@@ -63,7 +66,7 @@ public class PricingPolicyService {
     }
     
     public List<PricingPolicy> getActivePricingPoliciesByVariantAndDate(Integer variantId, LocalDate date) {
-        return pricingPolicyRepository.findActivePoliciesByVariantAndDate(variantId, date);
+        return pricingPolicyRepository.findActivePoliciesByVariantAndDate(variantId, date, PricingPolicyStatus.ACTIVE);
     }
     
     public List<PricingPolicy> getPricingPoliciesByName(String policyName) {
@@ -71,11 +74,11 @@ public class PricingPolicyService {
     }
     
     public List<PricingPolicy> getActivePricingPoliciesByDateOrderByPriority(LocalDate date) {
-        return pricingPolicyRepository.findActivePoliciesByDateOrderByPriority(date);
+        return pricingPolicyRepository.findActivePoliciesByDateOrderByPriority(date, PricingPolicyStatus.ACTIVE);
     }
     
     public List<PricingPolicy> getActivePricingPoliciesByVariantCustomerTypeAndDate(Integer variantId, String customerType, LocalDate date) {
-        return pricingPolicyRepository.findActivePoliciesByVariantCustomerTypeAndDate(variantId, customerType, date);
+        return pricingPolicyRepository.findActivePoliciesByVariantCustomerTypeAndDate(variantId, customerType, date, PricingPolicyStatus.ACTIVE);
     }
     
     public PricingPolicy createPricingPolicy(PricingPolicy pricingPolicy) {
@@ -120,6 +123,47 @@ public class PricingPolicyService {
                 .orElseThrow(() -> new RuntimeException("Pricing policy not found with id: " + policyId));
         pricingPolicy.setStatus(status);
         return pricingPolicyRepository.save(pricingPolicy);
+    }
+    
+    /**
+     * Lấy active pricing policy cho variant và dealer tại thời điểm hiện tại
+     * Ưu tiên policy dành riêng cho dealer, sau đó là policy chung
+     */
+    public Optional<PricingPolicy> getActivePolicyForVariantAndDealer(Integer variantId, UUID dealerId) {
+        LocalDate today = LocalDate.now();
+        
+        // Tìm policy dành riêng cho dealer và variant
+        List<PricingPolicy> dealerPolicies = pricingPolicyRepository.findActivePoliciesByVariantAndDate(
+            variantId, today, PricingPolicyStatus.ACTIVE);
+        
+        // Ưu tiên policy có dealerId matching
+        Optional<PricingPolicy> dealerSpecificPolicy = dealerPolicies.stream()
+            .filter(p -> p.getDealer() != null && p.getDealer().getDealerId().equals(dealerId))
+            .filter(p -> p.getEffectiveDate() != null && p.getEffectiveDate().isBefore(today.plusDays(1)))
+            .filter(p -> p.getExpiryDate() == null || p.getExpiryDate().isAfter(today.minusDays(1)))
+            .sorted((p1, p2) -> {
+                // Sort by priority (higher priority first)
+                int priority1 = p1.getPriority() != null ? p1.getPriority() : 0;
+                int priority2 = p2.getPriority() != null ? p2.getPriority() : 0;
+                return Integer.compare(priority2, priority1);
+            })
+            .findFirst();
+        
+        if (dealerSpecificPolicy.isPresent()) {
+            return dealerSpecificPolicy;
+        }
+        
+        // Nếu không có policy riêng cho dealer, tìm policy chung (dealer = null)
+        return dealerPolicies.stream()
+            .filter(p -> p.getDealer() == null)
+            .filter(p -> p.getEffectiveDate() != null && p.getEffectiveDate().isBefore(today.plusDays(1)))
+            .filter(p -> p.getExpiryDate() == null || p.getExpiryDate().isAfter(today.minusDays(1)))
+            .sorted((p1, p2) -> {
+                int priority1 = p1.getPriority() != null ? p1.getPriority() : 0;
+                int priority2 = p2.getPriority() != null ? p2.getPriority() : 0;
+                return Integer.compare(priority2, priority1);
+            })
+            .findFirst();
     }
 }
 

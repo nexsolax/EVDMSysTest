@@ -4,6 +4,7 @@ import com.evdealer.dto.VehicleComparisonRequest;
 import com.evdealer.dto.VehicleComparisonResponse;
 import com.evdealer.entity.VehicleVariant;
 import com.evdealer.entity.VehicleInventory;
+import com.evdealer.enums.VehicleStatus;
 import com.evdealer.repository.VehicleVariantRepository;
 import com.evdealer.repository.VehicleInventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,11 +97,11 @@ public class VehicleComparisonService {
         if (request.getIncludeAvailability() != null && request.getIncludeAvailability()) {
             List<VehicleInventory> inventory = vehicleInventoryRepository.findByVariantVariantId(variant.getVariantId());
             long availableCount = inventory.stream()
-                    .filter(inv -> "available".equals(inv.getStatus()))
+                    .filter(inv -> inv.getStatus() == VehicleStatus.AVAILABLE)
                     .count();
             
             item.setAvailableQuantity((int) availableCount);
-            item.setAvailabilityStatus(availableCount > 0 ? "available" : "out_of_stock");
+            item.setAvailabilityStatus(availableCount > 0 ? VehicleStatus.AVAILABLE.getValue() : "out_of_stock");
         }
         
         return item;

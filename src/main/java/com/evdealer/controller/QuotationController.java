@@ -33,62 +33,123 @@ public class QuotationController {
     
     @GetMapping
     @Operation(summary = "Lấy danh sách báo giá", description = "Lấy tất cả báo giá")
-    public ResponseEntity<List<QuotationDTO>> getAllQuotations() {
-        List<Quotation> quotations = quotationService.getAllQuotations();
-        return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getAllQuotations() {
+        try {
+            List<Quotation> quotations = quotationService.getAllQuotations();
+            return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{quotationId}")
     @Operation(summary = "Lấy báo giá theo ID", description = "Lấy thông tin báo giá theo ID")
-    public ResponseEntity<QuotationDTO> getQuotationById(@PathVariable @Parameter(description = "Quotation ID") UUID quotationId) {
-        return quotationService.getQuotationById(quotationId)
-                .map(quotation -> ResponseEntity.ok(toDTO(quotation)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getQuotationById(@PathVariable @Parameter(description = "Quotation ID") UUID quotationId) {
+        try {
+            return quotationService.getQuotationById(quotationId)
+                    .map(quotation -> ResponseEntity.ok(toDTO(quotation)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/number/{quotationNumber}")
     @Operation(summary = "Lấy báo giá theo số", description = "Lấy thông tin báo giá theo số báo giá")
-    public ResponseEntity<QuotationDTO> getQuotationByNumber(@PathVariable String quotationNumber) {
-        return quotationService.getQuotationByNumber(quotationNumber)
-                .map(quotation -> ResponseEntity.ok(toDTO(quotation)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getQuotationByNumber(@PathVariable String quotationNumber) {
+        try {
+            return quotationService.getQuotationByNumber(quotationNumber)
+                    .map(quotation -> ResponseEntity.ok(toDTO(quotation)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Lấy báo giá theo trạng thái", description = "Lấy báo giá theo trạng thái")
-    public ResponseEntity<List<QuotationDTO>> getQuotationsByStatus(@PathVariable String status) {
-        List<Quotation> quotations = quotationService.getQuotationsByStatus(status);
-        return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getQuotationsByStatus(@PathVariable String status) {
+        try {
+            List<Quotation> quotations = quotationService.getQuotationsByStatus(status);
+            return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/customer/{customerId}")
     @Operation(summary = "Lấy báo giá theo khách hàng", description = "Lấy báo giá theo khách hàng")
-    public ResponseEntity<List<QuotationDTO>> getQuotationsByCustomer(@PathVariable UUID customerId) {
-        List<Quotation> quotations = quotationService.getQuotationsByCustomer(customerId);
-        return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getQuotationsByCustomer(@PathVariable UUID customerId) {
+        try {
+            List<Quotation> quotations = quotationService.getQuotationsByCustomer(customerId);
+            return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/user/{userId}")
     @Operation(summary = "Lấy báo giá theo người dùng", description = "Lấy báo giá theo người dùng")
-    public ResponseEntity<List<QuotationDTO>> getQuotationsByUser(@PathVariable UUID userId) {
-        List<Quotation> quotations = quotationService.getQuotationsByUser(userId);
-        return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getQuotationsByUser(@PathVariable UUID userId) {
+        try {
+            List<Quotation> quotations = quotationService.getQuotationsByUser(userId);
+            return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/date-range")
     @Operation(summary = "Lấy báo giá theo khoảng ngày", description = "Lấy báo giá theo khoảng ngày")
-    public ResponseEntity<List<QuotationDTO>> getQuotationsByDateRange(
+    public ResponseEntity<?> getQuotationsByDateRange(
             @RequestParam @Parameter(description = "Start date") LocalDate startDate,
             @RequestParam @Parameter(description = "End date") LocalDate endDate) {
-        List<Quotation> quotations = quotationService.getQuotationsByDateRange(startDate, endDate);
-        return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        try {
+            // Validate date range
+            if (startDate == null || endDate == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Start date and end date are required");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            if (startDate.isAfter(endDate)) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Start date cannot be after end date");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<Quotation> quotations = quotationService.getQuotationsByDateRange(startDate, endDate);
+            return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/expired")
     @Operation(summary = "Lấy báo giá đã hết hạn", description = "Lấy báo giá đã hết hạn")
-    public ResponseEntity<List<QuotationDTO>> getExpiredQuotations() {
-        List<Quotation> quotations = quotationService.getExpiredQuotations();
-        return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getExpiredQuotations() {
+        try {
+            List<Quotation> quotations = quotationService.getExpiredQuotations();
+            return ResponseEntity.ok(quotations.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve quotations: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping
@@ -102,7 +163,7 @@ public class QuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Cho phép tất cả user đã authenticated tạo quotation (bao gồm customer, dealer user, EVM_STAFF, ADMIN)
+            // Cho phép tất cả user đã authenticated tạo quotation (bao gồm customer, dealer user, ADMIN)
             Quotation createdQuotation = quotationService.createQuotationFromRequest(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdQuotation));
         } catch (RuntimeException e) {
@@ -127,7 +188,7 @@ public class QuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Cho phép tất cả user đã authenticated tạo quotation (bao gồm customer, dealer user, EVM_STAFF, ADMIN)
+            // Cho phép tất cả user đã authenticated tạo quotation (bao gồm customer, dealer user, ADMIN)
             Quotation createdQuotation = quotationService.createQuotation(quotation);
             return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(createdQuotation));
         } catch (RuntimeException e) {
@@ -158,8 +219,8 @@ public class QuotationController {
             Quotation existingQuotation = quotationService.getQuotationById(quotationId)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
             
-            // Kiểm tra phân quyền: ADMIN, EVM_STAFF hoặc user tạo quotation
-            if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
+            // Kiểm tra phân quyền: ADMIN, DEALER_STAFF hoặc user tạo quotation
+            if (!securityUtils.isAdmin() && !securityUtils.hasAnyRole("DEALER_STAFF")) {
                 var currentUserOpt = securityUtils.getCurrentUser();
                 if (currentUserOpt.isPresent()) {
                     UUID currentUserId = currentUserOpt.get().getUserId();
@@ -171,7 +232,7 @@ public class QuotationController {
                     }
                 } else {
                     Map<String, String> error = new HashMap<>();
-                    error.put("error", "Access denied. Only admin, EVM staff or the quotation creator can update quotations");
+                    error.put("error", "Access denied. Only admin, dealer staff or the quotation creator can update quotations");
                     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
                 }
             }
@@ -202,10 +263,10 @@ public class QuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Chỉ ADMIN hoặc EVM_STAFF mới có thể update quotation status
-            if (!securityUtils.hasAnyRole("ADMIN", "EVM_STAFF")) {
+            // Chỉ ADMIN hoặc DEALER_STAFF mới có thể update quotation status
+            if (!securityUtils.hasAnyRole("ADMIN", "DEALER_STAFF")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin or EVM staff can update quotation status");
+                error.put("error", "Access denied. Only admin or dealer staff can update quotation status");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
@@ -218,6 +279,107 @@ public class QuotationController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to update quotation status: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @PostMapping("/from-order/{orderId}")
+    @Operation(summary = "Tạo báo giá từ Order", description = "DEALER_STAFF tạo báo giá từ yêu cầu mua bán")
+    public ResponseEntity<?> createQuotationFromOrder(
+            @PathVariable UUID orderId,
+            @RequestBody QuotationRequest request) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ DEALER_STAFF hoặc ADMIN mới tạo được báo giá
+            if (!securityUtils.hasAnyRole("DEALER_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only dealer staff or admin can create quotations");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            Quotation quotation = quotationService.createQuotationFromOrder(orderId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(quotation));
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @PostMapping("/{quotationId}/send")
+    @Operation(summary = "Gửi báo giá cho khách", description = "DEALER_STAFF gửi báo giá cho khách hàng")
+    public ResponseEntity<?> sendQuotation(@PathVariable UUID quotationId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ DEALER_STAFF hoặc ADMIN mới gửi được báo giá
+            if (!securityUtils.hasAnyRole("DEALER_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only dealer staff or admin can send quotations");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            Quotation quotation = quotationService.sendQuotation(quotationId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("quotationId", quotation.getQuotationId());
+            response.put("status", quotation.getStatus());
+            response.put("message", "Quotation sent to customer");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to send quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to send quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @PostMapping("/{rejectedQuotationId}/create-new")
+    @Operation(summary = "Tạo báo giá mới sau khi từ chối", description = "DEALER_STAFF tạo báo giá mới sau khi khách từ chối (đàm phán lại)")
+    public ResponseEntity<?> createNewQuotationAfterRejection(
+            @PathVariable UUID rejectedQuotationId,
+            @RequestBody QuotationRequest request) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ DEALER_STAFF hoặc ADMIN mới tạo được báo giá mới
+            if (!securityUtils.hasAnyRole("DEALER_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only dealer staff or admin can create new quotations");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            Quotation quotation = quotationService.createNewQuotationAfterRejection(rejectedQuotationId, request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(quotation));
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create new quotation: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to create new quotation: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -265,8 +427,15 @@ public class QuotationController {
         dto.setColorId(q.getColor() != null ? q.getColor().getColorId() : null);
         dto.setQuotationDate(q.getQuotationDate());
         dto.setTotalPrice(q.getTotalPrice());
+        dto.setDiscountAmount(q.getDiscountAmount());
         dto.setFinalPrice(q.getFinalPrice());
+        dto.setValidityDays(q.getValidityDays());
+        dto.setExpiryDate(q.getExpiryDate());
         dto.setStatus(q.getStatus());
+        dto.setAcceptedAt(q.getAcceptedAt());
+        dto.setRejectedAt(q.getRejectedAt());
+        dto.setRejectionReason(q.getRejectionReason());
+        dto.setNotes(q.getNotes());
         return dto;
     }
 }

@@ -57,6 +57,9 @@ public class DealerOrderService {
     @Autowired
     private SecurityUtils securityUtils;
     
+    @Autowired
+    private PricingPolicyService pricingPolicyService;
+    
     @Transactional(readOnly = true)
     public List<DealerOrder> getAllDealerOrders() {
         try {
@@ -97,7 +100,7 @@ public class DealerOrderService {
         try {
             // Convert string to enum for validation
             DealerOrderStatus statusEnum = DealerOrderStatus.fromString(status);
-            List<DealerOrder> orders = dealerOrderRepository.findByStatus(statusEnum.getValue());
+            List<DealerOrder> orders = dealerOrderRepository.findByStatus(statusEnum);
             return orders;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get orders by status: " + e.getMessage(), e);
@@ -147,7 +150,8 @@ public class DealerOrderService {
     public DealerOrder updateDealerOrderStatus(UUID dealerOrderId, String status) {
         DealerOrder dealerOrder = dealerOrderRepository.findById(dealerOrderId)
                 .orElseThrow(() -> new RuntimeException("Dealer order not found with id: " + dealerOrderId));
-        dealerOrder.setStatus(status);
+        DealerOrderStatus statusEnum = DealerOrderStatus.fromString(status);
+        dealerOrder.setStatus(statusEnum);
         return dealerOrderRepository.save(dealerOrder);
     }
     
@@ -233,8 +237,32 @@ public class DealerOrderService {
                 item.setVariant(variant);
                 item.setColor(color);
                 item.setQuantity(itemRequest.getQuantity());
-                item.setUnitPrice(itemRequest.getUnitPrice() != null ? itemRequest.getUnitPrice() : variant.getPriceBase());
-                item.setDiscountPercentage(itemRequest.getDiscountPercentage());
+                
+                // Tích hợp PricingPolicy: Tự động áp dụng giá và chiết khấu từ hãng
+                java.util.Optional<com.evdealer.entity.PricingPolicy> policyOpt = 
+                    pricingPolicyService.getActivePolicyForVariantAndDealer(variant.getVariantId(), dealer.getDealerId());
+                
+                if (policyOpt.isPresent()) {
+                    com.evdealer.entity.PricingPolicy policy = policyOpt.get();
+                    // Áp dụng basePrice từ policy nếu có, nếu không dùng giá từ request hoặc variant
+                    if (policy.getBasePrice() != null && policy.getBasePrice().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                        item.setUnitPrice(itemRequest.getUnitPrice() != null ? itemRequest.getUnitPrice() : policy.getBasePrice());
+                    } else {
+                        item.setUnitPrice(itemRequest.getUnitPrice() != null ? itemRequest.getUnitPrice() : variant.getPriceBase());
+                    }
+                    
+                    // Áp dụng discount từ policy nếu request không có discount
+                    if (itemRequest.getDiscountPercentage() == null && policy.getDiscountPercent() != null) {
+                        item.setDiscountPercentage(policy.getDiscountPercent());
+                    } else {
+                        item.setDiscountPercentage(itemRequest.getDiscountPercentage());
+                    }
+                } else {
+                    // Không có policy, dùng giá từ request hoặc variant
+                    item.setUnitPrice(itemRequest.getUnitPrice() != null ? itemRequest.getUnitPrice() : variant.getPriceBase());
+                    item.setDiscountPercentage(itemRequest.getDiscountPercentage());
+                }
+                
                 item.setNotes(itemRequest.getNotes());
                 item.setStatus(DealerOrderItemStatus.PENDING);
                 
@@ -355,15 +383,20 @@ public class DealerOrderService {
     }
     
     @Transactional(readOnly = true)
-    public List<DealerOrder> getOrdersByApprovalStatus(String approvalStatus) {
+    public List<DealerOrder> getOrdersByApprovalStatus(ApprovalStatus approvalStatus) {
         try {
-            // Convert string to enum for validation
-            ApprovalStatus statusEnum = ApprovalStatus.fromString(approvalStatus);
-            List<DealerOrder> orders = dealerOrderRepository.findByApprovalStatus(statusEnum.getValue());
+            List<DealerOrder> orders = dealerOrderRepository.findByApprovalStatus(approvalStatus);
             return orders;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get orders by approval status: " + e.getMessage(), e);
         }
+    }
+    
+    // Overloaded method for backward compatibility (accepts String)
+    @Transactional(readOnly = true)
+    public List<DealerOrder> getOrdersByApprovalStatus(String approvalStatus) {
+        ApprovalStatus statusEnum = ApprovalStatus.fromString(approvalStatus);
+        return getOrdersByApprovalStatus(statusEnum);
     }
     
     private String generateOrderNumber() {

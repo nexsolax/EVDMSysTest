@@ -31,54 +31,96 @@ public class CustomerController {
     
     @GetMapping
     @Operation(summary = "Lấy danh sách khách hàng", description = "Lấy tất cả khách hàng")
-    public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
-        List<Customer> customers = customerService.getAllCustomers();
-        return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getAllCustomers() {
+        try {
+            List<Customer> customers = customerService.getAllCustomers();
+            return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{customerId}")
     @Operation(summary = "Lấy khách hàng theo ID", description = "Lấy thông tin khách hàng theo ID")
-    public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable UUID customerId) {
-        return customerService.getCustomerById(customerId)
-                .map(customer -> ResponseEntity.ok(toDTO(customer)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getCustomerById(@PathVariable UUID customerId) {
+        try {
+            return customerService.getCustomerById(customerId)
+                    .map(customer -> ResponseEntity.ok(toDTO(customer)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/email/{email}")
     @Operation(summary = "Lấy khách hàng theo email", description = "Lấy thông tin khách hàng theo email")
-    public ResponseEntity<CustomerDTO> getCustomerByEmail(@PathVariable String email) {
-        return customerService.getCustomerByEmail(email)
-                .map(customer -> ResponseEntity.ok(toDTO(customer)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getCustomerByEmail(@PathVariable String email) {
+        try {
+            return customerService.getCustomerByEmail(email)
+                    .map(customer -> ResponseEntity.ok(toDTO(customer)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/phone/{phone}")
     @Operation(summary = "Lấy khách hàng theo số điện thoại", description = "Lấy thông tin khách hàng theo số điện thoại")
-    public ResponseEntity<CustomerDTO> getCustomerByPhone(@PathVariable String phone) {
-        return customerService.getCustomerByPhone(phone)
-                .map(customer -> ResponseEntity.ok(toDTO(customer)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> getCustomerByPhone(@PathVariable String phone) {
+        try {
+            return customerService.getCustomerByPhone(phone)
+                    .map(customer -> ResponseEntity.ok(toDTO(customer)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customer: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/search")
     @Operation(summary = "Tìm kiếm khách hàng", description = "Tìm kiếm khách hàng theo tên")
-    public ResponseEntity<List<CustomerDTO>> searchCustomersByName(@RequestParam String name) {
-        List<Customer> customers = customerService.searchCustomersByName(name);
-        return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> searchCustomersByName(@RequestParam String name) {
+        try {
+            List<Customer> customers = customerService.searchCustomersByName(name);
+            return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/city/{city}")
     @Operation(summary = "Lấy khách hàng theo thành phố", description = "Lấy danh sách khách hàng theo thành phố")
-    public ResponseEntity<List<CustomerDTO>> getCustomersByCity(@PathVariable String city) {
-        List<Customer> customers = customerService.getCustomersByCity(city);
-        return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getCustomersByCity(@PathVariable String city) {
+        try {
+            List<Customer> customers = customerService.getCustomersByCity(city);
+            return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/province/{province}")
     @Operation(summary = "Lấy khách hàng theo tỉnh", description = "Lấy danh sách khách hàng theo tỉnh")
-    public ResponseEntity<List<CustomerDTO>> getCustomersByProvince(@PathVariable String province) {
-        List<Customer> customers = customerService.getCustomersByProvince(province);
-        return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getCustomersByProvince(@PathVariable String province) {
+        try {
+            List<Customer> customers = customerService.getCustomersByProvince(province);
+            return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve customers: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @PostMapping

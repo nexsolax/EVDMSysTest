@@ -177,6 +177,10 @@ public class ImageController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Brand logo upload failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Brand logo upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -228,6 +232,10 @@ public class ImageController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Model image upload failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Model image upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -292,6 +300,10 @@ public class ImageController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Variant image upload failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Variant image upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -403,6 +415,10 @@ public class ImageController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Color swatch upload failed: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Color swatch upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -793,15 +809,21 @@ public class ImageController {
     
     @GetMapping("/info")
     @Operation(summary = "Thông tin upload", description = "Lấy thông tin cấu hình upload")
-    public ResponseEntity<Map<String, Object>> getUploadInfo() {
-        Map<String, Object> info = new HashMap<>();
-        info.put("maxFileSize", "10MB");
-        info.put("allowedExtensions", "jpg, jpeg, png, gif, webp");
-        info.put("allowedTypes", "image/jpeg, image/jpg, image/png, image/gif, image/webp");
-        info.put("maxDimensions", "1920x1080");
-        info.put("thumbnailDimensions", "300x200");
-        info.put("categories", new String[]{"vehicles", "brands", "models", "variants", "colors", "inventory"});
-        
-        return ResponseEntity.ok(info);
+    public ResponseEntity<?> getUploadInfo() {
+        try {
+            Map<String, Object> info = new HashMap<>();
+            info.put("maxFileSize", "10MB");
+            info.put("allowedExtensions", "jpg, jpeg, png, gif, webp");
+            info.put("allowedTypes", "image/jpeg, image/jpg, image/png, image/gif, image/webp");
+            info.put("maxDimensions", "1920x1080");
+            info.put("thumbnailDimensions", "300x200");
+            info.put("categories", new String[]{"vehicles", "brands", "models", "variants", "colors", "inventory"});
+            
+            return ResponseEntity.ok(info);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve upload info: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 }

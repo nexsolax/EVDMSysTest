@@ -4,6 +4,8 @@ import com.evdealer.dto.CreateDealerOrderRequest;
 import com.evdealer.dto.CreateDealerOrderResponse;
 import com.evdealer.entity.DealerOrder;
 import com.evdealer.entity.DealerOrderItem;
+import com.evdealer.enums.ApprovalStatus;
+import com.evdealer.enums.DealerOrderStatus;
 import com.evdealer.service.DealerOrderService;
 import com.evdealer.service.DealerOrderItemService;
 import com.evdealer.util.SecurityUtils;
@@ -775,7 +777,7 @@ public class DealerOrderController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("PENDING");
+            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus(ApprovalStatus.PENDING);
             
             // Filter theo dealer nếu là dealer user - Đảm bảo dealer được load trước khi filter
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
@@ -815,7 +817,7 @@ public class DealerOrderController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus("APPROVED");
+            List<DealerOrder> orders = dealerOrderService.getOrdersByApprovalStatus(ApprovalStatus.APPROVED);
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
@@ -941,14 +943,14 @@ public class DealerOrderController {
             }
             
             // Validate order is approved
-            if (!"APPROVED".equals(dealerOrder.getApprovalStatus())) {
+            if (dealerOrder.getApprovalStatus() != ApprovalStatus.APPROVED) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Order must be approved before requesting quotation. Current status: " + dealerOrder.getApprovalStatus());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
             // Update order status to indicate it's waiting for quotation
-            dealerOrder.setStatus("WAITING_FOR_QUOTATION");
+            dealerOrder.setStatus(DealerOrderStatus.WAITING_FOR_QUOTATION);
             if (notes != null && !notes.trim().isEmpty()) {
                 dealerOrder.setNotes((dealerOrder.getNotes() != null ? dealerOrder.getNotes() + "\n" : "") + 
                     "Request for quotation: " + notes);

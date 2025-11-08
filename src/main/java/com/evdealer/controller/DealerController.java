@@ -73,18 +73,24 @@ public class DealerController {
     
     @GetMapping("/options")
     @Operation(summary = "Lấy danh sách đại lý cho dropdown", description = "Lấy danh sách đại lý dạng đơn giản (ID, Name, Code) để hiển thị trong dropdown/select")
-    public ResponseEntity<List<Map<String, Object>>> getDealerOptions() {
-        List<Dealer> dealers = dealerService.getAllDealers();
-        List<Map<String, Object>> options = dealers.stream()
-            .map(dealer -> {
-                Map<String, Object> option = new HashMap<>();
-                option.put("dealerId", dealer.getDealerId());
-                option.put("dealerName", dealer.getDealerName());
-                option.put("dealerCode", dealer.getDealerCode());
-                return option;
-            })
-            .collect(java.util.stream.Collectors.toList());
-        return ResponseEntity.ok(options);
+    public ResponseEntity<?> getDealerOptions() {
+        try {
+            List<Dealer> dealers = dealerService.getAllDealers();
+            List<Map<String, Object>> options = dealers.stream()
+                .map(dealer -> {
+                    Map<String, Object> option = new HashMap<>();
+                    option.put("dealerId", dealer.getDealerId());
+                    option.put("dealerName", dealer.getDealerName());
+                    option.put("dealerCode", dealer.getDealerCode());
+                    return option;
+                })
+                .collect(java.util.stream.Collectors.toList());
+            return ResponseEntity.ok(options);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve dealer options: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{id}")

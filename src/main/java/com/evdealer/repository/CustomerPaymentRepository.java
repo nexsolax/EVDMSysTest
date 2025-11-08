@@ -1,6 +1,7 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.CustomerPayment;
+import com.evdealer.enums.CustomerPaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,7 +22,7 @@ public interface CustomerPaymentRepository extends JpaRepository<CustomerPayment
     
     boolean existsByPaymentNumber(String paymentNumber);
     
-    List<CustomerPayment> findByStatus(String status);
+    List<CustomerPayment> findByStatus(CustomerPaymentStatus status);
     
     @Query("SELECT cp FROM CustomerPayment cp WHERE cp.customer.customerId = :customerId")
     List<CustomerPayment> findByCustomerCustomerId(@Param("customerId") UUID customerId);

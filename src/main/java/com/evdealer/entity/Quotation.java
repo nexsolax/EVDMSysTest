@@ -66,8 +66,20 @@ public class Quotation {
     @Column(name = "validity_days")
     private Integer validityDays = 7;
     
+    @Column(name = "expiry_date")
+    private LocalDate expiryDate;
+    
     @Column(name = "status", length = 50, nullable = false)
     private String status = "pending";
+    
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+    
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+    
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
     
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -214,6 +226,47 @@ public class Quotation {
     
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+    
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+    
+    public LocalDateTime getAcceptedAt() {
+        return acceptedAt;
+    }
+    
+    public void setAcceptedAt(LocalDateTime acceptedAt) {
+        this.acceptedAt = acceptedAt;
+    }
+    
+    public LocalDateTime getRejectedAt() {
+        return rejectedAt;
+    }
+    
+    public void setRejectedAt(LocalDateTime rejectedAt) {
+        this.rejectedAt = rejectedAt;
+    }
+    
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+    
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+    
+    // Helper method to calculate expiry date
+    @PrePersist
+    @PreUpdate
+    public void calculateExpiryDate() {
+        if (quotationDate != null && validityDays != null) {
+            this.expiryDate = quotationDate.plusDays(validityDays);
+        }
     }
 
     @Override

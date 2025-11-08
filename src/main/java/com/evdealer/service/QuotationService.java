@@ -8,8 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.evdealer.enums.OrderStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +34,9 @@ public class QuotationService {
     
     @Autowired
     private VehicleColorRepository vehicleColorRepository;
+    
+    @Autowired
+    private OrderRepository orderRepository;
     
     public List<Quotation> getAllQuotations() {
         try {
@@ -167,10 +172,26 @@ public class QuotationService {
         quotation.setVariant(variant);
         quotation.setColor(color);
         quotation.setQuotationDate(request.getQuotationDate() != null ? request.getQuotationDate() : LocalDate.now());
+        // VALIDATION: totalPrice và finalPrice không được null
+        if (request.getTotalPrice() == null) {
+            throw new RuntimeException("Total price is required");
+        }
+        if (request.getFinalPrice() == null) {
+            throw new RuntimeException("Final price is required");
+        }
+        
+        // VALIDATION: finalPrice phải <= totalPrice
+        if (request.getFinalPrice().compareTo(request.getTotalPrice()) > 0) {
+            throw new RuntimeException("Final price cannot be greater than total price");
+        }
+        
         quotation.setTotalPrice(request.getTotalPrice());
         quotation.setDiscountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO);
         quotation.setFinalPrice(request.getFinalPrice());
         quotation.setValidityDays(request.getValidityDays() != null ? request.getValidityDays() : 7);
+        
+        // expiryDate sẽ được tính tự động bởi @PrePersist/@PreUpdate
+        
         if (request.getStatus() != null) {
             quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()).getValue());
         } else {
@@ -227,6 +248,27 @@ public class QuotationService {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
         
+        // Cho phép update khi:
+        // - status = "pending" (chưa gửi)
+        // - status = "sent" (đã gửi, đang đàm phán)
+        // - status = "rejected" (khách từ chối, điều chỉnh lại)
+        String currentStatus = quotation.getStatus();
+        if (!currentStatus.equals(DealerQuotationStatus.PENDING.getValue()) && 
+            !currentStatus.equals(DealerQuotationStatus.SENT.getValue()) && 
+            !currentStatus.equals(DealerQuotationStatus.REJECTED.getValue())) {
+            throw new RuntimeException(
+                "Quotation can only be updated when status is 'pending', 'sent', or 'rejected'. " +
+                "Current status: " + currentStatus
+            );
+        }
+        
+        // Nếu đang ở status "rejected", sau khi update có thể reset về "pending" để gửi lại
+        if (currentStatus.equals(DealerQuotationStatus.REJECTED.getValue()) && request.getStatus() != null && 
+            request.getStatus().equals(DealerQuotationStatus.PENDING.getValue())) {
+            quotation.setRejectedAt(null);
+            quotation.setRejectionReason(null);
+        }
+        
         // Update customer if provided
         if (request.getCustomerId() != null) {
             Customer customer = customerRepository.findById(request.getCustomerId())
@@ -270,6 +312,15 @@ public class QuotationService {
         }
         if (request.getValidityDays() != null) {
             quotation.setValidityDays(request.getValidityDays());
+            // expiryDate sẽ được tính tự động bởi @PrePersist/@PreUpdate
+        }
+        
+        // VALIDATION: Nếu update finalPrice, kiểm tra <= totalPrice
+        if (request.getFinalPrice() != null) {
+            BigDecimal totalPrice = quotation.getTotalPrice();
+            if (request.getFinalPrice().compareTo(totalPrice) > 0) {
+                throw new RuntimeException("Final price cannot be greater than total price");
+            }
         }
         if (request.getStatus() != null) {
             quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()).getValue());
@@ -281,9 +332,266 @@ public class QuotationService {
         return quotationRepository.save(quotation);
     }
     
+    /**
+     * Tạo Quotation từ Order (yêu cầu mua bán)
+     * DEALER_STAFF đánh giá nhu cầu và tạo báo giá
+     */
+    @Transactional
+    public Quotation createQuotationFromOrder(UUID orderId, QuotationRequest request) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+        
+        // Kiểm tra Order status = "pending"
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new RuntimeException("Quotation can only be created from pending order. Current status: " + order.getStatus().getValue());
+        }
+        
+        // Kiểm tra Order chưa có Quotation (hoặc Quotation đã rejected)
+        if (order.getQuotation() != null) {
+            String quotationStatus = order.getQuotation().getStatus();
+            if (!quotationStatus.equals(DealerQuotationStatus.REJECTED.getValue())) {
+                throw new RuntimeException("Order already has an active quotation. Current quotation status: " + quotationStatus);
+            }
+        }
+        
+        // Set customerId, variantId, colorId từ Order nếu chưa có trong request
+        if (request.getCustomerId() == null && order.getCustomer() != null) {
+            request.setCustomerId(order.getCustomer().getCustomerId());
+        }
+        
+        // Lấy variantId và colorId từ Order.inventory nếu có
+        if (request.getVariantId() == null && order.getInventory() != null && order.getInventory().getVariant() != null) {
+            request.setVariantId(order.getInventory().getVariant().getVariantId());
+        }
+        if (request.getColorId() == null && order.getInventory() != null && order.getInventory().getColor() != null) {
+            request.setColorId(order.getInventory().getColor().getColorId());
+        }
+        
+        // Tạo Quotation với giá phù hợp (dựa trên chi phí, lợi nhuận, khuyến mãi)
+        Quotation quotation = createQuotationFromRequest(request);
+        
+        // Link với Order
+        order.setQuotation(quotation);
+        order.setStatus(OrderStatus.QUOTED);
+        orderRepository.save(order);
+        
+        return quotation;
+    }
+    
+    /**
+     * Gửi báo giá cho khách hàng
+     * Báo giá công khai, trực tiếp, có thể kèm chính sách giảm giá
+     */
+    @Transactional
+    public Quotation sendQuotation(UUID quotationId) {
+        Quotation quotation = quotationRepository.findById(quotationId)
+            .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+        
+        // Kiểm tra status = "pending"
+        if (!quotation.getStatus().equals(DealerQuotationStatus.PENDING.getValue())) {
+            throw new RuntimeException("Quotation must be in 'pending' status to send. Current status: " + quotation.getStatus());
+        }
+        
+        // Chuyển status thành "sent" (đã gửi cho khách)
+        quotation.setStatus(DealerQuotationStatus.SENT.getValue());
+        quotationRepository.save(quotation);
+        
+        // (Có thể gửi email/notification cho khách)
+        
+        return quotation;
+    }
+    
+    /**
+     * Khách hàng từ chối báo giá (phản hồi giá cao)
+     * Có thể kèm lý do và yêu cầu điều chỉnh
+     */
+    @Transactional
+    public Quotation rejectQuotation(UUID quotationId, String reason, String adjustmentRequest) {
+        Quotation quotation = quotationRepository.findById(quotationId)
+            .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+        
+        // Kiểm tra status = "sent"
+        if (!quotation.getStatus().equals(DealerQuotationStatus.SENT.getValue())) {
+            throw new RuntimeException("Quotation must be in 'sent' status to reject. Current status: " + quotation.getStatus());
+        }
+        
+        // Cập nhật status
+        quotation.setStatus(DealerQuotationStatus.REJECTED.getValue());
+        quotation.setRejectedAt(LocalDateTime.now());
+        if (reason != null && !reason.trim().isEmpty()) {
+            quotation.setRejectionReason(reason);
+        }
+        
+        // Lưu yêu cầu điều chỉnh vào notes (nếu có)
+        if (adjustmentRequest != null && !adjustmentRequest.trim().isEmpty()) {
+            String currentNotes = quotation.getNotes() != null ? quotation.getNotes() : "";
+            quotation.setNotes(currentNotes + "\n[Khách yêu cầu điều chỉnh]: " + adjustmentRequest);
+        }
+        
+        quotationRepository.save(quotation);
+        
+        // Tìm Order liên quan và cập nhật
+        orderRepository.findByQuotationQuotationId(quotationId)
+                .ifPresent(order -> {
+                    order.setStatus(OrderStatus.PENDING); // Quay lại pending để đàm phán lại
+                    orderRepository.save(order);
+                });
+        
+        return quotation;
+    }
+    
+    /**
+     * Khách hàng chấp nhận báo giá
+     * Có thể đồng ý với điều kiện kèm theo
+     */
+    @Transactional
+    public Order acceptQuotation(UUID quotationId, String conditions) {
+        Quotation quotation = quotationRepository.findById(quotationId)
+            .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+        
+        // Kiểm tra status = "sent"
+        if (!quotation.getStatus().equals(DealerQuotationStatus.SENT.getValue())) {
+            throw new RuntimeException("Quotation must be in 'sent' status to accept. Current status: " + quotation.getStatus());
+        }
+        
+        // Kiểm tra hết hạn (kiểm tra cả trường hợp bằng ngày hôm nay)
+        if (quotation.getExpiryDate() != null && 
+            !quotation.getExpiryDate().isAfter(LocalDate.now())) {
+            quotation.setStatus(DealerQuotationStatus.EXPIRED.getValue());
+            quotationRepository.save(quotation);
+            throw new RuntimeException("Quotation has expired. Expiry date: " + quotation.getExpiryDate());
+        }
+        
+        // Lưu điều kiện kèm theo (nếu có)
+        if (conditions != null && !conditions.trim().isEmpty()) {
+            String currentNotes = quotation.getNotes() != null ? quotation.getNotes() : "";
+            quotation.setNotes(currentNotes + "\n[Điều kiện khách đồng ý]: " + conditions);
+        }
+        
+        // Tìm Order và chuyển thành order chính thức
+        Order order = orderRepository.findByQuotationQuotationId(quotationId)
+            .orElseThrow(() -> new RuntimeException("Order not found for quotation"));
+        
+        // VALIDATION: Kiểm tra finalPrice không null
+        if (quotation.getFinalPrice() == null) {
+            throw new RuntimeException("Quotation final price is required");
+        }
+        
+        // Cập nhật Order trước
+        order.setStatus(OrderStatus.CONFIRMED);
+        order.setTotalAmount(quotation.getFinalPrice());
+        orderRepository.save(order);
+        
+        // Cập nhật Quotation status = "converted" (bỏ qua "accepted" để đơn giản)
+        quotation.setStatus(DealerQuotationStatus.CONVERTED.getValue());
+        quotation.setAcceptedAt(LocalDateTime.now());
+        quotationRepository.save(quotation);
+        
+        return order;
+    }
+    
+    /**
+     * Khách hàng yêu cầu điều chỉnh báo giá
+     * Để đạt thỏa thuận tối ưu
+     */
+    @Transactional
+    public Quotation requestQuotationAdjustment(UUID quotationId, String adjustmentRequest) {
+        Quotation quotation = quotationRepository.findById(quotationId)
+            .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+        
+        // Kiểm tra status = "sent"
+        if (!quotation.getStatus().equals(DealerQuotationStatus.SENT.getValue())) {
+            throw new RuntimeException("Quotation must be in 'sent' status to request adjustment. Current status: " + quotation.getStatus());
+        }
+        
+        // Lưu yêu cầu điều chỉnh
+        String currentNotes = quotation.getNotes() != null ? quotation.getNotes() : "";
+        quotation.setNotes(currentNotes + "\n[Yêu cầu điều chỉnh từ khách]: " + adjustmentRequest);
+        
+        // Giữ nguyên status "sent" để nhân viên xem xét và điều chỉnh
+        
+        quotationRepository.save(quotation);
+        
+        return quotation;
+    }
+    
+    /**
+     * Tạo báo giá mới sau khi khách từ chối (đàm phán lại)
+     * Nhân viên điều chỉnh giá hoặc điều kiện
+     */
+    @Transactional
+    public Quotation createNewQuotationAfterRejection(UUID rejectedQuotationId, QuotationRequest request) {
+        Quotation rejectedQuotation = quotationRepository.findById(rejectedQuotationId)
+            .orElseThrow(() -> new RuntimeException("Rejected quotation not found"));
+        
+        // Kiểm tra quotation đã bị reject
+        if (!rejectedQuotation.getStatus().equals(DealerQuotationStatus.REJECTED.getValue())) {
+            throw new RuntimeException("Can only create new quotation from rejected quotation. Current status: " + rejectedQuotation.getStatus());
+        }
+        
+        // Tìm Order liên quan
+        Order order = orderRepository.findByQuotationQuotationId(rejectedQuotationId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        // Kiểm tra Order chưa có Quotation active khác (đồng bộ với createQuotationFromOrder)
+        if (order.getQuotation() != null && !order.getQuotation().getQuotationId().equals(rejectedQuotationId)) {
+            String quotationStatus = order.getQuotation().getStatus();
+            if (!quotationStatus.equals(DealerQuotationStatus.REJECTED.getValue())) {
+                throw new RuntimeException("Order already has an active quotation. Current quotation status: " + quotationStatus);
+            }
+        }
+        
+        // Set customerId từ Order nếu chưa có
+        if (request.getCustomerId() == null && order.getCustomer() != null) {
+            request.setCustomerId(order.getCustomer().getCustomerId());
+        }
+        
+        // Lấy variantId và colorId từ Order.inventory nếu có
+        if (request.getVariantId() == null && order.getInventory() != null && order.getInventory().getVariant() != null) {
+            request.setVariantId(order.getInventory().getVariant().getVariantId());
+        }
+        if (request.getColorId() == null && order.getInventory() != null && order.getInventory().getColor() != null) {
+            request.setColorId(order.getInventory().getColor().getColorId());
+        }
+        
+        // Tạo quotation mới với giá/điều kiện đã điều chỉnh
+        Quotation newQuotation = createQuotationFromRequest(request);
+        
+        // Link với Order (thay thế quotation cũ)
+        order.setQuotation(newQuotation);
+        order.setStatus(OrderStatus.QUOTED);
+        orderRepository.save(order);
+        
+        // Lưu reference đến quotation cũ trong notes (để track lịch sử đàm phán)
+        String currentNotes = newQuotation.getNotes() != null ? newQuotation.getNotes() : "";
+        newQuotation.setNotes(currentNotes + "\n[Đàm phán lại từ quotation]: " + rejectedQuotation.getQuotationNumber());
+        quotationRepository.save(newQuotation);
+        
+        return newQuotation;
+    }
+    
     public void deleteQuotation(UUID quotationId) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new RuntimeException("Quotation not found with id: " + quotationId));
+        
+        // Kiểm tra xem quotation có đang được Order sử dụng không
+        orderRepository.findByQuotationQuotationId(quotationId)
+                .ifPresent(order -> {
+                    // Không cho phép xóa quotation đang được Order sử dụng
+                    // Trừ khi Order đã cancelled hoặc rejected
+                    if (order.getStatus() != OrderStatus.CANCELLED && 
+                        order.getStatus() != OrderStatus.REJECTED) {
+                        throw new RuntimeException(
+                            "Cannot delete quotation. It is currently linked to an active order (Order ID: " + 
+                            order.getOrderId() + ", Status: " + order.getStatus().getValue() + 
+                            "). Please cancel or reject the order first."
+                        );
+                    }
+                    // Nếu Order đã cancelled/rejected, unlink quotation trước khi xóa
+                    order.setQuotation(null);
+                    orderRepository.save(order);
+                });
+        
         quotationRepository.delete(quotation);
     }
     

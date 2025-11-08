@@ -2,6 +2,8 @@ package com.evdealer.service;
 
 import com.evdealer.entity.DealerInvoice;
 import com.evdealer.entity.DealerOrder;
+import com.evdealer.enums.DealerInvoiceStatus;
+import com.evdealer.enums.DealerPaymentStatus;
 import com.evdealer.repository.DealerInvoiceRepository;
 import com.evdealer.repository.DealerOrderRepository;
 import com.evdealer.repository.DealerPaymentRepository;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,7 +55,8 @@ public class DealerInvoiceService {
     }
     
     public List<DealerInvoice> getInvoicesByStatus(String status) {
-        return dealerInvoiceRepository.findByStatus(status);
+        DealerInvoiceStatus statusEnum = DealerInvoiceStatus.fromString(status);
+        return dealerInvoiceRepository.findByStatus(statusEnum);
     }
     
     @Transactional(readOnly = true)
@@ -69,7 +73,12 @@ public class DealerInvoiceService {
     }
     
     public List<DealerInvoice> getOverdueInvoices() {
-        return dealerInvoiceRepository.findOverdueInvoices();
+        LocalDate currentDate = LocalDate.now();
+        List<DealerInvoiceStatus> overdueStatuses = Arrays.asList(
+            DealerInvoiceStatus.ISSUED,
+            DealerInvoiceStatus.PARTIALLY_PAID
+        );
+        return dealerInvoiceRepository.findOverdueInvoices(currentDate, overdueStatuses);
     }
     
     @Transactional(readOnly = true)
@@ -118,7 +127,8 @@ public class DealerInvoiceService {
     public DealerInvoice updateInvoiceStatus(UUID invoiceId, String status) {
         DealerInvoice invoice = dealerInvoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new RuntimeException("Invoice not found"));
-        invoice.setStatus(status);
+        DealerInvoiceStatus statusEnum = DealerInvoiceStatus.fromString(status);
+        invoice.setStatus(statusEnum);
         return dealerInvoiceRepository.save(invoice);
     }
     
@@ -138,7 +148,7 @@ public class DealerInvoiceService {
         invoice.setDealerOrder(dealerOrder);
         invoice.setInvoiceDate(java.time.LocalDate.now());
         invoice.setDueDate(java.time.LocalDate.now().plusDays(30));
-        invoice.setStatus("issued");
+        invoice.setStatus(DealerInvoiceStatus.ISSUED);
         invoice.setPaymentTermsDays(30);
         invoice.setNotes("Generated from dealer order: " + dealerOrder.getDealerOrderNumber());
         
@@ -153,7 +163,7 @@ public class DealerInvoiceService {
     
     public java.math.BigDecimal calculatePaidAmount(UUID invoiceId) {
         return dealerPaymentRepository.findByInvoiceInvoiceId(invoiceId).stream()
-            .filter(payment -> "completed".equals(payment.getStatus()) || "paid".equals(payment.getStatus()))
+            .filter(payment -> payment.getStatus() == DealerPaymentStatus.COMPLETED)
             .map(payment -> payment.getAmount())
             .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
     }
@@ -163,16 +173,16 @@ public class DealerInvoiceService {
     }
     
     public List<DealerInvoice> getUnpaidInvoicesByDealer(UUID dealerId) {
-        return dealerInvoiceRepository.findByDealerOrderDealerDealerIdAndStatus(dealerId, "PENDING");
+        return dealerInvoiceRepository.findByDealerOrderDealerDealerIdAndStatus(dealerId, DealerInvoiceStatus.ISSUED);
     }
     
     public java.util.Map<String, Object> getInvoiceStatistics() {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
         
         long totalInvoices = dealerInvoiceRepository.count();
-        long pendingInvoices = dealerInvoiceRepository.countByStatus("PENDING");
-        long paidInvoices = dealerInvoiceRepository.countByStatus("PAID");
-        long overdueInvoices = dealerInvoiceRepository.findOverdueInvoices().size();
+        long pendingInvoices = dealerInvoiceRepository.countByStatus(DealerInvoiceStatus.ISSUED);
+        long paidInvoices = dealerInvoiceRepository.countByStatus(DealerInvoiceStatus.PAID);
+        long overdueInvoices = getOverdueInvoices().size();
         
         stats.put("totalInvoices", totalInvoices);
         stats.put("pendingInvoices", pendingInvoices);

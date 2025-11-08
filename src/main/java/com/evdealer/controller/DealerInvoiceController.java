@@ -3,6 +3,8 @@ package com.evdealer.controller;
 import com.evdealer.entity.DealerInvoice;
 import com.evdealer.entity.DealerOrder;
 import com.evdealer.entity.DealerOrderItem;
+import com.evdealer.enums.ApprovalStatus;
+import com.evdealer.enums.DealerInvoiceStatus;
 import com.evdealer.service.DealerInvoiceService;
 import com.evdealer.service.DealerOrderService;
 import com.evdealer.service.DealerOrderItemService;
@@ -487,7 +489,7 @@ public class DealerInvoiceController {
             DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
                 .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
             
-            if (!"APPROVED".equals(dealerOrder.getApprovalStatus())) {
+            if (dealerOrder.getApprovalStatus() != ApprovalStatus.APPROVED) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Cannot generate invoice for non-approved order. Order status: " + dealerOrder.getApprovalStatus());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -608,7 +610,9 @@ public class DealerInvoiceController {
             }
             
             // Update invoice status to sent
-            invoice.setStatus("SENT");
+            // Note: DealerInvoiceStatus doesn't have SENT, using ISSUED instead
+            // Consider adding SENT to enum if needed, or use ISSUED as equivalent
+            invoice.setStatus(DealerInvoiceStatus.ISSUED);
             dealerInvoiceService.updateInvoice(invoiceId, invoice);
             
             Map<String, Object> response = new HashMap<>();

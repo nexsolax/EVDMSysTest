@@ -2,10 +2,10 @@ package com.evdealer.controller;
 
 import com.evdealer.entity.DealerPayment;
 import com.evdealer.entity.DealerInvoice;
-import com.evdealer.entity.DealerOrder;
+import com.evdealer.enums.DealerPaymentStatus;
+import com.evdealer.enums.DealerInvoiceStatus;
 import com.evdealer.service.DealerPaymentService;
 import com.evdealer.service.DealerInvoiceService;
-import com.evdealer.service.DealerOrderService;
 import com.evdealer.util.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,7 @@ public class DealerPaymentController {
     private DealerInvoiceService dealerInvoiceService;
     
     @Autowired
-    private DealerOrderService dealerOrderService;
+    private com.evdealer.service.VehicleDeliveryService vehicleDeliveryService;
     
     @Autowired
     private SecurityUtils securityUtils;
@@ -531,7 +530,7 @@ public class DealerPaymentController {
             payment.setAmount(amount);
             payment.setPaymentMethod(paymentMethod); // Use PaymentMethod enum
             payment.setPaymentDate(paymentDate);
-            payment.setStatus("completed"); // Status phải là lowercase
+            payment.setStatus(DealerPaymentStatus.COMPLETED);
             payment.setNotes(notes);
             payment.setReferenceNumber(referenceNumber);
             payment.setPaymentNumber("PAY-" + System.currentTimeMillis());
@@ -541,11 +540,23 @@ public class DealerPaymentController {
             
             // Update invoice status if fully paid
             BigDecimal newPaidAmount = paidAmount.add(amount);
-            if (newPaidAmount.compareTo(invoice.getTotalAmount()) >= 0) {
-                invoice.setStatus("paid"); // Status phải là lowercase
+            boolean isFullyPaid = newPaidAmount.compareTo(invoice.getTotalAmount()) >= 0;
+            
+            if (isFullyPaid) {
+                invoice.setStatus(DealerInvoiceStatus.PAID);
                 dealerInvoiceService.updateInvoice(invoiceId, invoice);
+                
+                // Tự động tạo VehicleDelivery sau khi thanh toán đủ
+                try {
+                    if (invoice.getDealerOrder() != null) {
+                        vehicleDeliveryService.createDeliveryFromDealerOrderAfterPayment(invoice.getDealerOrder().getDealerOrderId());
+                    }
+                } catch (Exception e) {
+                    // Log error nhưng không fail payment
+                    System.err.println("Failed to auto-create vehicle delivery after payment: " + e.getMessage());
+                }
             } else if (newPaidAmount.compareTo(BigDecimal.ZERO) > 0) {
-                invoice.setStatus("partially_paid"); // Status phải là lowercase
+                invoice.setStatus(DealerInvoiceStatus.PARTIALLY_PAID);
                 dealerInvoiceService.updateInvoice(invoiceId, invoice);
             }
             
@@ -599,7 +610,7 @@ public class DealerPaymentController {
             DealerPayment payment = dealerPaymentService.getDealerPaymentById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found with ID: " + paymentId));
             
-            if (!"completed".equals(payment.getStatus())) { // Status phải là lowercase
+            if (payment.getStatus() != DealerPaymentStatus.COMPLETED) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Cannot refund payment that is not completed. Current status: " + payment.getStatus());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -611,7 +622,7 @@ public class DealerPaymentController {
             refund.setAmount(payment.getAmount().negate()); // Negative amount for refund
             refund.setPaymentMethod(payment.getPaymentMethod());
             refund.setPaymentDate(LocalDate.now());
-            refund.setStatus("refunded"); // Status phải là lowercase
+            refund.setStatus(DealerPaymentStatus.REFUNDED);
             refund.setNotes("Refund for payment " + paymentId + (reason != null ? ". Reason: " + reason : ""));
             refund.setReferenceNumber("REF-" + System.currentTimeMillis());
             refund.setPaymentNumber("REF-" + System.currentTimeMillis());
@@ -619,7 +630,7 @@ public class DealerPaymentController {
             DealerPayment savedRefund = dealerPaymentService.createDealerPayment(refund);
             
             // Update original payment status
-            payment.setStatus("REFUNDED");
+            payment.setStatus(DealerPaymentStatus.REFUNDED);
             payment.setNotes(payment.getNotes() + " [REFUNDED: " + reason + "]");
             dealerPaymentService.updateDealerPayment(paymentId, payment);
             
@@ -673,12 +684,12 @@ public class DealerPaymentController {
             List<DealerPayment> payments = dealerPaymentService.getPaymentsByInvoice(invoiceId);
             
             BigDecimal totalPaid = payments.stream()
-                .filter(p -> "COMPLETED".equals(p.getStatus()))
+                .filter(p -> p.getStatus() == DealerPaymentStatus.COMPLETED)
                 .map(DealerPayment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             
             BigDecimal totalRefunded = payments.stream()
-                .filter(p -> "REFUNDED".equals(p.getStatus()))
+                .filter(p -> p.getStatus() == DealerPaymentStatus.REFUNDED)
                 .map(DealerPayment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             

@@ -97,6 +97,12 @@ public class VehicleDelivery {
     @Column(name = "condition", length = 100)
     private VehicleCondition condition;
     
+    @Column(name = "is_early_delivery")
+    private Boolean isEarlyDelivery = false;
+    
+    @Column(name = "early_delivery_reason", columnDefinition = "TEXT")
+    private String earlyDeliveryReason;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -289,6 +295,22 @@ public class VehicleDelivery {
      */
     public void setCondition(String condition) {
         this.condition = VehicleCondition.fromString(condition);
+    }
+    
+    public Boolean getIsEarlyDelivery() {
+        return isEarlyDelivery;
+    }
+    
+    public void setIsEarlyDelivery(Boolean isEarlyDelivery) {
+        this.isEarlyDelivery = isEarlyDelivery;
+    }
+    
+    public String getEarlyDeliveryReason() {
+        return earlyDeliveryReason;
+    }
+    
+    public void setEarlyDeliveryReason(String earlyDeliveryReason) {
+        this.earlyDeliveryReason = earlyDeliveryReason;
     }
     
     public LocalDateTime getCreatedAt() {

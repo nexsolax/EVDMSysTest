@@ -5,6 +5,7 @@ import com.evdealer.dto.VehicleDeliveryDTO;
 import com.evdealer.entity.VehicleDelivery;
 import com.evdealer.entity.DealerOrder;
 import com.evdealer.entity.DealerOrderItem;
+import com.evdealer.enums.ApprovalStatus;
 import com.evdealer.enums.DealerOrderItemStatus;
 import com.evdealer.enums.VehicleDeliveryStatus;
 import com.evdealer.entity.Dealer;
@@ -572,7 +573,7 @@ public class VehicleDeliveryController {
             DealerOrder dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
                 .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
             
-            if (!"APPROVED".equals(dealerOrder.getApprovalStatus())) {
+            if (dealerOrder.getApprovalStatus() != ApprovalStatus.APPROVED) {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Cannot create delivery for non-approved order. Order status: " + dealerOrder.getApprovalStatus());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);

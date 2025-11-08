@@ -1,6 +1,7 @@
 package com.evdealer.repository;
 
 import com.evdealer.entity.DealerInvoice;
+import com.evdealer.enums.DealerInvoiceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,7 +22,7 @@ public interface DealerInvoiceRepository extends JpaRepository<DealerInvoice, UU
     
     boolean existsByInvoiceNumber(String invoiceNumber);
     
-    List<DealerInvoice> findByStatus(String status);
+    List<DealerInvoice> findByStatus(DealerInvoiceStatus status);
     
     @Query("SELECT DISTINCT di FROM DealerInvoice di LEFT JOIN FETCH di.dealerOrder do LEFT JOIN FETCH do.dealer LEFT JOIN FETCH di.evmStaff WHERE di.dealerOrder.dealerOrderId = :dealerOrderId")
     List<DealerInvoice> findByDealerOrderDealerOrderId(@Param("dealerOrderId") UUID dealerOrderId);
@@ -34,11 +35,11 @@ public interface DealerInvoiceRepository extends JpaRepository<DealerInvoice, UU
     
     List<DealerInvoice> findByInvoiceDateBetween(LocalDate startDate, LocalDate endDate);
     
-    @Query("SELECT di FROM DealerInvoice di WHERE di.dueDate < :currentDate AND di.status IN ('issued', 'partially_paid')")
-    List<DealerInvoice> findOverdueInvoices(@Param("currentDate") LocalDate currentDate);
+    @Query("SELECT di FROM DealerInvoice di WHERE di.dueDate < :currentDate AND di.status IN (:statuses)")
+    List<DealerInvoice> findOverdueInvoices(@Param("currentDate") LocalDate currentDate, @Param("statuses") List<DealerInvoiceStatus> statuses);
     
-    @Query("SELECT di FROM DealerInvoice di WHERE di.dueDate < CURRENT_DATE AND di.status IN ('issued', 'partially_paid')")
-    List<DealerInvoice> findOverdueInvoices();
+    @Query("SELECT di FROM DealerInvoice di WHERE di.dueDate < CURRENT_DATE AND di.status IN (:statuses)")
+    List<DealerInvoice> findOverdueInvoices(@Param("statuses") List<DealerInvoiceStatus> statuses);
     
     List<DealerInvoice> findByDueDateBetween(LocalDate startDate, LocalDate endDate);
     
@@ -47,7 +48,7 @@ public interface DealerInvoiceRepository extends JpaRepository<DealerInvoice, UU
     List<DealerInvoice> findByDealerOrderDealerDealerId(@Param("dealerId") UUID dealerId);
     
     @Query("SELECT di FROM DealerInvoice di WHERE di.dealerOrder.dealer.dealerId = :dealerId AND di.status = :status")
-    List<DealerInvoice> findByDealerOrderDealerDealerIdAndStatus(@Param("dealerId") UUID dealerId, @Param("status") String status);
+    List<DealerInvoice> findByDealerOrderDealerDealerIdAndStatus(@Param("dealerId") UUID dealerId, @Param("status") DealerInvoiceStatus status);
     
-    long countByStatus(String status);
+    long countByStatus(DealerInvoiceStatus status);
 }
