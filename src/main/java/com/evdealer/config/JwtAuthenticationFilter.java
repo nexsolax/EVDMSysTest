@@ -1,5 +1,6 @@
 package com.evdealer.config;
 
+import com.evdealer.enums.Role;
 import com.evdealer.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -83,26 +84,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (username != null) {
             logger.info("JWT Filter: Validating token for user: {}", username);
             if (jwtUtil.validateToken(jwt)) {
-                String role = jwtUtil.getRoleFromToken(jwt);
+                String roleStr = jwtUtil.getRoleFromToken(jwt);
                 String userId = jwtUtil.getUserIdFromToken(jwt);
                 
-                logger.info("JWT validated successfully for user: {}, role: {}, userId: {}", username, role, userId);
+                // Normalize role: chuyển đổi role string thành Role enum và lấy authority
+                Role role = Role.fromString(roleStr);
+                String normalizedRole = role != null ? role.getValue() : Role.normalize(roleStr);
+                String authority = role != null ? role.getAuthority() : "ROLE_" + normalizedRole;
+                
+                logger.info("JWT validated successfully for user: {}, role: {} (normalized: {}), userId: {}", 
+                    username, roleStr, normalizedRole, userId);
                 
                 UsernamePasswordAuthenticationToken authToken = 
                     new UsernamePasswordAuthenticationToken(
                         username, 
                         null, 
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                        Collections.singletonList(new SimpleGrantedAuthority(authority))
                     );
                 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
                 
-                // Add user info to request attributes for easy access
+                // Add user info to request attributes for easy access (normalized role)
                 request.setAttribute("userId", userId);
-                request.setAttribute("userRole", role);
+                request.setAttribute("userRole", normalizedRole);
                 
-                logger.info("Authentication set in SecurityContext for user: {}, role: {}", username, role);
+                logger.info("Authentication set in SecurityContext for user: {}, role: {}, authority: {}", 
+                    username, normalizedRole, authority);
             } else {
                 logger.warn("JWT token validation failed for user: {}", username);
                 invalidToken = true;

@@ -65,9 +65,26 @@ public class OrderController {
     
     @GetMapping("/status/{status}")
     @Operation(summary = "Lấy đơn hàng theo trạng thái", description = "Lấy danh sách đơn hàng theo trạng thái")
-    public ResponseEntity<List<OrderDTO>> getOrdersByStatus(@PathVariable String status) {
-        List<Order> orders = orderService.getOrdersByStatus(status);
-        return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getOrdersByStatus(@PathVariable String status) {
+        try {
+            // Validate và convert status string to enum
+            com.evdealer.enums.OrderStatus statusEnum = com.evdealer.enums.OrderStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.OrderStatus.values())
+                    .map(com.evdealer.enums.OrderStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<Order> orders = orderService.getOrdersByStatus(statusEnum.getValue());
+            return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/date-range")
@@ -81,11 +98,28 @@ public class OrderController {
     
     @GetMapping("/customer/{customerId}/status/{status}")
     @Operation(summary = "Lấy đơn hàng theo khách hàng và trạng thái", description = "Lấy đơn hàng theo khách hàng và trạng thái")
-    public ResponseEntity<List<OrderDTO>> getOrdersByCustomerAndStatus(
+    public ResponseEntity<?> getOrdersByCustomerAndStatus(
             @PathVariable UUID customerId, 
             @PathVariable String status) {
-        List<Order> orders = orderService.getOrdersByCustomerAndStatus(customerId, status);
-        return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        try {
+            // Validate và convert status string to enum
+            com.evdealer.enums.OrderStatus statusEnum = com.evdealer.enums.OrderStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.OrderStatus.values())
+                    .map(com.evdealer.enums.OrderStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<Order> orders = orderService.getOrdersByCustomerAndStatus(customerId, statusEnum.getValue());
+            return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     
@@ -203,7 +237,18 @@ public class OrderController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            Order updatedOrder = orderService.updateOrderStatus(orderId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.OrderStatus statusEnum = com.evdealer.enums.OrderStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.OrderStatus.values())
+                    .map(com.evdealer.enums.OrderStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            Order updatedOrder = orderService.updateOrderStatus(orderId, statusEnum.getValue());
             return ResponseEntity.ok(toDTO(updatedOrder));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -280,7 +325,7 @@ public class OrderController {
         dto.setUserId(o.getUser() != null ? o.getUser().getUserId() : null);
         dto.setInventoryId(o.getInventory() != null ? o.getInventory().getInventoryId() : null);
         dto.setOrderDate(o.getOrderDate());
-        dto.setStatus(o.getStatus());
+        dto.setStatus(o.getStatus() != null ? o.getStatus().getValue() : null);
         dto.setTotalAmount(o.getTotalAmount());
         return dto;
     }

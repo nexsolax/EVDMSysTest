@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.SalesContractStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -57,8 +58,9 @@ public class SalesContract {
     @Column(name = "warranty_period_months")
     private Integer warrantyPeriodMonths = 24;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "contract_status", length = 50, nullable = false)
-    private String contractStatus = "draft";
+    private SalesContractStatus contractStatus = SalesContractStatus.DRAFT;
     
     @Column(name = "signed_date")
     private LocalDate signedDate;
@@ -173,12 +175,19 @@ public class SalesContract {
         this.warrantyPeriodMonths = warrantyPeriodMonths;
     }
     
-    public String getContractStatus() {
+    public SalesContractStatus getContractStatus() {
         return contractStatus;
     }
-    
-    public void setContractStatus(String contractStatus) {
+
+    public void setContractStatus(SalesContractStatus contractStatus) {
         this.contractStatus = contractStatus;
+    }
+
+    /**
+     * Set contractStatus from String (backward compatibility)
+     */
+    public void setContractStatus(String contractStatus) {
+        this.contractStatus = SalesContractStatus.fromString(contractStatus);
     }
     
     public LocalDate getSignedDate() {

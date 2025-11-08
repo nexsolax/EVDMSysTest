@@ -27,13 +27,13 @@ public class DealerInstallmentSchedule {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
     
-    @Column(name = "amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
     
-    @Column(name = "principal_amount", precision = 12, scale = 2)
+    @Column(name = "principal_amount", precision = 15, scale = 2)
     private BigDecimal principalAmount;
     
-    @Column(name = "interest_amount", precision = 12, scale = 2)
+    @Column(name = "interest_amount", precision = 15, scale = 2)
     private BigDecimal interestAmount;
     
     @Column(name = "status", length = 50, nullable = false)
@@ -42,10 +42,10 @@ public class DealerInstallmentSchedule {
     @Column(name = "paid_date")
     private LocalDate paidDate;
     
-    @Column(name = "paid_amount", precision = 12, scale = 2)
+    @Column(name = "paid_amount", precision = 15, scale = 2)
     private BigDecimal paidAmount;
     
-    @Column(name = "late_fee", precision = 12, scale = 2)
+    @Column(name = "late_fee", precision = 15, scale = 2)
     private BigDecimal lateFee = BigDecimal.ZERO;
     
     @Column(name = "notes", columnDefinition = "TEXT")

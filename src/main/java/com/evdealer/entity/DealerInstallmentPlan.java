@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.InstallmentPlanStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -36,7 +37,7 @@ public class DealerInstallmentPlan {
     @Column(name = "loan_term_months", nullable = false)
     private Integer loanTermMonths;
     
-    @Column(name = "monthly_payment_amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "monthly_payment_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal monthlyPaymentAmount;
     
     @Column(name = "first_payment_date")
@@ -45,8 +46,9 @@ public class DealerInstallmentPlan {
     @Column(name = "last_payment_date")
     private LocalDate lastPaymentDate;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "plan_status", length = 50, nullable = false)
-    private String planStatus = "active";
+    private InstallmentPlanStatus planStatus = InstallmentPlanStatus.ACTIVE;
     
     @Column(name = "finance_company", length = 255)
     private String financeCompany;
@@ -152,12 +154,19 @@ public class DealerInstallmentPlan {
         this.lastPaymentDate = lastPaymentDate;
     }
     
-    public String getPlanStatus() {
+    public InstallmentPlanStatus getPlanStatus() {
         return planStatus;
     }
-    
-    public void setPlanStatus(String planStatus) {
+
+    public void setPlanStatus(InstallmentPlanStatus planStatus) {
         this.planStatus = planStatus;
+    }
+
+    /**
+     * Set planStatus from String (backward compatibility)
+     */
+    public void setPlanStatus(String planStatus) {
+        this.planStatus = InstallmentPlanStatus.fromString(planStatus);
     }
     
     public String getFinanceCompany() {

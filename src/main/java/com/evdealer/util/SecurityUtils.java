@@ -1,6 +1,7 @@
 package com.evdealer.util;
 
 import com.evdealer.entity.User;
+import com.evdealer.enums.Role;
 import com.evdealer.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,17 +108,28 @@ public class SecurityUtils {
     }
     
     /**
-     * Lấy user role hiện tại
+     * Lấy user role hiện tại (normalized string)
      */
     public Optional<String> getCurrentUserRole() {
+        Optional<Role> roleOpt = getCurrentUserRoleEnum();
+        return roleOpt.map(role -> role.getValue());
+    }
+    
+    /**
+     * Lấy user role hiện tại (Role enum)
+     */
+    public Optional<Role> getCurrentUserRoleEnum() {
         // Try from request attribute first
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
-                String role = (String) request.getAttribute("userRole");
-                if (role != null) {
-                    return Optional.of(role);
+                String roleStr = (String) request.getAttribute("userRole");
+                if (roleStr != null) {
+                    Role role = Role.fromString(roleStr);
+                    if (role != null) {
+                        return Optional.of(role);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -128,9 +140,10 @@ public class SecurityUtils {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getAuthorities() != null) {
             for (GrantedAuthority authority : authentication.getAuthorities()) {
-                String role = authority.getAuthority();
-                if (role.startsWith("ROLE_")) {
-                    return Optional.of(role.substring(5)); // Remove "ROLE_" prefix
+                String authorityStr = authority.getAuthority();
+                Role role = Role.fromString(authorityStr);
+                if (role != null) {
+                    return Optional.of(role);
                 }
             }
         }
@@ -138,29 +151,58 @@ public class SecurityUtils {
         // Try from User entity
         Optional<User> userOpt = getCurrentUser();
         if (userOpt.isPresent() && userOpt.get().getUserType() != null) {
-            return Optional.of(userOpt.get().getUserType().toString());
+            Role role = Role.fromString(userOpt.get().getUserType().toString());
+            if (role != null) {
+                return Optional.of(role);
+            }
         }
         
         return Optional.empty();
     }
     
     /**
-     * Kiểm tra user hiện tại có role cụ thể không
+     * Kiểm tra user hiện tại có role cụ thể không (string - backward compatible)
      */
     public boolean hasRole(String role) {
-        Optional<String> currentRole = getCurrentUserRole();
-        return currentRole.isPresent() && currentRole.get().equalsIgnoreCase(role);
+        Role roleEnum = Role.fromString(role);
+        if (roleEnum == null) {
+            return false;
+        }
+        return hasRole(roleEnum);
     }
     
     /**
-     * Kiểm tra user hiện tại có một trong các roles không
+     * Kiểm tra user hiện tại có role cụ thể không (enum - recommended)
+     */
+    public boolean hasRole(Role role) {
+        Optional<Role> currentRole = getCurrentUserRoleEnum();
+        return currentRole.isPresent() && currentRole.get() == role;
+    }
+    
+    /**
+     * Kiểm tra user hiện tại có một trong các roles không (string - backward compatible)
      */
     public boolean hasAnyRole(String... roles) {
-        Optional<String> currentRole = getCurrentUserRole();
+        Optional<Role> currentRole = getCurrentUserRoleEnum();
         if (currentRole.isPresent()) {
-            String roleStr = currentRole.get();
-            for (String role : roles) {
-                if (roleStr.equalsIgnoreCase(role)) {
+            for (String roleStr : roles) {
+                Role role = Role.fromString(roleStr);
+                if (role != null && currentRole.get() == role) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Kiểm tra user hiện tại có một trong các roles không (enum - recommended)
+     */
+    public boolean hasAnyRole(Role... roles) {
+        Optional<Role> currentRole = getCurrentUserRoleEnum();
+        if (currentRole.isPresent()) {
+            for (Role role : roles) {
+                if (currentRole.get() == role) {
                     return true;
                 }
             }
@@ -172,28 +214,28 @@ public class SecurityUtils {
      * Kiểm tra user hiện tại có phải ADMIN không
      */
     public boolean isAdmin() {
-        return hasRole("ADMIN");
+        return hasRole(Role.ADMIN);
     }
     
     /**
      * Kiểm tra user hiện tại có phải EVM_STAFF không
      */
     public boolean isEvmStaff() {
-        return hasRole("EVM_STAFF");
+        return hasRole(Role.EVM_STAFF);
     }
     
     /**
      * Kiểm tra user hiện tại có phải DEALER_MANAGER không
      */
     public boolean isDealerUser() {
-        return hasRole("DEALER_MANAGER");
+        return hasRole(Role.DEALER_MANAGER);
     }
     
     /**
      * Kiểm tra user hiện tại có phải DEALER_MANAGER không
      */
     public boolean isDealerManager() {
-        return hasRole("DEALER_MANAGER");
+        return hasRole(Role.DEALER_MANAGER);
     }
     
     /**

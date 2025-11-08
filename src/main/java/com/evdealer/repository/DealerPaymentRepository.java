@@ -31,7 +31,11 @@ public interface DealerPaymentRepository extends JpaRepository<DealerPayment, UU
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentDate BETWEEN :startDate AND :endDate")
     List<DealerPayment> findByPaymentDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
-    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentType = :paymentType")
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentMethod = :paymentMethod")
+    List<DealerPayment> findByPaymentMethod(@Param("paymentMethod") com.evdealer.enums.PaymentMethod paymentMethod);
+    
+    // Backward compatibility - accepts String (enum value)
+    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentMethod.value = :paymentType")
     List<DealerPayment> findByPaymentType(@Param("paymentType") String paymentType);
     
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.referenceNumber = :referenceNumber")

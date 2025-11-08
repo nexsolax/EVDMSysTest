@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.ContactMethod;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -47,8 +48,9 @@ public class Customer {
     @Column(name = "credit_score")
     private Integer creditScore;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "preferred_contact_method", length = 50)
-    private String preferredContactMethod;
+    private ContactMethod preferredContactMethod;
     
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -160,12 +162,19 @@ public class Customer {
         this.creditScore = creditScore;
     }
     
-    public String getPreferredContactMethod() {
+    public ContactMethod getPreferredContactMethod() {
         return preferredContactMethod;
     }
     
-    public void setPreferredContactMethod(String preferredContactMethod) {
+    public void setPreferredContactMethod(ContactMethod preferredContactMethod) {
         this.preferredContactMethod = preferredContactMethod;
+    }
+    
+    /**
+     * Set preferredContactMethod from String (backward compatibility)
+     */
+    public void setPreferredContactMethod(String preferredContactMethod) {
+        this.preferredContactMethod = ContactMethod.fromString(preferredContactMethod);
     }
     
     public String getNotes() {

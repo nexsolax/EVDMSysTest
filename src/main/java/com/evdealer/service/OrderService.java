@@ -4,6 +4,8 @@ import com.evdealer.dto.OrderRequest;
 import com.evdealer.entity.*;
 import com.evdealer.repository.*;
 import com.evdealer.enums.DeliveryStatus;
+import com.evdealer.enums.OrderStatus;
+import com.evdealer.enums.VehicleStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -129,8 +131,9 @@ public class OrderService {
                     .orElseThrow(() -> new RuntimeException("Vehicle inventory not found with ID: " + request.getInventoryId()));
             
             // Validate inventory availability
-            if (!"available".equalsIgnoreCase(inventory.getStatus())) {
-                throw new RuntimeException("Vehicle inventory is not available. Current status: " + inventory.getStatus());
+            if (inventory.getStatus() != VehicleStatus.AVAILABLE) {
+                throw new RuntimeException("Vehicle inventory is not available. Current status: " + 
+                    (inventory.getStatus() != null ? inventory.getStatus().getValue() : "null"));
             }
         }
         
@@ -159,7 +162,7 @@ public class OrderService {
             order.setFulfillmentMethod(request.getFulfillmentMethod());
         }
         if (request.getStatus() != null) {
-            order.setStatus(request.getStatus());
+            order.setStatus(OrderStatus.fromString(request.getStatus()));
         }
         order.setTotalAmount(request.getTotalAmount());
         order.setDepositAmount(request.getDepositAmount() != null ? request.getDepositAmount() : BigDecimal.ZERO);
@@ -172,7 +175,7 @@ public class OrderService {
         // Update inventory status when creating order
         if (inventory != null) {
             // Set inventory status to "reserved" when order is created
-            inventory.setStatus("reserved");
+            inventory.setStatus(VehicleStatus.RESERVED);
             if (customer != null) {
                 inventory.setReservedForCustomer(customer);
             }
@@ -185,8 +188,22 @@ public class OrderService {
     
     private String generateOrderNumber() {
         String dateStr = LocalDate.now().toString().replace("-", "");
-        String randomStr = String.format("%04d", (int) (Math.random() * 10000));
-        return "ORD-" + dateStr + "-" + randomStr;
+        int maxAttempts = 10;
+        
+        // Retry mechanism với entropy cao hơn (6 chữ số thay vì 4)
+        for (int i = 0; i < maxAttempts; i++) {
+            String randomStr = String.format("%06d", (int) (Math.random() * 1000000));
+            String orderNumber = "ORD-" + dateStr + "-" + randomStr;
+            
+            // Check if order number already exists
+            if (!orderRepository.existsByOrderNumber(orderNumber)) {
+                return orderNumber;
+            }
+        }
+        
+        // Fallback: dùng UUID nếu vẫn trùng sau maxAttempts lần
+        String uuidSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return "ORD-" + dateStr + "-" + uuidSuffix;
     }
     
     public Order updateOrder(UUID orderId, Order orderDetails) {
@@ -317,7 +334,7 @@ public class OrderService {
     public Order updateOrderStatus(UUID orderId, String status) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
-        order.setStatus(status);
+        order.setStatus(OrderStatus.fromString(status));
         return orderRepository.save(order);
     }
     
@@ -329,16 +346,18 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
         
         // Check if order can be cancelled
-        if ("cancelled".equalsIgnoreCase(order.getStatus())) {
+        OrderStatus currentStatus = order.getStatus() != null ? order.getStatus() : OrderStatus.PENDING;
+        
+        if (currentStatus == OrderStatus.CANCELLED) {
             throw new RuntimeException("Order is already cancelled");
         }
         
-        if ("delivered".equalsIgnoreCase(order.getStatus())) {
+        if (currentStatus == OrderStatus.DELIVERED) {
             throw new RuntimeException("Cannot cancel a delivered order");
         }
         
         // Update order status
-        order.setStatus("cancelled");
+        order.setStatus(OrderStatus.CANCELLED);
         order.setDeliveryStatus(DeliveryStatus.CANCELLED);
         
         // Update inventory status if order has inventory
@@ -346,8 +365,8 @@ public class OrderService {
             VehicleInventory inventory = order.getInventory();
             
             // Only revert to available if inventory was reserved or sold for this order
-            if ("reserved".equalsIgnoreCase(inventory.getStatus()) || "sold".equalsIgnoreCase(inventory.getStatus())) {
-                inventory.setStatus("available");
+            if (inventory.getStatus() == VehicleStatus.RESERVED || inventory.getStatus() == VehicleStatus.SOLD) {
+                inventory.setStatus(VehicleStatus.AVAILABLE);
                 inventory.setReservedForCustomer(null);
                 inventory.setReservedDate(null);
                 inventory.setReservedExpiryDate(null);

@@ -56,9 +56,10 @@ public class DealerPaymentController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     payments = payments.stream()
                         .filter(payment -> payment.getInvoice() != null
                             && payment.getInvoice().getDealerOrder() != null
@@ -92,9 +93,10 @@ public class DealerPaymentController {
             
             // Kiểm tra dealer user chỉ có thể xem payment của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (payment.getInvoice() != null && payment.getInvoice().getDealerOrder() != null 
                         && payment.getInvoice().getDealerOrder().getDealer() != null) {
                         UUID paymentDealerId = payment.getInvoice().getDealerOrder().getDealer().getDealerId();
@@ -131,9 +133,10 @@ public class DealerPaymentController {
             
             // Kiểm tra dealer user chỉ có thể xem payment của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (payment.getInvoice() != null && payment.getInvoice().getDealerOrder() != null 
                         && payment.getInvoice().getDealerOrder().getDealer() != null) {
                         UUID paymentDealerId = payment.getInvoice().getDealerOrder().getDealer().getDealerId();
@@ -165,13 +168,25 @@ public class DealerPaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerPayment> payments = dealerPaymentService.getPaymentsByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerPaymentStatus statusEnum = com.evdealer.enums.DealerPaymentStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerPaymentStatus.values())
+                    .map(com.evdealer.enums.DealerPaymentStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<DealerPayment> payments = dealerPaymentService.getPaymentsByStatus(statusEnum.getValue());
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     payments = payments.stream()
                         .filter(payment -> payment.getInvoice() != null
                             && payment.getInvoice().getDealerOrder() != null
@@ -206,9 +221,10 @@ public class DealerPaymentController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     payments = payments.stream()
                         .filter(payment -> payment.getInvoice() != null
                             && payment.getInvoice().getDealerOrder() != null
@@ -237,13 +253,25 @@ public class DealerPaymentController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerPayment> payments = dealerPaymentService.getPaymentsByType(paymentType);
+            // Validate và convert paymentType string to enum
+            com.evdealer.enums.PaymentMethod paymentMethod = com.evdealer.enums.PaymentMethod.fromString(paymentType);
+            if (paymentMethod == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid payment type: " + paymentType);
+                error.put("validPaymentTypes", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.PaymentMethod.values())
+                    .map(com.evdealer.enums.PaymentMethod::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<DealerPayment> payments = dealerPaymentService.getPaymentsByType(paymentMethod.getValue());
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     payments = payments.stream()
                         .filter(payment -> payment.getInvoice() != null
                             && payment.getInvoice().getDealerOrder() != null
@@ -276,9 +304,10 @@ public class DealerPaymentController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     payments = payments.stream()
                         .filter(payment -> payment.getInvoice() != null
                             && payment.getInvoice().getDealerOrder() != null
@@ -372,7 +401,18 @@ public class DealerPaymentController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            DealerPayment updatedPayment = dealerPaymentService.updatePaymentStatus(paymentId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerPaymentStatus statusEnum = com.evdealer.enums.DealerPaymentStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerPaymentStatus.values())
+                    .map(com.evdealer.enums.DealerPaymentStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            DealerPayment updatedPayment = dealerPaymentService.updatePaymentStatus(paymentId, statusEnum.getValue());
             return ResponseEntity.ok(updatedPayment);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -451,9 +491,10 @@ public class DealerPaymentController {
             
             // Kiểm tra dealer user chỉ có thể thanh toán invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -488,7 +529,7 @@ public class DealerPaymentController {
             DealerPayment payment = new DealerPayment();
             payment.setInvoice(invoice);
             payment.setAmount(amount);
-            payment.setPaymentType(paymentMethod); // Lưu paymentMethod vào paymentType field
+            payment.setPaymentMethod(paymentMethod); // Use PaymentMethod enum
             payment.setPaymentDate(paymentDate);
             payment.setStatus("completed"); // Status phải là lowercase
             payment.setNotes(notes);
@@ -568,7 +609,7 @@ public class DealerPaymentController {
             DealerPayment refund = new DealerPayment();
             refund.setInvoice(payment.getInvoice());
             refund.setAmount(payment.getAmount().negate()); // Negative amount for refund
-            refund.setPaymentType(payment.getPaymentType());
+            refund.setPaymentMethod(payment.getPaymentMethod());
             refund.setPaymentDate(LocalDate.now());
             refund.setStatus("refunded"); // Status phải là lowercase
             refund.setNotes("Refund for payment " + paymentId + (reason != null ? ". Reason: " + reason : ""));
@@ -614,9 +655,10 @@ public class DealerPaymentController {
             
             // Kiểm tra dealer user chỉ có thể xem payments của invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -673,9 +715,10 @@ public class DealerPaymentController {
             
             // Kiểm tra dealer user chỉ có thể xem payments của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view payments for your own dealer");
@@ -706,9 +749,10 @@ public class DealerPaymentController {
             
             // Kiểm tra dealer user chỉ có thể xem summary của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view payment summary for your own dealer");
@@ -779,9 +823,10 @@ public class DealerPaymentController {
                     
                     // Kiểm tra dealer user chỉ có thể validate payment cho invoice của dealer mình
                     if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                        var currentUserOpt = securityUtils.getCurrentUser();
-                        if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                            UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                        var currentUser = securityUtils.getCurrentUser()
+                            .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                        if (currentUser.getDealer() != null) {
+                            UUID userDealerId = currentUser.getDealer().getDealerId();
                             if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                                 UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                                 if (!invoiceDealerId.equals(userDealerId)) {

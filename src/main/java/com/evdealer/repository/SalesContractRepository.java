@@ -39,5 +39,7 @@ public interface SalesContractRepository extends JpaRepository<SalesContract, UU
     @Query("SELECT sc FROM SalesContract sc WHERE sc.customer.customerId = :customerId AND sc.contractStatus = :status")
     List<SalesContract> findByCustomerAndStatus(@Param("customerId") UUID customerId, @Param("status") String status);
     
+    // Note: findByContractStatus and findByCustomerAndStatus accept String (enum value) for backward compatibility
+    
     boolean existsByContractNumber(String contractNumber);
 }

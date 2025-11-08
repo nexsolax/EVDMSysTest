@@ -111,7 +111,18 @@ public class InstallmentPlanController {
     @Operation(summary = "Get installment plans by status", description = "Retrieve installment plans filtered by status")
     public ResponseEntity<?> getInstallmentPlansByStatus(@PathVariable String status) {
         try {
-            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.InstallmentPlanStatus statusEnum = com.evdealer.enums.InstallmentPlanStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.InstallmentPlanStatus.values())
+                    .map(com.evdealer.enums.InstallmentPlanStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<InstallmentPlan> installmentPlans = installmentPlanService.getInstallmentPlansByStatus(statusEnum.getValue());
             List<Map<String, Object>> planList = installmentPlans.stream().map(this::planToMap).collect(Collectors.toList());
             return ResponseEntity.ok(planList);
         } catch (Exception e) {
@@ -176,9 +187,10 @@ public class InstallmentPlanController {
             
             // Kiểm tra dealer user chỉ có thể xem plans của invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     DealerInvoice invoice = dealerInvoiceService.getInvoiceById(invoiceId)
                         .orElseThrow(() -> new RuntimeException("Invoice not found"));
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
@@ -219,9 +231,10 @@ public class InstallmentPlanController {
             
             // Kiểm tra dealer user chỉ có thể xem plans của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view plans for your own dealer");
@@ -283,9 +296,10 @@ public class InstallmentPlanController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     installmentPlans = installmentPlans.stream()
                         .filter(plan -> plan.getDealer() != null && plan.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -324,9 +338,10 @@ public class InstallmentPlanController {
                 
                 // Kiểm tra dealer user chỉ có thể tạo plan cho invoice của dealer mình
                 if (securityUtils.isDealerUser() && !securityUtils.isAdmin() && installmentPlan.getInvoice() != null) {
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    var currentUser = securityUtils.getCurrentUser()
+                        .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                    if (currentUser.getDealer() != null) {
+                        UUID userDealerId = currentUser.getDealer().getDealerId();
                         DealerInvoice invoice = dealerInvoiceService.getInvoiceById(installmentPlan.getInvoice().getInvoiceId())
                             .orElseThrow(() -> new RuntimeException("Invoice not found"));
                         if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
@@ -389,9 +404,10 @@ public class InstallmentPlanController {
                 
                 // Kiểm tra dealer user chỉ có thể update plan của dealer mình
                 if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    var currentUser = securityUtils.getCurrentUser()
+                        .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                    if (currentUser.getDealer() != null) {
+                        UUID userDealerId = currentUser.getDealer().getDealerId();
                         if (existingPlan.getDealer() != null && !existingPlan.getDealer().getDealerId().equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only update plans for your own dealer");
@@ -449,9 +465,10 @@ public class InstallmentPlanController {
                 
                 // Kiểm tra dealer user chỉ có thể update status của plan của dealer mình
                 if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    var currentUser = securityUtils.getCurrentUser()
+                        .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                    if (currentUser.getDealer() != null) {
+                        UUID userDealerId = currentUser.getDealer().getDealerId();
                         if (existingPlan.getDealer() != null && !existingPlan.getDealer().getDealerId().equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only update status of plans for your own dealer");
@@ -468,7 +485,18 @@ public class InstallmentPlanController {
                 }
             }
             
-            InstallmentPlan updatedPlan = installmentPlanService.updateInstallmentPlanStatus(planId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.InstallmentPlanStatus statusEnum = com.evdealer.enums.InstallmentPlanStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.InstallmentPlanStatus.values())
+                    .map(com.evdealer.enums.InstallmentPlanStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            InstallmentPlan updatedPlan = installmentPlanService.updateInstallmentPlanStatus(planId, statusEnum.getValue());
             return ResponseEntity.ok(planToMap(updatedPlan));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

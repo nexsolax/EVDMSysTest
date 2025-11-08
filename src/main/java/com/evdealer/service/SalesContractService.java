@@ -76,6 +76,7 @@ public class SalesContractService {
     
     public List<SalesContract> getContractsByStatus(String contractStatus) {
         try {
+            // Repository accepts String (enum value) for backward compatibility
             return salesContractRepository.findByContractStatus(contractStatus);
         } catch (Exception e) {
             // Return empty list if there's an issue
@@ -221,6 +222,7 @@ public class SalesContractService {
     public SalesContract updateContractStatus(UUID contractId, String status) {
         SalesContract contract = salesContractRepository.findById(contractId)
                 .orElseThrow(() -> new RuntimeException("Sales contract not found with id: " + contractId));
+        // Use overloaded setter that accepts String (backward compatibility)
         contract.setContractStatus(status);
         return salesContractRepository.save(contract);
     }
@@ -240,7 +242,7 @@ public class SalesContractService {
         }
         
         contract.setSignedDate(signedDate);
-        contract.setContractStatus("signed");
+        contract.setContractStatus(com.evdealer.enums.SalesContractStatus.SIGNED);
         return salesContractRepository.save(contract);
     }
 }

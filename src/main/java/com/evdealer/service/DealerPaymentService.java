@@ -45,7 +45,9 @@ public class DealerPaymentService {
     
     @Transactional(readOnly = true)
     public List<DealerPayment> getPaymentsByType(String paymentType) {
-        return dealerPaymentRepository.findByPaymentType(paymentType);
+        // Convert String to enum and query
+        com.evdealer.enums.PaymentMethod paymentMethod = com.evdealer.enums.PaymentMethod.fromString(paymentType);
+        return dealerPaymentRepository.findByPaymentMethod(paymentMethod);
     }
     
     @Transactional(readOnly = true)
@@ -78,7 +80,7 @@ public class DealerPaymentService {
         dealerPayment.setPaymentNumber(dealerPaymentDetails.getPaymentNumber());
         dealerPayment.setPaymentDate(dealerPaymentDetails.getPaymentDate());
         dealerPayment.setAmount(dealerPaymentDetails.getAmount());
-        dealerPayment.setPaymentType(dealerPaymentDetails.getPaymentType());
+        dealerPayment.setPaymentMethod(dealerPaymentDetails.getPaymentMethod());
         dealerPayment.setReferenceNumber(dealerPaymentDetails.getReferenceNumber());
         dealerPayment.setStatus(dealerPaymentDetails.getStatus());
         dealerPayment.setNotes(dealerPaymentDetails.getNotes());

@@ -37,7 +37,7 @@ public class PublicOrderController {
             response.put("totalAmount", createdOrder.getTotalAmount());
             response.put("depositAmount", createdOrder.getDepositAmount());
             response.put("balanceAmount", createdOrder.getBalanceAmount());
-            response.put("paymentMethod", createdOrder.getPaymentMethod());
+            response.put("paymentMethod", createdOrder.getPaymentMethod() != null ? createdOrder.getPaymentMethod().getValue() : null);
             response.put("orderType", createdOrder.getOrderType() != null ? createdOrder.getOrderType().toString() : null);
             response.put("paymentStatus", createdOrder.getPaymentStatus() != null ? createdOrder.getPaymentStatus().toString() : null);
             response.put("deliveryStatus", createdOrder.getDeliveryStatus() != null ? createdOrder.getDeliveryStatus().toString() : null);
@@ -82,7 +82,7 @@ public class PublicOrderController {
                         response.put("totalAmount", order.getTotalAmount());
                         response.put("depositAmount", order.getDepositAmount());
                         response.put("balanceAmount", order.getBalanceAmount());
-                        response.put("paymentMethod", order.getPaymentMethod());
+                        response.put("paymentMethod", order.getPaymentMethod() != null ? order.getPaymentMethod().getValue() : null);
                         response.put("orderType", order.getOrderType() != null ? order.getOrderType().toString() : null);
                         response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().toString() : null);
                         response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().toString() : null);
@@ -127,7 +127,7 @@ public class PublicOrderController {
                         response.put("totalAmount", order.getTotalAmount());
                         response.put("depositAmount", order.getDepositAmount());
                         response.put("balanceAmount", order.getBalanceAmount());
-                        response.put("paymentMethod", order.getPaymentMethod());
+                        response.put("paymentMethod", order.getPaymentMethod() != null ? order.getPaymentMethod().getValue() : null);
                         response.put("orderType", order.getOrderType() != null ? order.getOrderType().toString() : null);
                         response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().toString() : null);
                         response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().toString() : null);

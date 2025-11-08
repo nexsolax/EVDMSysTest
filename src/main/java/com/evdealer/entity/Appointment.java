@@ -1,5 +1,7 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.AppointmentStatus;
+import com.evdealer.enums.AppointmentType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -28,8 +30,9 @@ public class Appointment {
     @JoinColumn(name = "variant_id", nullable = true)
     private VehicleVariant variant;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "appointment_type", length = 50, nullable = false)
-    private String appointmentType = "consultation";
+    private AppointmentType appointmentType = AppointmentType.CONSULTATION;
     
     @Column(name = "title", nullable = false, length = 255)
     private String title;
@@ -46,8 +49,9 @@ public class Appointment {
     @Column(name = "location", length = 255)
     private String location;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "scheduled";
+    private AppointmentStatus status = AppointmentStatus.SCHEDULED;
     
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -102,12 +106,19 @@ public class Appointment {
         this.variant = variant;
     }
     
-    public String getAppointmentType() {
+    public AppointmentType getAppointmentType() {
         return appointmentType;
     }
     
-    public void setAppointmentType(String appointmentType) {
+    public void setAppointmentType(AppointmentType appointmentType) {
         this.appointmentType = appointmentType;
+    }
+    
+    /**
+     * Set appointmentType from String (backward compatibility)
+     */
+    public void setAppointmentType(String appointmentType) {
+        this.appointmentType = AppointmentType.fromString(appointmentType);
     }
     
     public String getTitle() {
@@ -150,12 +161,19 @@ public class Appointment {
         this.location = location;
     }
     
-    public String getStatus() {
+    public AppointmentStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(AppointmentStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = AppointmentStatus.fromString(status);
     }
     
     public String getNotes() {

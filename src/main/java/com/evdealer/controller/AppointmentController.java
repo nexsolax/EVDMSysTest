@@ -43,13 +43,13 @@ public class AppointmentController {
     private Map<String, Object> appointmentToMap(Appointment appointment) {
         Map<String, Object> appointmentMap = new HashMap<>();
         appointmentMap.put("appointmentId", appointment.getAppointmentId());
-        appointmentMap.put("appointmentType", appointment.getAppointmentType());
+        appointmentMap.put("appointmentType", appointment.getAppointmentType() != null ? appointment.getAppointmentType().getValue() : null);
         appointmentMap.put("title", appointment.getTitle());
         appointmentMap.put("description", appointment.getDescription());
         appointmentMap.put("appointmentDate", appointment.getAppointmentDate());
         appointmentMap.put("durationMinutes", appointment.getDurationMinutes());
         appointmentMap.put("location", appointment.getLocation());
-        appointmentMap.put("status", appointment.getStatus());
+        appointmentMap.put("status", appointment.getStatus() != null ? appointment.getStatus().getValue() : null);
         appointmentMap.put("notes", appointment.getNotes());
         appointmentMap.put("createdAt", appointment.getCreatedAt());
         appointmentMap.put("updatedAt", appointment.getUpdatedAt());
@@ -109,7 +109,18 @@ public class AppointmentController {
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getAppointmentsByStatus(@PathVariable String status) {
         try {
-            List<Appointment> appointments = appointmentService.getAppointmentsByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.AppointmentStatus statusEnum = com.evdealer.enums.AppointmentStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.AppointmentStatus.values())
+                    .map(com.evdealer.enums.AppointmentStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<Appointment> appointments = appointmentService.getAppointmentsByStatus(statusEnum.getValue());
             List<Map<String, Object>> appointmentList = appointments.stream().map(this::appointmentToMap).collect(Collectors.toList());
             return ResponseEntity.ok(appointmentList);
         } catch (Exception e) {
@@ -122,7 +133,18 @@ public class AppointmentController {
     @GetMapping("/type/{appointmentType}")
     public ResponseEntity<?> getAppointmentsByType(@PathVariable String appointmentType) {
         try {
-            List<Appointment> appointments = appointmentService.getAppointmentsByType(appointmentType);
+            // Validate và convert appointmentType string to enum
+            com.evdealer.enums.AppointmentType typeEnum = com.evdealer.enums.AppointmentType.fromString(appointmentType);
+            if (typeEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid appointment type: " + appointmentType);
+                error.put("validTypes", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.AppointmentType.values())
+                    .map(com.evdealer.enums.AppointmentType::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<Appointment> appointments = appointmentService.getAppointmentsByType(typeEnum.getValue());
             List<Map<String, Object>> appointmentList = appointments.stream().map(this::appointmentToMap).collect(Collectors.toList());
             return ResponseEntity.ok(appointmentList);
         } catch (Exception e) {

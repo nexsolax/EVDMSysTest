@@ -36,13 +36,13 @@ public class InstallmentPlan {
     @Column(name = "plan_type", length = 50, nullable = false)
     private String planType = "customer";
     
-    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
     
-    @Column(name = "down_payment_amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "down_payment_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal downPaymentAmount;
     
-    @Column(name = "loan_amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "loan_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal loanAmount;
     
     @Column(name = "interest_rate", nullable = false, precision = 5, scale = 2)
@@ -51,7 +51,7 @@ public class InstallmentPlan {
     @Column(name = "loan_term_months", nullable = false)
     private Integer loanTermMonths;
     
-    @Column(name = "monthly_payment_amount", nullable = false, precision = 10, scale = 2)
+    @Column(name = "monthly_payment_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal monthlyPaymentAmount;
     
     @Column(name = "first_payment_date")

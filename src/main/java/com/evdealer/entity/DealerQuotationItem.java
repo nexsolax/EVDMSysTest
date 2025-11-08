@@ -49,7 +49,7 @@ public class DealerQuotationItem {
     @Column(name = "discount_percentage", precision = 5, scale = 2)
     private BigDecimal discountPercentage = BigDecimal.ZERO;
     
-    @Column(name = "discount_amount", precision = 12, scale = 2)
+    @Column(name = "discount_amount", precision = 15, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
     
     @Column(name = "total_price", nullable = false, precision = 15, scale = 2)
@@ -90,7 +90,8 @@ public class DealerQuotationItem {
         BigDecimal baseTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
         
         if (discountPercentage != null && discountPercentage.compareTo(BigDecimal.ZERO) > 0) {
-            discountAmount = baseTotal.multiply(discountPercentage).divide(BigDecimal.valueOf(100));
+            discountAmount = baseTotal.multiply(discountPercentage)
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
         }
         
         totalPrice = baseTotal.subtract(discountAmount != null ? discountAmount : BigDecimal.ZERO);

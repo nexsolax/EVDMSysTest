@@ -1,6 +1,7 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.DealerOrderItem;
+import com.evdealer.enums.DealerOrderItemStatus;
 import com.evdealer.entity.VehicleVariant;
 import com.evdealer.entity.VehicleColor;
 import com.evdealer.repository.DealerOrderItemRepository;
@@ -86,7 +87,7 @@ public class DealerOrderItemService {
             .orElseThrow(() -> new RuntimeException("Dealer order item not found with ID: " + itemId));
         
         // Check if item can be deleted (not confirmed or delivered)
-        if ("CONFIRMED".equals(item.getStatus()) || "DELIVERED".equals(item.getStatus())) {
+        if (item.getStatus() == DealerOrderItemStatus.CONFIRMED || item.getStatus() == DealerOrderItemStatus.DELIVERED) {
             throw new RuntimeException("Cannot delete confirmed or delivered items");
         }
         
@@ -100,11 +101,15 @@ public class DealerOrderItemService {
     }
     
     public List<DealerOrderItem> getItemsByStatus(String status) {
-        return dealerOrderItemRepository.findByStatus(status);
+        // Convert string to enum for validation
+        DealerOrderItemStatus statusEnum = DealerOrderItemStatus.fromString(status);
+        return dealerOrderItemRepository.findByStatus(statusEnum.getValue());
     }
     
     public List<DealerOrderItem> getItemsByDealerOrderIdAndStatus(UUID dealerOrderId, String status) {
-        return dealerOrderItemRepository.findByDealerOrderIdAndStatus(dealerOrderId, status);
+        // Convert string to enum for validation
+        DealerOrderItemStatus statusEnum = DealerOrderItemStatus.fromString(status);
+        return dealerOrderItemRepository.findByDealerOrderIdAndStatus(dealerOrderId, statusEnum.getValue());
     }
     
     public Optional<DealerOrderItem> getItemById(UUID itemId) {

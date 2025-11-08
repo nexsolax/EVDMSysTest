@@ -67,9 +67,10 @@ public class DealerOrderController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -99,9 +100,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể xem order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (order.getDealer() != null && !order.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view orders for your own dealer");
@@ -133,9 +135,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể xem order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (order.getDealer() != null && !order.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view orders for your own dealer");
@@ -166,9 +169,10 @@ public class DealerOrderController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -193,13 +197,25 @@ public class DealerOrderController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerOrder> orders = dealerOrderService.getDealerOrdersByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerOrderStatus statusEnum = com.evdealer.enums.DealerOrderStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerOrderStatus.values())
+                    .map(com.evdealer.enums.DealerOrderStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<DealerOrder> orders = dealerOrderService.getDealerOrdersByStatus(statusEnum.getValue());
             
             // Filter theo dealer nếu là dealer user - Đảm bảo dealer được load trước khi filter
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> {
                             try {
@@ -237,9 +253,10 @@ public class DealerOrderController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -303,9 +320,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể update order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (existingOrder.getDealer() != null && !existingOrder.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only update orders for your own dealer");
@@ -340,7 +358,18 @@ public class DealerOrderController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            DealerOrder updatedOrder = dealerOrderService.updateDealerOrderStatus(dealerOrderId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerOrderStatus statusEnum = com.evdealer.enums.DealerOrderStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerOrderStatus.values())
+                    .map(com.evdealer.enums.DealerOrderStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            DealerOrder updatedOrder = dealerOrderService.updateDealerOrderStatus(dealerOrderId, statusEnum.getValue());
             return ResponseEntity.ok(updatedOrder);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -404,8 +433,10 @@ public class DealerOrderController {
             
             // Auto-set dealerId từ current user nếu request không có hoặc null
             if (request.getDealerId() == null && securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     request.setDealerId(userDealerId);
                 } else {
                     Map<String, String> error = new HashMap<>();
@@ -416,8 +447,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể tạo order cho dealer của mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (request.getDealerId() != null && !request.getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only create orders for your own dealer");
@@ -461,9 +494,10 @@ public class DealerOrderController {
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
                 DealerOrder order = dealerOrderService.getDealerOrderById(dealerOrderId)
                     .orElseThrow(() -> new RuntimeException("Dealer order not found"));
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!order.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view items for orders of your own dealer");
@@ -505,9 +539,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể thêm items cho order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only add items to orders of your own dealer");
@@ -553,9 +588,10 @@ public class DealerOrderController {
                 .orElseThrow(() -> new RuntimeException("Dealer order not found"));
             
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only update items for orders of your own dealer");
@@ -600,9 +636,10 @@ public class DealerOrderController {
                 .orElseThrow(() -> new RuntimeException("Dealer order not found"));
             
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only delete items for orders of your own dealer");
@@ -706,9 +743,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể xem summary của order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (order.getDealer() != null && !order.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view summary for orders of your own dealer");
@@ -741,9 +779,10 @@ public class DealerOrderController {
             
             // Filter theo dealer nếu là dealer user - Đảm bảo dealer được load trước khi filter
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> {
                             try {
@@ -780,9 +819,10 @@ public class DealerOrderController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -812,9 +852,10 @@ public class DealerOrderController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     orders = orders.stream()
                         .filter(order -> order.getDealer() != null && order.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -864,9 +905,9 @@ public class DealerOrderController {
                     dealerOrder = dealerOrderRepository.save(dealerOrder);
                 } else {
                     // Try to get from current user
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        Dealer userDealer = currentUserOpt.get().getDealer();
+                    var currentUser = securityUtils.getCurrentUser();
+                    if (currentUser.isPresent() && currentUser.get().getDealer() != null) {
+                        Dealer userDealer = currentUser.get().getDealer();
                         dealerOrder.setDealer(userDealer);
                         dealerOrder = dealerOrderRepository.save(dealerOrder);
                     } else {
@@ -887,9 +928,10 @@ public class DealerOrderController {
             
             // Kiểm tra dealer user chỉ có thể request quotation cho dealer của mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (dealerOrder.getDealer() != null && !dealerOrder.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only request quotations for your own dealer");

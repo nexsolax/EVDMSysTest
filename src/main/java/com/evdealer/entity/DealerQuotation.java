@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.DealerQuotationStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -58,10 +59,10 @@ public class DealerQuotation {
     @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
     private BigDecimal subtotal;
     
-    @Column(name = "tax_amount", precision = 12, scale = 2)
+    @Column(name = "tax_amount", precision = 15, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
     
-    @Column(name = "discount_amount", precision = 12, scale = 2)
+    @Column(name = "discount_amount", precision = 15, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
     
     @Column(name = "discount_percentage", precision = 5, scale = 2)
@@ -70,8 +71,9 @@ public class DealerQuotation {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "pending"; // pending, sent, accepted, rejected, expired, converted
+    private DealerQuotationStatus status = DealerQuotationStatus.PENDING;
     
     @Column(name = "payment_terms", length = 100)
     private String paymentTerms; // FULL_PAYMENT, INSTALLMENT, NET_30, NET_60, etc.
@@ -235,12 +237,19 @@ public class DealerQuotation {
         this.totalAmount = totalAmount;
     }
     
-    public String getStatus() {
+    public DealerQuotationStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(DealerQuotationStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = DealerQuotationStatus.fromString(status);
     }
     
     public String getPaymentTerms() {

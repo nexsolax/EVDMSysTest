@@ -1,6 +1,8 @@
 package com.evdealer.service;
 
 import com.evdealer.entity.Appointment;
+import com.evdealer.enums.AppointmentStatus;
+import com.evdealer.enums.AppointmentType;
 import com.evdealer.repository.AppointmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,11 +41,15 @@ public class AppointmentService {
     }
     
     public List<Appointment> getAppointmentsByStatus(String status) {
-        return appointmentRepository.findByStatus(status);
+        // Convert string to enum for validation
+        AppointmentStatus statusEnum = AppointmentStatus.fromString(status);
+        return appointmentRepository.findByStatus(statusEnum.getValue());
     }
     
     public List<Appointment> getAppointmentsByType(String appointmentType) {
-        return appointmentRepository.findByAppointmentType(appointmentType);
+        // Convert string to enum for validation
+        AppointmentType typeEnum = AppointmentType.fromString(appointmentType);
+        return appointmentRepository.findByAppointmentType(typeEnum.getValue());
     }
     
     public List<Appointment> getAppointmentsByVariant(Integer variantId) {

@@ -3,6 +3,7 @@ package com.evdealer.service;
 import com.evdealer.dto.QuotationRequest;
 import com.evdealer.entity.*;
 import com.evdealer.repository.*;
+import com.evdealer.enums.DealerQuotationStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,8 +123,10 @@ public class QuotationService {
                     .orElseThrow(() -> new RuntimeException("Color not found with id: " + quotation.getColor().getColorId())));
         }
         
-        // normalize status
-        quotation.setStatus(normalizeStatus(quotation.getStatus()));
+        // normalize status using enum
+        if (quotation.getStatus() != null) {
+            quotation.setStatus(DealerQuotationStatus.fromString(quotation.getStatus()).getValue());
+        }
         return quotationRepository.save(quotation);
     }
     
@@ -168,7 +171,11 @@ public class QuotationService {
         quotation.setDiscountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO);
         quotation.setFinalPrice(request.getFinalPrice());
         quotation.setValidityDays(request.getValidityDays() != null ? request.getValidityDays() : 7);
-        quotation.setStatus(normalizeStatus(request.getStatus()));
+        if (request.getStatus() != null) {
+            quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()).getValue());
+        } else {
+            quotation.setStatus(DealerQuotationStatus.PENDING.getValue());
+        }
         quotation.setNotes(request.getNotes());
         
         return quotationRepository.save(quotation);
@@ -176,8 +183,22 @@ public class QuotationService {
     
     private String generateQuotationNumber() {
         String dateStr = LocalDate.now().toString().replace("-", "");
-        String randomStr = String.format("%04d", (int) (Math.random() * 10000));
-        return "QUO-" + dateStr + "-" + randomStr;
+        int maxAttempts = 10;
+        
+        // Retry mechanism với entropy cao hơn (6 chữ số thay vì 4)
+        for (int i = 0; i < maxAttempts; i++) {
+            String randomStr = String.format("%06d", (int) (Math.random() * 1000000));
+            String quotationNumber = "QUO-" + dateStr + "-" + randomStr;
+            
+            // Check if quotation number already exists
+            if (!quotationRepository.existsByQuotationNumber(quotationNumber)) {
+                return quotationNumber;
+            }
+        }
+        
+        // Fallback: dùng UUID nếu vẫn trùng sau maxAttempts lần
+        String uuidSuffix = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        return "QUO-" + dateStr + "-" + uuidSuffix;
     }
     
     public Quotation updateQuotation(UUID quotationId, Quotation quotationDetails) {
@@ -194,7 +215,9 @@ public class QuotationService {
         quotation.setDiscountAmount(quotationDetails.getDiscountAmount());
         quotation.setFinalPrice(quotationDetails.getFinalPrice());
         quotation.setValidityDays(quotationDetails.getValidityDays());
-        quotation.setStatus(normalizeStatus(quotationDetails.getStatus()));
+        if (quotationDetails.getStatus() != null) {
+            quotation.setStatus(DealerQuotationStatus.fromString(quotationDetails.getStatus()).getValue());
+        }
         quotation.setNotes(quotationDetails.getNotes());
         
         return quotationRepository.save(quotation);
@@ -249,7 +272,7 @@ public class QuotationService {
             quotation.setValidityDays(request.getValidityDays());
         }
         if (request.getStatus() != null) {
-            quotation.setStatus(normalizeStatus(request.getStatus()));
+            quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()).getValue());
         }
         if (request.getNotes() != null) {
             quotation.setNotes(request.getNotes());
@@ -267,28 +290,9 @@ public class QuotationService {
     public Quotation updateQuotationStatus(UUID quotationId, String status) {
         Quotation quotation = quotationRepository.findById(quotationId)
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
-        quotation.setStatus(normalizeStatus(status));
+        // Use DealerQuotationStatus enum for validation and normalization
+        DealerQuotationStatus statusEnum = DealerQuotationStatus.fromString(status);
+        quotation.setStatus(statusEnum.getValue());
         return quotationRepository.save(quotation);
-    }
-
-    private String normalizeStatus(String raw) {
-        if (raw == null) {
-            return "pending";
-        }
-        String value = raw.trim().toLowerCase();
-        if (value.isEmpty() || value.equals("undefined") || value.equals("null")) {
-            return "pending";
-        }
-        // allowed statuses per business rules
-        switch (value) {
-            case "pending":
-            case "accepted":
-            case "rejected":
-            case "expired":
-                return value;
-            default:
-                // fallback to pending if unknown
-                return "pending";
-        }
     }
 }

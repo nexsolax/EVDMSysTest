@@ -100,7 +100,18 @@ public class PricingPolicyController {
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getPricingPoliciesByStatus(@PathVariable String status) {
         try {
-            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.PricingPolicyStatus statusEnum = com.evdealer.enums.PricingPolicyStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.PricingPolicyStatus.values())
+                    .map(com.evdealer.enums.PricingPolicyStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<PricingPolicy> policies = pricingPolicyService.getPricingPoliciesByStatus(statusEnum.getValue());
             List<Map<String, Object>> policyList = policies.stream().map(this::policyToMap).collect(Collectors.toList());
             return ResponseEntity.ok(policyList);
         } catch (Exception e) {
@@ -161,9 +172,10 @@ public class PricingPolicyController {
             
             // Kiểm tra dealer user chỉ có thể xem policies của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view pricing policies for your own dealer");
@@ -380,7 +392,18 @@ public class PricingPolicyController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            PricingPolicy updatedPolicy = pricingPolicyService.updatePricingPolicyStatus(id, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.PricingPolicyStatus statusEnum = com.evdealer.enums.PricingPolicyStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.PricingPolicyStatus.values())
+                    .map(com.evdealer.enums.PricingPolicyStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            PricingPolicy updatedPolicy = pricingPolicyService.updatePricingPolicyStatus(id, statusEnum.getValue());
             return ResponseEntity.ok(policyToMap(updatedPolicy));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

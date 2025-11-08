@@ -54,13 +54,13 @@ public class Quotation {
     @Column(name = "quotation_date", nullable = false)
     private LocalDate quotationDate;
     
-    @Column(name = "total_price", nullable = false, precision = 12, scale = 2)
+    @Column(name = "total_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalPrice;
     
-    @Column(name = "discount_amount", precision = 12, scale = 2)
+    @Column(name = "discount_amount", precision = 15, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
     
-    @Column(name = "final_price", nullable = false, precision = 12, scale = 2)
+    @Column(name = "final_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal finalPrice;
     
     @Column(name = "validity_days")

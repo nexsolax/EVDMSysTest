@@ -1,5 +1,7 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.CustomerPaymentStatus;
+import com.evdealer.enums.PaymentMethod;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -31,20 +33,22 @@ public class CustomerPayment {
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
     
-    @Column(name = "amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
     
     @Column(name = "payment_type", length = 50)
     private String paymentType;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", length = 100)
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
     
     @Column(name = "reference_number", length = 100)
     private String referenceNumber;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "pending";
+    private CustomerPaymentStatus status = CustomerPaymentStatus.PENDING;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "processed_by")
@@ -125,12 +129,19 @@ public class CustomerPayment {
         this.paymentType = paymentType;
     }
     
-    public String getPaymentMethod() {
+    public PaymentMethod getPaymentMethod() {
         return paymentMethod;
     }
     
-    public void setPaymentMethod(String paymentMethod) {
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+    
+    /**
+     * Set paymentMethod from String (backward compatibility)
+     */
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = PaymentMethod.fromString(paymentMethod);
     }
     
     public String getReferenceNumber() {
@@ -141,12 +152,19 @@ public class CustomerPayment {
         this.referenceNumber = referenceNumber;
     }
     
-    public String getStatus() {
+    public CustomerPaymentStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(CustomerPaymentStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = CustomerPaymentStatus.fromString(status);
     }
     
     public User getProcessedBy() {

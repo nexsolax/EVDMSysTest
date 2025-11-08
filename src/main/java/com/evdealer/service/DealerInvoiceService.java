@@ -36,9 +36,10 @@ public class DealerInvoiceService {
         try {
             // Filter by dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID dealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID dealerId = currentUser.getDealer().getDealerId();
                     return dealerInvoiceRepository.findByDealerOrderDealerDealerId(dealerId);
                 }
             }

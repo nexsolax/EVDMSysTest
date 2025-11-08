@@ -1,6 +1,8 @@
 package com.evdealer.controller;
 
 import com.evdealer.entity.Appointment;
+import com.evdealer.enums.AppointmentType;
+import com.evdealer.enums.AppointmentStatus;
 import com.evdealer.service.AppointmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,9 +40,9 @@ public class PublicAppointmentController {
             
             Appointment appointment = new Appointment();
             appointment.setTitle("Lái thử xe - " + customerName);
-            appointment.setAppointmentType("test_drive");
+            appointment.setAppointmentType(AppointmentType.TEST_DRIVE);
             appointment.setAppointmentDate(appointmentDate);
-            appointment.setStatus("scheduled");
+            appointment.setStatus(AppointmentStatus.SCHEDULED);
             appointment.setNotes(notes);
             appointment.setNotes((appointment.getNotes() != null ? appointment.getNotes() + "\n" : "") + 
                                 "Customer: " + customerName + " (" + customerEmail + ", " + customerPhone + "), Variant ID: " + variantId);
@@ -77,9 +79,9 @@ public class PublicAppointmentController {
             
             Appointment appointment = new Appointment();
             appointment.setTitle("Nhận xe - " + customerName);
-            appointment.setAppointmentType("delivery");
+            appointment.setAppointmentType(AppointmentType.DELIVERY);
             appointment.setAppointmentDate(appointmentDate);
-            appointment.setStatus("scheduled");
+            appointment.setStatus(AppointmentStatus.SCHEDULED);
             appointment.setNotes(notes);
             appointment.setNotes((appointment.getNotes() != null ? appointment.getNotes() + "\n" : "") + 
                                 "Customer: " + customerName + " (" + customerEmail + ", " + customerPhone + "), Order ID: " + orderId + 
@@ -112,9 +114,9 @@ public class PublicAppointmentController {
                         Map<String, Object> details = new HashMap<>();
                         details.put("appointmentId", appointment.getAppointmentId());
                         details.put("title", appointment.getTitle());
-                        details.put("appointmentType", appointment.getAppointmentType());
+                        details.put("appointmentType", appointment.getAppointmentType() != null ? appointment.getAppointmentType().getValue() : null);
                         details.put("appointmentDate", appointment.getAppointmentDate());
-                        details.put("status", appointment.getStatus());
+                        details.put("status", appointment.getStatus() != null ? appointment.getStatus().getValue() : null);
                         details.put("customerName", appointment.getCustomer() != null ? 
                             appointment.getCustomer().getFirstName() + " " + appointment.getCustomer().getLastName() : "N/A");
                         details.put("customerPhone", appointment.getCustomer() != null ? 
@@ -151,7 +153,7 @@ public class PublicAppointmentController {
             
             Appointment appointmentEntity = appointment.get();
             appointmentEntity.setAppointmentDate(newDate);
-            appointmentEntity.setStatus("rescheduled");
+            appointmentEntity.setStatus(AppointmentStatus.SCHEDULED); // Rescheduled is still scheduled
             if (reason != null && !reason.trim().isEmpty()) {
                 appointmentEntity.setNotes((appointmentEntity.getNotes() != null ? appointmentEntity.getNotes() + "\n" : "") + 
                                          "Reschedule reason: " + reason);
@@ -188,7 +190,7 @@ public class PublicAppointmentController {
             }
             
             Appointment appointmentEntity = appointment.get();
-            appointmentEntity.setStatus("cancelled");
+            appointmentEntity.setStatus(AppointmentStatus.CANCELLED);
             if (reason != null && !reason.trim().isEmpty()) {
                 appointmentEntity.setNotes((appointmentEntity.getNotes() != null ? appointmentEntity.getNotes() + "\n" : "") + 
                                          "Cancellation reason: " + reason);

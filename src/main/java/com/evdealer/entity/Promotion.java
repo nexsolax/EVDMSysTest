@@ -31,7 +31,7 @@ public class Promotion {
     @Column(name = "discount_percent", precision = 5, scale = 2)
     private BigDecimal discountPercent;
     
-    @Column(name = "discount_amount", precision = 12, scale = 2)
+    @Column(name = "discount_amount", precision = 15, scale = 2)
     private BigDecimal discountAmount;
     
     @Column(name = "start_date", nullable = false)

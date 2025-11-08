@@ -3,6 +3,11 @@ package com.evdealer.service;
 import com.evdealer.dto.CreateDealerOrderRequest;
 import com.evdealer.dto.CreateDealerOrderResponse;
 import com.evdealer.entity.DealerOrder;
+import com.evdealer.enums.DealerOrderStatus;
+import com.evdealer.enums.DealerOrderType;
+import com.evdealer.enums.Priority;
+import com.evdealer.enums.ApprovalStatus;
+import com.evdealer.enums.DealerOrderItemStatus;
 import com.evdealer.entity.DealerOrderItem;
 import com.evdealer.entity.Dealer;
 import com.evdealer.entity.User;
@@ -57,9 +62,10 @@ public class DealerOrderService {
         try {
             // Filter by dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID dealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID dealerId = currentUser.getDealer().getDealerId();
                     // Use findByDealerId which already has LEFT JOIN FETCH
                     return dealerOrderRepository.findByDealerId(dealerId);
                 }
@@ -89,7 +95,9 @@ public class DealerOrderService {
     @Transactional(readOnly = true)
     public List<DealerOrder> getDealerOrdersByStatus(String status) {
         try {
-            List<DealerOrder> orders = dealerOrderRepository.findByStatus(status);
+            // Convert string to enum for validation
+            DealerOrderStatus statusEnum = DealerOrderStatus.fromString(status);
+            List<DealerOrder> orders = dealerOrderRepository.findByStatus(statusEnum.getValue());
             return orders;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get orders by status: " + e.getMessage(), e);
@@ -168,19 +176,27 @@ public class DealerOrderService {
             dealerOrder.setOrderDate(request.getOrderDate());
             dealerOrder.setExpectedDeliveryDate(request.getExpectedDeliveryDate());
             
-            // Validate and uppercase orderType
-            String orderType = request.getOrderType() != null ? request.getOrderType().toUpperCase() : "PURCHASE";
-            if (!orderType.matches("PURCHASE|RESERVE|SAMPLE")) {
-                throw new RuntimeException("Invalid orderType: " + orderType + ". Must be PURCHASE, RESERVE, or SAMPLE");
+            // Set orderType using enum (with validation)
+            if (request.getOrderType() != null) {
+                DealerOrderType orderType = DealerOrderType.fromString(request.getOrderType());
+                if (!DealerOrderType.isValid(request.getOrderType())) {
+                    throw new RuntimeException("Invalid orderType: " + request.getOrderType() + ". Must be PURCHASE, RESERVE, or SAMPLE");
+                }
+                dealerOrder.setOrderType(orderType);
+            } else {
+                dealerOrder.setOrderType(DealerOrderType.PURCHASE);
             }
-            dealerOrder.setOrderType(orderType);
             
-            // Validate and uppercase priority
-            String priority = request.getPriority() != null ? request.getPriority().toUpperCase() : "NORMAL";
-            if (!priority.matches("LOW|NORMAL|HIGH|URGENT")) {
-                throw new RuntimeException("Invalid priority: " + priority + ". Must be LOW, NORMAL, HIGH, or URGENT");
+            // Set priority using enum (with validation)
+            if (request.getPriority() != null) {
+                Priority priority = Priority.fromString(request.getPriority());
+                if (!Priority.isValid(request.getPriority())) {
+                    throw new RuntimeException("Invalid priority: " + request.getPriority() + ". Must be LOW, NORMAL, HIGH, or URGENT");
+                }
+                dealerOrder.setPriority(priority);
+            } else {
+                dealerOrder.setPriority(Priority.NORMAL);
             }
-            dealerOrder.setPriority(priority);
             if (request.getPaymentTerms() != null) {
                 dealerOrder.setPaymentTerms(request.getPaymentTerms());
             }
@@ -188,8 +204,8 @@ public class DealerOrderService {
                 dealerOrder.setDeliveryTerms(request.getDeliveryTerms());
             }
             dealerOrder.setNotes(request.getNotes());
-            dealerOrder.setStatus("PENDING");
-            dealerOrder.setApprovalStatus("PENDING");
+            dealerOrder.setStatus(DealerOrderStatus.PENDING);
+            dealerOrder.setApprovalStatus(ApprovalStatus.PENDING);
             
             // Initialize totals
             dealerOrder.setTotalQuantity(0);
@@ -220,7 +236,7 @@ public class DealerOrderService {
                 item.setUnitPrice(itemRequest.getUnitPrice() != null ? itemRequest.getUnitPrice() : variant.getPriceBase());
                 item.setDiscountPercentage(itemRequest.getDiscountPercentage());
                 item.setNotes(itemRequest.getNotes());
-                item.setStatus("PENDING");
+                item.setStatus(DealerOrderItemStatus.PENDING);
                 
                 // Calculate prices
                 item.calculatePrices();
@@ -274,19 +290,19 @@ public class DealerOrderService {
         DealerOrder dealerOrder = dealerOrderRepository.findByIdWithDetails(dealerOrderId)
             .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
         
-        if (!"PENDING".equals(dealerOrder.getApprovalStatus())) {
+        if (dealerOrder.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new RuntimeException("Order is not in pending status for approval");
         }
         
-        dealerOrder.setApprovalStatus("APPROVED");
+        dealerOrder.setApprovalStatus(ApprovalStatus.APPROVED);
         dealerOrder.setApprovedBy(approvedBy);
         dealerOrder.setApprovedAt(LocalDateTime.now());
-        dealerOrder.setStatus("CONFIRMED");
+        dealerOrder.setStatus(DealerOrderStatus.CONFIRMED);
         
         // Update all items to CONFIRMED
         List<DealerOrderItem> items = dealerOrderItemService.getItemsByDealerOrderId(dealerOrderId);
         for (DealerOrderItem item : items) {
-            item.setStatus("CONFIRMED");
+            item.setStatus(DealerOrderItemStatus.CONFIRMED);
             dealerOrderItemService.updateDealerOrderItem(item.getItemId(), item);
         }
         
@@ -297,18 +313,18 @@ public class DealerOrderService {
         DealerOrder dealerOrder = dealerOrderRepository.findById(dealerOrderId)
             .orElseThrow(() -> new RuntimeException("Dealer order not found with ID: " + dealerOrderId));
         
-        if (!"PENDING".equals(dealerOrder.getApprovalStatus())) {
+        if (dealerOrder.getApprovalStatus() != ApprovalStatus.PENDING) {
             throw new RuntimeException("Order is not in pending status for rejection");
         }
         
-        dealerOrder.setApprovalStatus("REJECTED");
+        dealerOrder.setApprovalStatus(ApprovalStatus.REJECTED);
         dealerOrder.setRejectionReason(rejectionReason);
-        dealerOrder.setStatus("CANCELLED");
+        dealerOrder.setStatus(DealerOrderStatus.CANCELLED);
         
         // Update all items to CANCELLED
         List<DealerOrderItem> items = dealerOrderItemService.getItemsByDealerOrderId(dealerOrderId);
         for (DealerOrderItem item : items) {
-            item.setStatus("CANCELLED");
+            item.setStatus(DealerOrderItemStatus.CANCELLED);
             dealerOrderItemService.updateDealerOrderItem(item.getItemId(), item);
         }
         
@@ -327,13 +343,13 @@ public class DealerOrderService {
         summary.put("dealerName", dealerOrder.getDealer().getDealerName());
         summary.put("orderDate", dealerOrder.getOrderDate());
         summary.put("expectedDeliveryDate", dealerOrder.getExpectedDeliveryDate());
-        summary.put("status", dealerOrder.getStatus());
-        summary.put("approvalStatus", dealerOrder.getApprovalStatus());
+        summary.put("status", dealerOrder.getStatus() != null ? dealerOrder.getStatus().getValue() : null);
+        summary.put("approvalStatus", dealerOrder.getApprovalStatus() != null ? dealerOrder.getApprovalStatus().getValue() : null);
         summary.put("totalQuantity", dealerOrder.getTotalQuantity());
         summary.put("totalAmount", dealerOrder.getTotalAmount());
         summary.put("itemCount", items.size());
-        summary.put("priority", dealerOrder.getPriority());
-        summary.put("orderType", dealerOrder.getOrderType());
+        summary.put("priority", dealerOrder.getPriority() != null ? dealerOrder.getPriority().getValue() : null);
+        summary.put("orderType", dealerOrder.getOrderType() != null ? dealerOrder.getOrderType().getValue() : null);
         
         return summary;
     }
@@ -341,7 +357,9 @@ public class DealerOrderService {
     @Transactional(readOnly = true)
     public List<DealerOrder> getOrdersByApprovalStatus(String approvalStatus) {
         try {
-            List<DealerOrder> orders = dealerOrderRepository.findByApprovalStatus(approvalStatus);
+            // Convert string to enum for validation
+            ApprovalStatus statusEnum = ApprovalStatus.fromString(approvalStatus);
+            List<DealerOrder> orders = dealerOrderRepository.findByApprovalStatus(statusEnum.getValue());
             return orders;
         } catch (Exception e) {
             throw new RuntimeException("Failed to get orders by approval status: " + e.getMessage(), e);
@@ -362,10 +380,10 @@ public class DealerOrderService {
         }
         info.setOrderDate(order.getOrderDate());
         info.setExpectedDeliveryDate(order.getExpectedDeliveryDate());
-        info.setStatus(order.getStatus());
-        info.setPriority(order.getPriority());
-        info.setOrderType(order.getOrderType());
-        info.setApprovalStatus(order.getApprovalStatus());
+        info.setStatus(order.getStatus() != null ? order.getStatus().getValue() : null);
+        info.setPriority(order.getPriority() != null ? order.getPriority().getValue() : null);
+        info.setOrderType(order.getOrderType() != null ? order.getOrderType().getValue() : null);
+        info.setApprovalStatus(order.getApprovalStatus() != null ? order.getApprovalStatus().getValue() : null);
         info.setRejectionReason(order.getRejectionReason());
         info.setCreatedAt(order.getCreatedAt());
         return info;
@@ -408,7 +426,7 @@ public class DealerOrderService {
         info.setDiscountPercentage(item.getDiscountPercentage());
         info.setDiscountAmount(item.getDiscountAmount());
         info.setFinalPrice(item.getFinalPrice());
-        info.setStatus(item.getStatus());
+        info.setStatus(item.getStatus() != null ? item.getStatus().getValue() : null);
         info.setNotes(item.getNotes());
         return info;
     }

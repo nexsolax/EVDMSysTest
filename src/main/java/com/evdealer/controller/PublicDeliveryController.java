@@ -37,15 +37,15 @@ public class PublicDeliveryController {
         map.put("deliveryAddress", delivery.getDeliveryAddress());
         map.put("deliveryContactName", delivery.getDeliveryContactName());
         map.put("deliveryContactPhone", delivery.getDeliveryContactPhone());
-        map.put("deliveryStatus", delivery.getDeliveryStatus());
-        map.put("deliveryNotes", delivery.getDeliveryNotes());
+        map.put("deliveryStatus", delivery.getDeliveryStatus() != null ? delivery.getDeliveryStatus().getValue() : null);
+        map.put("deliveryNotes", delivery.getNotes()); // Using notes field instead of deliveryNotes
         map.put("deliveryConfirmationDate", delivery.getDeliveryConfirmationDate());
         map.put("customerSignatureUrl", delivery.getCustomerSignatureUrl());
         map.put("customerSignaturePath", delivery.getCustomerSignaturePath());
         map.put("scheduledDeliveryDate", delivery.getScheduledDeliveryDate());
         map.put("actualDeliveryDate", delivery.getActualDeliveryDate());
         map.put("notes", delivery.getNotes());
-        map.put("condition", delivery.getCondition());
+        map.put("condition", delivery.getCondition() != null ? delivery.getCondition().toString() : null);
         map.put("createdAt", delivery.getCreatedAt());
         map.put("updatedAt", delivery.getUpdatedAt());
         if (delivery.getOrder() != null) {

@@ -77,9 +77,10 @@ public class DealerQuotationController {
             
             // Kiểm tra dealer user chỉ có thể xem quotation của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (quotation.getDealerOrder() != null && quotation.getDealerOrder().getDealer() != null) {
                         UUID quotationDealerId = quotation.getDealerOrder().getDealer().getDealerId();
                         if (!quotationDealerId.equals(userDealerId)) {
@@ -115,9 +116,10 @@ public class DealerQuotationController {
             
             // Kiểm tra dealer user chỉ có thể xem quotation của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (quotation.getDealerOrder() != null && quotation.getDealerOrder().getDealer() != null) {
                         UUID quotationDealerId = quotation.getDealerOrder().getDealer().getDealerId();
                         if (!quotationDealerId.equals(userDealerId)) {
@@ -149,9 +151,10 @@ public class DealerQuotationController {
         
         // Kiểm tra dealer user chỉ có thể xem báo giá của dealer mình
         if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-            var currentUserOpt = securityUtils.getCurrentUser();
-            if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+            var currentUser = securityUtils.getCurrentUser()
+                .orElseThrow(() -> new RuntimeException("User not authenticated"));
+            if (currentUser.getDealer() != null) {
+                UUID userDealerId = currentUser.getDealer().getDealerId();
                 if (!dealerId.equals(userDealerId)) {
                     Map<String, String> error = new HashMap<>();
                     error.put("error", "Access denied. You can only view quotations for your own dealer");
@@ -177,13 +180,15 @@ public class DealerQuotationController {
             
             // Kiểm tra dealer user chỉ có thể xem quotations của order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     // Kiểm tra order thuộc về dealer của user
-                    var orderOpt = dealerOrderService.getDealerOrderById(dealerOrderId);
-                    if (orderOpt.isPresent() && orderOpt.get().getDealer() != null) {
-                        UUID orderDealerId = orderOpt.get().getDealer().getDealerId();
+                    var dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
+                        .orElseThrow(() -> new RuntimeException("Dealer order not found"));
+                    if (dealerOrder.getDealer() != null) {
+                        UUID orderDealerId = dealerOrder.getDealer().getDealerId();
                         if (!orderDealerId.equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only view quotations for orders of your own dealer");
@@ -213,13 +218,25 @@ public class DealerQuotationController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerQuotation> quotations = dealerQuotationService.getQuotationsByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerQuotationStatus statusEnum = com.evdealer.enums.DealerQuotationStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerQuotationStatus.values())
+                    .map(com.evdealer.enums.DealerQuotationStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<DealerQuotation> quotations = dealerQuotationService.getQuotationsByStatus(statusEnum.getValue());
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     quotations = quotations.stream()
                         .filter(quotation -> quotation.getDealerOrder() != null
                             && quotation.getDealerOrder().getDealer() != null
@@ -251,9 +268,10 @@ public class DealerQuotationController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     quotations = quotations.stream()
                         .filter(quotation -> quotation.getDealerOrder() != null
                             && quotation.getDealerOrder().getDealer() != null
@@ -287,9 +305,10 @@ public class DealerQuotationController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     quotations = quotations.stream()
                         .filter(quotation -> quotation.getDealerOrder() != null
                             && quotation.getDealerOrder().getDealer() != null
@@ -321,9 +340,10 @@ public class DealerQuotationController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     quotations = quotations.stream()
                         .filter(quotation -> quotation.getDealerOrder() != null
                             && quotation.getDealerOrder().getDealer() != null
@@ -443,12 +463,14 @@ public class DealerQuotationController {
             }
             
             // Kiểm tra dealer user chỉ có thể accept quotation của dealer mình
-            var quotationOpt = dealerQuotationService.getQuotationById(quotationId);
-            if (quotationOpt.isPresent() && securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
-                    if (!quotationOpt.get().getDealer().getDealerId().equals(userDealerId)) {
+            var quotation = dealerQuotationService.getQuotationById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found"));
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
+                    if (quotation.getDealer() != null && !quotation.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only accept quotations for your own dealer");
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -495,12 +517,14 @@ public class DealerQuotationController {
             }
             
             // Kiểm tra dealer user chỉ có thể reject quotation của dealer mình
-            var quotationOpt = dealerQuotationService.getQuotationById(quotationId);
-            if (quotationOpt.isPresent() && securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
-                    if (!quotationOpt.get().getDealer().getDealerId().equals(userDealerId)) {
+            var quotationCheck = dealerQuotationService.getQuotationById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found"));
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
+                    if (quotationCheck.getDealer() != null && !quotationCheck.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only reject quotations for your own dealer");
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -542,9 +566,10 @@ public class DealerQuotationController {
             
             // Kiểm tra dealer user chỉ có thể xem items của quotation của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (quotation.getDealerOrder() != null && quotation.getDealerOrder().getDealer() != null) {
                         UUID quotationDealerId = quotation.getDealerOrder().getDealer().getDealerId();
                         if (!quotationDealerId.equals(userDealerId)) {

@@ -3,6 +3,9 @@ package com.evdealer.entity;
 import com.evdealer.enums.OrderType;
 import com.evdealer.enums.PaymentStatus;
 import com.evdealer.enums.DeliveryStatus;
+import com.evdealer.enums.OrderStatus;
+import com.evdealer.enums.PaymentMethod;
+import com.evdealer.enums.FulfillmentStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -58,8 +61,9 @@ public class Order {
     @Column(name = "order_date", nullable = false)
     private LocalDate orderDate;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "pending";
+    private OrderStatus status = OrderStatus.PENDING;
     
     @Enumerated(EnumType.STRING)
     @Column(name = "order_type", length = 20, nullable = false)
@@ -73,8 +77,9 @@ public class Order {
     @Column(name = "delivery_status", length = 20, nullable = false)
     private DeliveryStatus deliveryStatus = DeliveryStatus.PENDING;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "fulfillment_status", length = 50)
-    private String fulfillmentStatus = "PENDING";
+    private FulfillmentStatus fulfillmentStatus = FulfillmentStatus.PENDING;
     
     @Column(name = "fulfillment_method", length = 50)
     private String fulfillmentMethod;
@@ -82,17 +87,18 @@ public class Order {
     @Column(name = "fulfillment_reference_id")
     private UUID fulfillmentReferenceId;
     
-    @Column(name = "total_amount", precision = 12, scale = 2)
+    @Column(name = "total_amount", precision = 15, scale = 2)
     private BigDecimal totalAmount;
     
-    @Column(name = "deposit_amount", precision = 12, scale = 2)
+    @Column(name = "deposit_amount", precision = 15, scale = 2)
     private BigDecimal depositAmount;
     
-    @Column(name = "balance_amount", precision = 12, scale = 2)
+    @Column(name = "balance_amount", precision = 15, scale = 2)
     private BigDecimal balanceAmount;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", length = 50)
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
     
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -179,12 +185,19 @@ public class Order {
         this.orderDate = orderDate;
     }
     
-    public String getStatus() {
+    public OrderStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = OrderStatus.fromString(status);
     }
     
     public BigDecimal getTotalAmount() {
@@ -211,12 +224,19 @@ public class Order {
         this.balanceAmount = balanceAmount;
     }
     
-    public String getPaymentMethod() {
+    public PaymentMethod getPaymentMethod() {
         return paymentMethod;
     }
     
-    public void setPaymentMethod(String paymentMethod) {
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+    
+    /**
+     * Set paymentMethod from String (backward compatibility)
+     */
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = PaymentMethod.fromString(paymentMethod);
     }
     
     public String getNotes() {
@@ -283,12 +303,19 @@ public class Order {
         this.deliveryStatus = deliveryStatus;
     }
     
-    public String getFulfillmentStatus() {
+    public FulfillmentStatus getFulfillmentStatus() {
         return fulfillmentStatus;
     }
-    
-    public void setFulfillmentStatus(String fulfillmentStatus) {
+
+    public void setFulfillmentStatus(FulfillmentStatus fulfillmentStatus) {
         this.fulfillmentStatus = fulfillmentStatus;
+    }
+
+    /**
+     * Set fulfillmentStatus from String (backward compatibility)
+     */
+    public void setFulfillmentStatus(String fulfillmentStatus) {
+        this.fulfillmentStatus = FulfillmentStatus.fromString(fulfillmentStatus);
     }
     
     public String getFulfillmentMethod() {

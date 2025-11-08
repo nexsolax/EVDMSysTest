@@ -70,9 +70,26 @@ public class SalesContractController {
     }
     
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<SalesContractDTO>> getContractsByStatus(@PathVariable String status) {
-        List<SalesContract> contracts = salesContractService.getContractsByStatus(status);
-        return ResponseEntity.ok(contracts.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getContractsByStatus(@PathVariable String status) {
+        try {
+            // Validate và convert status string to enum
+            com.evdealer.enums.SalesContractStatus statusEnum = com.evdealer.enums.SalesContractStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.SalesContractStatus.values())
+                    .map(com.evdealer.enums.SalesContractStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<SalesContract> contracts = salesContractService.getContractsByStatus(statusEnum.getValue());
+            return ResponseEntity.ok(contracts.stream().map(this::toDTO).toList());
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/date-range")
@@ -161,7 +178,18 @@ public class SalesContractController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            SalesContract updatedContract = salesContractService.updateContractStatus(contractId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.SalesContractStatus statusEnum = com.evdealer.enums.SalesContractStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.SalesContractStatus.values())
+                    .map(com.evdealer.enums.SalesContractStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            SalesContract updatedContract = salesContractService.updateContractStatus(contractId, statusEnum.getValue());
             return ResponseEntity.ok(toDTO(updatedContract));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -190,18 +218,13 @@ public class SalesContractController {
             
             // Kiểm tra phân quyền: ADMIN, EVM_STAFF hoặc user tạo contract
             if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent()) {
-                    UUID currentUserId = currentUserOpt.get().getUserId();
-                    // User chỉ có thể sign contract của chính mình (nếu contract có user)
-                    if (existingContract.getUser() != null && !existingContract.getUser().getUserId().equals(currentUserId)) {
-                        Map<String, String> error = new HashMap<>();
-                        error.put("error", "Access denied. You can only sign your own contracts");
-                        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-                    }
-                } else {
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                UUID currentUserId = currentUser.getUserId();
+                // User chỉ có thể sign contract của chính mình (nếu contract có user)
+                if (existingContract.getUser() != null && !existingContract.getUser().getUserId().equals(currentUserId)) {
                     Map<String, String> error = new HashMap<>();
-                    error.put("error", "Access denied. Only admin, EVM staff or the contract creator can sign contracts");
+                    error.put("error", "Access denied. You can only sign your own contracts");
                     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
                 }
             }
@@ -260,7 +283,7 @@ public class SalesContractController {
         dto.setContractDate(c.getContractDate());
         dto.setDeliveryDate(c.getDeliveryDate());
         dto.setContractValue(c.getContractValue());
-        dto.setContractStatus(c.getContractStatus());
+        dto.setContractStatus(c.getContractStatus() != null ? c.getContractStatus().getValue() : null);
         return dto;
     }
 }

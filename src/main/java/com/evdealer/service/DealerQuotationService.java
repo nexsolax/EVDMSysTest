@@ -52,9 +52,10 @@ public class DealerQuotationService {
     public List<DealerQuotation> getAllQuotations() {
         // Filter by dealer nếu là dealer user
         if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-            var currentUserOpt = securityUtils.getCurrentUser();
-            if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                UUID dealerId = currentUserOpt.get().getDealer().getDealerId();
+            var currentUser = securityUtils.getCurrentUser()
+                .orElseThrow(() -> new RuntimeException("User not authenticated"));
+            if (currentUser.getDealer() != null) {
+                UUID dealerId = currentUser.getDealer().getDealerId();
                 return dealerQuotationRepository.findByDealerDealerId(dealerId);
             }
         }
@@ -126,7 +127,7 @@ public class DealerQuotationService {
             if (dealer == null) {
                 // Try to get dealer_id directly from database
                 Optional<UUID> dealerIdOpt = dealerOrderRepository.findDealerIdByOrderId(dealerOrderId);
-                if (dealerIdOpt.isPresent() && dealerIdOpt.get() != null) {
+                if (dealerIdOpt.isPresent()) {
                     UUID dealerId = dealerIdOpt.get();
                     dealer = dealerRepository.findById(dealerId)
                         .orElseThrow(() -> new RuntimeException("Dealer not found with ID: " + dealerId + " from order " + dealerOrderId));
@@ -259,7 +260,8 @@ public class DealerQuotationService {
         quotation.setSubtotal(subtotal);
         if (discountPercentage != null && discountPercentage.compareTo(BigDecimal.ZERO) > 0) {
             quotation.setDiscountPercentage(discountPercentage);
-            quotation.setDiscountAmount(subtotal.multiply(discountPercentage).divide(BigDecimal.valueOf(100)));
+            quotation.setDiscountAmount(subtotal.multiply(discountPercentage)
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP));
         }
         quotation.setTotalAmount(subtotal.subtract(quotation.getDiscountAmount() != null ? quotation.getDiscountAmount() : BigDecimal.ZERO));
         

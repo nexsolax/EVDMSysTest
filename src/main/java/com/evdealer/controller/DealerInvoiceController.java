@@ -77,9 +77,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -115,9 +116,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -148,13 +150,25 @@ public class DealerInvoiceController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerInvoiceStatus statusEnum = com.evdealer.enums.DealerInvoiceStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerInvoiceStatus.values())
+                    .map(com.evdealer.enums.DealerInvoiceStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<DealerInvoice> invoices = dealerInvoiceService.getInvoicesByStatus(statusEnum.getValue());
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     invoices = invoices.stream()
                         .filter(invoice -> invoice.getDealerOrder() != null 
                             && invoice.getDealerOrder().getDealer() != null
@@ -184,13 +198,15 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem invoices của order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     // Kiểm tra order thuộc về dealer của user
-                    var orderOpt = dealerOrderService.getDealerOrderById(dealerOrderId);
-                    if (orderOpt.isPresent() && orderOpt.get().getDealer() != null) {
-                        UUID orderDealerId = orderOpt.get().getDealer().getDealerId();
+                    var dealerOrder = dealerOrderService.getDealerOrderById(dealerOrderId)
+                        .orElseThrow(() -> new RuntimeException("Dealer order not found"));
+                    if (dealerOrder.getDealer() != null) {
+                        UUID orderDealerId = dealerOrder.getDealer().getDealerId();
                         if (!orderDealerId.equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only view invoices for orders of your own dealer");
@@ -224,9 +240,10 @@ public class DealerInvoiceController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     invoices = invoices.stream()
                         .filter(invoice -> invoice.getDealerOrder() != null 
                             && invoice.getDealerOrder().getDealer() != null
@@ -260,9 +277,10 @@ public class DealerInvoiceController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     invoices = invoices.stream()
                         .filter(invoice -> invoice.getDealerOrder() != null 
                             && invoice.getDealerOrder().getDealer() != null
@@ -294,9 +312,10 @@ public class DealerInvoiceController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     invoices = invoices.stream()
                         .filter(invoice -> invoice.getDealerOrder() != null 
                             && invoice.getDealerOrder().getDealer() != null
@@ -389,7 +408,18 @@ public class DealerInvoiceController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            DealerInvoice updatedInvoice = dealerInvoiceService.updateInvoiceStatus(invoiceId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.DealerInvoiceStatus statusEnum = com.evdealer.enums.DealerInvoiceStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.DealerInvoiceStatus.values())
+                    .map(com.evdealer.enums.DealerInvoiceStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            DealerInvoice updatedInvoice = dealerInvoiceService.updateInvoiceStatus(invoiceId, statusEnum.getValue());
             return ResponseEntity.ok(updatedInvoice);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -512,9 +542,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem items của invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -612,9 +643,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem PDF của invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -659,9 +691,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem balance của invoice của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (invoice.getDealerOrder() != null && invoice.getDealerOrder().getDealer() != null) {
                         UUID invoiceDealerId = invoice.getDealerOrder().getDealer().getDealerId();
                         if (!invoiceDealerId.equals(userDealerId)) {
@@ -708,9 +741,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem invoices của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view invoices for your own dealer");
@@ -741,9 +775,10 @@ public class DealerInvoiceController {
             
             // Kiểm tra dealer user chỉ có thể xem invoices của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view unpaid invoices for your own dealer");

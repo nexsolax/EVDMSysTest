@@ -102,9 +102,10 @@ public class DealerController {
             
             // Dealer user chỉ có thể xem thông tin của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealer.getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view information of your own dealer");
@@ -321,9 +322,10 @@ public class DealerController {
             if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
                 // Kiểm tra dealer user chỉ có thể update dealer của mình
                 if (securityUtils.isDealerUser()) {
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    var currentUser = securityUtils.getCurrentUser()
+                        .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                    if (currentUser.getDealer() != null) {
+                        UUID userDealerId = currentUser.getDealer().getDealerId();
                         if (!existingDealer.getDealerId().equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only update your own dealer information");

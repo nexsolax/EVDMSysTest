@@ -66,9 +66,10 @@ public class DealerTargetController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     targets = targets.stream()
                         .filter(target -> target.getDealer() != null && target.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -100,9 +101,10 @@ public class DealerTargetController {
             
             // Dealer user chỉ có thể xem target của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (target.getDealer() != null && !target.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view targets for your own dealer");
@@ -188,9 +190,10 @@ public class DealerTargetController {
             
             // Kiểm tra dealer user chỉ có thể xem targets của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view targets for your own dealer");
@@ -238,9 +241,10 @@ public class DealerTargetController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     targets = targets.stream()
                         .filter(target -> target.getDealer() != null && target.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -269,9 +273,10 @@ public class DealerTargetController {
             
             // Kiểm tra dealer user chỉ có thể xem targets của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view targets for your own dealer");
@@ -452,9 +457,10 @@ public class DealerTargetController {
             if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
                 // Kiểm tra dealer user chỉ có thể update achievement của target của dealer mình
                 if (securityUtils.isDealerUser()) {
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    var currentUser = securityUtils.getCurrentUser()
+                        .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                    if (currentUser.getDealer() != null) {
+                        UUID userDealerId = currentUser.getDealer().getDealerId();
                         if (existingTarget.getDealer() != null && !existingTarget.getDealer().getDealerId().equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only update achievement for targets of your own dealer");

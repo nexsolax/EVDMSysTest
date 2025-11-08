@@ -45,7 +45,7 @@ public class VehicleVariant {
     @Column(name = "charging_time_slow")
     private Integer chargingTimeSlow;
     
-    @Column(name = "price_base", precision = 12, scale = 2)
+    @Column(name = "price_base", precision = 15, scale = 2)
     private BigDecimal priceBase;
     
     @Column(name = "variant_image_url", length = 500)

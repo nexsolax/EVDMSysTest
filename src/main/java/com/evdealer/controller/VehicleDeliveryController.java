@@ -5,6 +5,8 @@ import com.evdealer.dto.VehicleDeliveryDTO;
 import com.evdealer.entity.VehicleDelivery;
 import com.evdealer.entity.DealerOrder;
 import com.evdealer.entity.DealerOrderItem;
+import com.evdealer.enums.DealerOrderItemStatus;
+import com.evdealer.enums.VehicleDeliveryStatus;
 import com.evdealer.entity.Dealer;
 import com.evdealer.service.VehicleDeliveryService;
 import com.evdealer.service.DealerOrderService;
@@ -70,9 +72,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -104,9 +107,10 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể xem delivery của dealer mình (nếu là dealer order delivery)
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (delivery.getDealerOrder() != null && delivery.getDealerOrder().getDealer() != null) {
                         UUID deliveryDealerId = delivery.getDealerOrder().getDealer().getDealerId();
                         if (!deliveryDealerId.equals(userDealerId)) {
@@ -138,13 +142,15 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể xem deliveries của order của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     // Kiểm tra order thuộc về dealer của user (nếu là dealer order)
-                    var orderOpt = dealerOrderService.getDealerOrderById(orderId);
-                    if (orderOpt.isPresent() && orderOpt.get().getDealer() != null) {
-                        UUID orderDealerId = orderOpt.get().getDealer().getDealerId();
+                    var dealerOrder = dealerOrderService.getDealerOrderById(orderId)
+                        .orElseThrow(() -> new RuntimeException("Dealer order not found"));
+                    if (dealerOrder.getDealer() != null) {
+                        UUID orderDealerId = dealerOrder.getDealer().getDealerId();
                         if (!orderDealerId.equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only view deliveries for orders of your own dealer");
@@ -177,9 +183,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user (chỉ lọc deliveries từ dealer orders)
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -210,9 +217,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user (chỉ lọc deliveries từ dealer orders)
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -243,9 +251,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user (chỉ lọc deliveries từ dealer orders)
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -276,9 +285,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -311,9 +321,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -344,9 +355,10 @@ public class VehicleDeliveryController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
                         .filter(delivery -> delivery.getDealerOrder() != null
                             && delivery.getDealerOrder().getDealer() != null
@@ -464,7 +476,18 @@ public class VehicleDeliveryController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
-            VehicleDelivery updatedDelivery = vehicleDeliveryService.updateDeliveryStatus(deliveryId, status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.VehicleDeliveryStatus statusEnum = com.evdealer.enums.VehicleDeliveryStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.VehicleDeliveryStatus.values())
+                    .map(com.evdealer.enums.VehicleDeliveryStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            VehicleDelivery updatedDelivery = vehicleDeliveryService.updateDeliveryStatus(deliveryId, statusEnum.getValue());
             return ResponseEntity.ok(toDTO(updatedDelivery));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
@@ -567,9 +590,9 @@ public class VehicleDeliveryController {
                     dealerOrderRepository.save(dealerOrder);
                 } else {
                     // Try to get from current user if available
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        dealerOrder.setDealer(currentUserOpt.get().getDealer());
+                    var currentUser = securityUtils.getCurrentUser();
+                    if (currentUser.isPresent() && currentUser.get().getDealer() != null) {
+                        dealerOrder.setDealer(currentUser.get().getDealer());
                         dealerOrderRepository.save(dealerOrder);
                     } else {
                         // Try to get default dealer (first available dealer)
@@ -656,9 +679,10 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể xem deliveries của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view deliveries for your own dealer");
@@ -700,9 +724,10 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể xem deliveries của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view deliveries for your own dealer");
@@ -755,9 +780,10 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể confirm delivery của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (delivery.getDealerOrder() != null && delivery.getDealerOrder().getDealer() != null) {
                         UUID deliveryDealerId = delivery.getDealerOrder().getDealer().getDealerId();
                         if (!deliveryDealerId.equals(userDealerId)) {
@@ -769,9 +795,10 @@ public class VehicleDeliveryController {
                 }
             }
             
-            if (!"IN_TRANSIT".equals(delivery.getDeliveryStatus())) {
+            if (delivery.getDeliveryStatus() != VehicleDeliveryStatus.IN_TRANSIT) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Cannot confirm delivery that is not in transit. Current status: " + delivery.getDeliveryStatus());
+                error.put("error", "Cannot confirm delivery that is not in transit. Current status: " + 
+                    (delivery.getDeliveryStatus() != null ? delivery.getDeliveryStatus().getValue() : "null"));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
@@ -779,7 +806,7 @@ public class VehicleDeliveryController {
             String condition = confirmationRequest.getOrDefault("condition", "GOOD").toString();
             
             // Update delivery status
-            delivery.setDeliveryStatus("DELIVERED");
+            delivery.setDeliveryStatus(VehicleDeliveryStatus.DELIVERED);
             delivery.setActualDeliveryDate(LocalDate.now());
             delivery.setNotes(delivery.getNotes() + " [DEALER CONFIRMED: " + dealerNotes + "]");
             delivery.setCondition(condition);
@@ -789,7 +816,7 @@ public class VehicleDeliveryController {
             // Update order item status
             if (delivery.getDealerOrderItem() != null) {
                 DealerOrderItem item = delivery.getDealerOrderItem();
-                item.setStatus("DELIVERED");
+                item.setStatus(DealerOrderItemStatus.DELIVERED);
                 dealerOrderItemService.updateDealerOrderItem(item.getItemId(), item);
             }
             
@@ -824,9 +851,10 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể xem summary của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view delivery summary for your own dealer");
@@ -864,9 +892,10 @@ public class VehicleDeliveryController {
             
             // Kiểm tra dealer user chỉ có thể xem pending deliveries của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (!dealerId.equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view pending deliveries for your own dealer");
@@ -934,7 +963,7 @@ public class VehicleDeliveryController {
         dto.setInventoryId(d.getInventory() != null ? d.getInventory().getInventoryId() : null);
         dto.setCustomerId(d.getCustomer() != null ? d.getCustomer().getCustomerId() : null);
         dto.setDeliveryDate(d.getDeliveryDate());
-        dto.setDeliveryStatus(d.getDeliveryStatus());
+        dto.setDeliveryStatus(d.getDeliveryStatus() != null ? d.getDeliveryStatus().getValue() : null);
         dto.setDeliveryAddress(d.getDeliveryAddress());
         dto.setDeliveryContactName(d.getDeliveryContactName());
         dto.setDeliveryContactPhone(d.getDeliveryContactPhone());

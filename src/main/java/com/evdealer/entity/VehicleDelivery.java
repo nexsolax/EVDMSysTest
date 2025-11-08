@@ -1,5 +1,7 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.VehicleDeliveryStatus;
+import com.evdealer.enums.VehicleCondition;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -57,11 +59,9 @@ public class VehicleDelivery {
     @Column(name = "delivery_contact_phone", length = 20)
     private String deliveryContactPhone;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "delivery_status", length = 50, nullable = false)
-    private String deliveryStatus = "scheduled";
-    
-    @Column(name = "delivery_notes", columnDefinition = "TEXT")
-    private String deliveryNotes;
+    private VehicleDeliveryStatus deliveryStatus = VehicleDeliveryStatus.SCHEDULED;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivered_by")
@@ -93,8 +93,9 @@ public class VehicleDelivery {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "condition", length = 100)
-    private String condition;
+    private VehicleCondition condition;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -188,20 +189,19 @@ public class VehicleDelivery {
         this.deliveryContactPhone = deliveryContactPhone;
     }
     
-    public String getDeliveryStatus() {
+    public VehicleDeliveryStatus getDeliveryStatus() {
         return deliveryStatus;
     }
     
-    public void setDeliveryStatus(String deliveryStatus) {
+    public void setDeliveryStatus(VehicleDeliveryStatus deliveryStatus) {
         this.deliveryStatus = deliveryStatus;
     }
     
-    public String getDeliveryNotes() {
-        return deliveryNotes;
-    }
-    
-    public void setDeliveryNotes(String deliveryNotes) {
-        this.deliveryNotes = deliveryNotes;
+    /**
+     * Set deliveryStatus from String (backward compatibility)
+     */
+    public void setDeliveryStatus(String deliveryStatus) {
+        this.deliveryStatus = VehicleDeliveryStatus.fromString(deliveryStatus);
     }
     
     public User getDeliveredBy() {
@@ -276,12 +276,19 @@ public class VehicleDelivery {
         this.notes = notes;
     }
     
-    public String getCondition() {
+    public VehicleCondition getCondition() {
         return condition;
     }
     
-    public void setCondition(String condition) {
+    public void setCondition(VehicleCondition condition) {
         this.condition = condition;
+    }
+    
+    /**
+     * Set condition from String (backward compatibility)
+     */
+    public void setCondition(String condition) {
+        this.condition = VehicleCondition.fromString(condition);
     }
     
     public LocalDateTime getCreatedAt() {

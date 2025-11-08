@@ -361,7 +361,8 @@ public class InventoryManagementController {
     public ResponseEntity<List<String>> getAllStatuses() {
         List<VehicleInventory> allInventory = vehicleInventoryService.getAllVehicleInventory();
         List<String> statuses = allInventory.stream()
-                .map(VehicleInventory::getStatus)
+                .map(inv -> inv.getStatus() != null ? inv.getStatus().getValue() : null)
+                .filter(status -> status != null)
                 .distinct()
                 .sorted()
                 .collect(java.util.stream.Collectors.toList());
@@ -373,8 +374,9 @@ public class InventoryManagementController {
     public ResponseEntity<Map<String, Object>> getStatusSummary() {
         List<VehicleInventory> allInventory = vehicleInventoryService.getAllVehicleInventory();
         Map<String, Long> statusCounts = allInventory.stream()
+                .filter(inv -> inv.getStatus() != null)
                 .collect(java.util.stream.Collectors.groupingBy(
-                    VehicleInventory::getStatus,
+                    inv -> inv.getStatus().getValue(),
                     java.util.stream.Collectors.counting()
                 ));
         

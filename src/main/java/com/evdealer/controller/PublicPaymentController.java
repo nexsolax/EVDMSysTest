@@ -129,7 +129,7 @@ public class PublicPaymentController {
                         Map<String, Object> status = new HashMap<>();
                         status.put("paymentId", payment.getPaymentId());
                         status.put("amount", payment.getAmount());
-                        status.put("paymentMethod", payment.getPaymentMethod());
+                        status.put("paymentMethod", payment.getPaymentMethod() != null ? payment.getPaymentMethod().getValue() : null);
                         status.put("paymentType", payment.getPaymentType());
                         status.put("status", payment.getStatus());
                         status.put("paymentDate", payment.getPaymentDate());
@@ -193,7 +193,7 @@ public class PublicPaymentController {
                 Map<String, Object> paymentMap = new HashMap<>();
                 paymentMap.put("paymentId", payment.getPaymentId());
                 paymentMap.put("amount", payment.getAmount());
-                paymentMap.put("paymentMethod", payment.getPaymentMethod());
+                paymentMap.put("paymentMethod", payment.getPaymentMethod() != null ? payment.getPaymentMethod().getValue() : null);
                 paymentMap.put("paymentType", payment.getPaymentType());
                 paymentMap.put("status", payment.getStatus());
                 paymentMap.put("paymentDate", payment.getPaymentDate());

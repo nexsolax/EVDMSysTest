@@ -86,7 +86,7 @@ public class VehicleDeliveryService {
         delivery.setDeliveryContactName(deliveryDetails.getDeliveryContactName());
         delivery.setDeliveryContactPhone(deliveryDetails.getDeliveryContactPhone());
         delivery.setDeliveryStatus(deliveryDetails.getDeliveryStatus());
-        delivery.setDeliveryNotes(deliveryDetails.getDeliveryNotes());
+        delivery.setNotes(deliveryDetails.getNotes()); // Using notes field instead of deliveryNotes
         delivery.setDeliveredBy(deliveryDetails.getDeliveredBy());
         delivery.setDeliveryConfirmationDate(deliveryDetails.getDeliveryConfirmationDate());
         delivery.setCustomerSignatureUrl(deliveryDetails.getCustomerSignatureUrl());

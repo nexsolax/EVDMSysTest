@@ -2,6 +2,10 @@ package com.evdealer.entity;
 
 import com.evdealer.enums.PaymentTerms;
 import com.evdealer.enums.DeliveryTerms;
+import com.evdealer.enums.DealerOrderStatus;
+import com.evdealer.enums.DealerOrderType;
+import com.evdealer.enums.Priority;
+import com.evdealer.enums.ApprovalStatus;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -56,17 +60,21 @@ public class DealerOrder {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "PENDING"; // PENDING, APPROVED, REJECTED, CONFIRMED, WAITING_FOR_QUOTATION, IN_PRODUCTION, READY_FOR_DELIVERY, DELIVERED, CANCELLED
+    private DealerOrderStatus status = DealerOrderStatus.PENDING;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "priority", length = 20, nullable = false)
-    private String priority = "NORMAL"; // LOW, NORMAL, HIGH, URGENT
+    private Priority priority = Priority.NORMAL;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "order_type", length = 50, nullable = false)
-    private String orderType = "PURCHASE"; // PURCHASE, RESERVE, SAMPLE
+    private DealerOrderType orderType = DealerOrderType.PURCHASE;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", length = 50, nullable = false)
-    private String approvalStatus = "PENDING"; // PENDING, APPROVED, REJECTED
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
     
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
@@ -189,36 +197,64 @@ public class DealerOrder {
         this.totalAmount = totalAmount;
     }
     
-    public String getStatus() {
+    public DealerOrderStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(DealerOrderStatus status) {
         this.status = status;
     }
     
-    public String getPriority() {
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = DealerOrderStatus.fromString(status);
+    }
+    
+    public Priority getPriority() {
         return priority;
     }
     
-    public void setPriority(String priority) {
+    public void setPriority(Priority priority) {
         this.priority = priority;
     }
     
-    public String getOrderType() {
+    /**
+     * Set priority from String (backward compatibility)
+     */
+    public void setPriority(String priority) {
+        this.priority = Priority.fromString(priority);
+    }
+    
+    public DealerOrderType getOrderType() {
         return orderType;
     }
     
-    public void setOrderType(String orderType) {
+    public void setOrderType(DealerOrderType orderType) {
         this.orderType = orderType;
     }
     
-    public String getApprovalStatus() {
+    /**
+     * Set orderType from String (backward compatibility)
+     */
+    public void setOrderType(String orderType) {
+        this.orderType = DealerOrderType.fromString(orderType);
+    }
+    
+    public ApprovalStatus getApprovalStatus() {
         return approvalStatus;
     }
     
-    public void setApprovalStatus(String approvalStatus) {
+    public void setApprovalStatus(ApprovalStatus approvalStatus) {
         this.approvalStatus = approvalStatus;
+    }
+    
+    /**
+     * Set approvalStatus from String (backward compatibility)
+     */
+    public void setApprovalStatus(String approvalStatus) {
+        this.approvalStatus = ApprovalStatus.fromString(approvalStatus);
     }
     
     public String getRejectionReason() {

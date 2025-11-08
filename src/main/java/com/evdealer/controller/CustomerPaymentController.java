@@ -53,7 +53,7 @@ public class CustomerPaymentController {
         paymentMap.put("paymentDate", payment.getPaymentDate());
         paymentMap.put("amount", payment.getAmount());
         paymentMap.put("paymentType", payment.getPaymentType());
-        paymentMap.put("paymentMethod", payment.getPaymentMethod());
+        paymentMap.put("paymentMethod", payment.getPaymentMethod() != null ? payment.getPaymentMethod().getValue() : null);
         paymentMap.put("referenceNumber", payment.getReferenceNumber());
         paymentMap.put("status", payment.getStatus());
         paymentMap.put("notes", payment.getNotes());
@@ -104,7 +104,18 @@ public class CustomerPaymentController {
     @Operation(summary = "Get payments by status", description = "Retrieve customer payments filtered by status")
     public ResponseEntity<?> getPaymentsByStatus(@PathVariable String status) {
         try {
-            List<CustomerPayment> payments = customerPaymentService.getPaymentsByStatus(status);
+            // Validate và convert status string to enum
+            com.evdealer.enums.CustomerPaymentStatus statusEnum = com.evdealer.enums.CustomerPaymentStatus.fromString(status);
+            if (statusEnum == null) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Invalid status: " + status);
+                error.put("validStatuses", String.join(", ", java.util.Arrays.stream(com.evdealer.enums.CustomerPaymentStatus.values())
+                    .map(com.evdealer.enums.CustomerPaymentStatus::getValue)
+                    .collect(java.util.stream.Collectors.toList())));
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            List<CustomerPayment> payments = customerPaymentService.getPaymentsByStatus(statusEnum.getValue());
             List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
             return ResponseEntity.ok(paymentList);
         } catch (Exception e) {

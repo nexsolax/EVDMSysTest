@@ -70,9 +70,10 @@ public class DealerContractController {
             
             // Filter theo dealer nếu là dealer user
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     contracts = contracts.stream()
                         .filter(contract -> contract.getDealer() != null && contract.getDealer().getDealerId().equals(userDealerId))
                         .collect(java.util.stream.Collectors.toList());
@@ -104,9 +105,10 @@ public class DealerContractController {
             
             // Dealer user chỉ có thể xem contract của dealer mình
             if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-                var currentUserOpt = securityUtils.getCurrentUser();
-                if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                    UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                var currentUser = securityUtils.getCurrentUser()
+                    .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                if (currentUser.getDealer() != null) {
+                    UUID userDealerId = currentUser.getDealer().getDealerId();
                     if (contract.getDealer() != null && !contract.getDealer().getDealerId().equals(userDealerId)) {
                         Map<String, String> error = new HashMap<>();
                         error.put("error", "Access denied. You can only view contracts for your own dealer");
@@ -337,9 +339,10 @@ public class DealerContractController {
             if (!securityUtils.isAdmin() && !securityUtils.isEvmStaff()) {
                 // Kiểm tra dealer user chỉ có thể sign contract của dealer mình
                 if (securityUtils.isDealerUser()) {
-                    var currentUserOpt = securityUtils.getCurrentUser();
-                    if (currentUserOpt.isPresent() && currentUserOpt.get().getDealer() != null) {
-                        UUID userDealerId = currentUserOpt.get().getDealer().getDealerId();
+                    var currentUser = securityUtils.getCurrentUser()
+                        .orElseThrow(() -> new RuntimeException("User not authenticated"));
+                    if (currentUser.getDealer() != null) {
+                        UUID userDealerId = currentUser.getDealer().getDealerId();
                         if (existingContract.getDealer() != null && !existingContract.getDealer().getDealerId().equals(userDealerId)) {
                             Map<String, String> error = new HashMap<>();
                             error.put("error", "Access denied. You can only sign contracts for your own dealer");

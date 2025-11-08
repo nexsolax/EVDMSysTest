@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.PricingPolicyStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -35,19 +36,19 @@ public class PricingPolicy {
     @Column(name = "policy_type", length = 50, nullable = false)
     private String policyType = "standard";
     
-    @Column(name = "base_price", precision = 12, scale = 2)
+    @Column(name = "base_price", precision = 15, scale = 2)
     private BigDecimal basePrice;
     
     @Column(name = "discount_percent", precision = 5, scale = 2)
     private BigDecimal discountPercent;
     
-    @Column(name = "discount_amount", precision = 12, scale = 2)
+    @Column(name = "discount_amount", precision = 15, scale = 2)
     private BigDecimal discountAmount;
     
     @Column(name = "markup_percent", precision = 5, scale = 2)
     private BigDecimal markupPercent;
     
-    @Column(name = "markup_amount", precision = 12, scale = 2)
+    @Column(name = "markup_amount", precision = 15, scale = 2)
     private BigDecimal markupAmount;
     
     @Column(name = "effective_date", nullable = false)
@@ -71,8 +72,9 @@ public class PricingPolicy {
     @Column(name = "scope", length = 50, nullable = false)
     private String scope = "global";
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "active";
+    private PricingPolicyStatus status = PricingPolicyStatus.ACTIVE;
     
     @Column(name = "priority", nullable = false)
     private Integer priority = 0;
@@ -239,12 +241,19 @@ public class PricingPolicy {
         this.scope = scope;
     }
     
-    public String getStatus() {
+    public PricingPolicyStatus getStatus() {
         return status;
     }
-    
-    public void setStatus(String status) {
+
+    public void setStatus(PricingPolicyStatus status) {
         this.status = status;
+    }
+
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = PricingPolicyStatus.fromString(status);
     }
     
     public Integer getPriority() {

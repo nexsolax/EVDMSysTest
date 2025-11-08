@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.DealerInvoiceStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -44,17 +45,18 @@ public class DealerInvoice {
     @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
     private BigDecimal subtotal;
     
-    @Column(name = "tax_amount", precision = 12, scale = 2)
+    @Column(name = "tax_amount", precision = 15, scale = 2)
     private BigDecimal taxAmount = BigDecimal.ZERO;
     
-    @Column(name = "discount_amount", precision = 12, scale = 2)
+    @Column(name = "discount_amount", precision = 15, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
     
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "issued";
+    private DealerInvoiceStatus status = DealerInvoiceStatus.ISSUED;
     
     @Column(name = "payment_terms_days")
     private Integer paymentTermsDays = 30;
@@ -164,12 +166,19 @@ public class DealerInvoice {
         this.totalAmount = totalAmount;
     }
     
-    public String getStatus() {
+    public DealerInvoiceStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(DealerInvoiceStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = DealerInvoiceStatus.fromString(status);
     }
     
     public Integer getPaymentTermsDays() {

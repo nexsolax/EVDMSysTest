@@ -4,6 +4,9 @@ import com.evdealer.entity.CustomerPayment;
 import com.evdealer.entity.Order;
 import com.evdealer.entity.VehicleInventory;
 import com.evdealer.enums.PaymentStatus;
+import com.evdealer.enums.CustomerPaymentStatus;
+import com.evdealer.enums.OrderStatus;
+import com.evdealer.enums.VehicleStatus;
 import com.evdealer.repository.CustomerPaymentRepository;
 import com.evdealer.repository.OrderRepository;
 import com.evdealer.repository.VehicleInventoryRepository;
@@ -83,7 +86,7 @@ public class CustomerPaymentService {
         CustomerPayment savedPayment = customerPaymentRepository.save(customerPayment);
         
         // Update Order status after payment is created and if status is "completed"
-        if ("completed".equalsIgnoreCase(savedPayment.getStatus()) && savedPayment.getOrder() != null) {
+        if (savedPayment.getStatus() == CustomerPaymentStatus.COMPLETED && savedPayment.getOrder() != null) {
             updateOrderStatusAfterPayment(savedPayment.getOrder().getOrderId());
         }
         
@@ -123,7 +126,7 @@ public class CustomerPaymentService {
         CustomerPayment savedPayment = customerPaymentRepository.save(customerPayment);
         
         // Update Order status after payment status is updated to "completed"
-        if ("completed".equalsIgnoreCase(status) && savedPayment.getOrder() != null) {
+        if (savedPayment.getStatus() == CustomerPaymentStatus.COMPLETED && savedPayment.getOrder() != null) {
             updateOrderStatusAfterPayment(savedPayment.getOrder().getOrderId());
         }
         
@@ -136,7 +139,7 @@ public class CustomerPaymentService {
     private BigDecimal calculateTotalPaid(UUID orderId) {
         List<CustomerPayment> payments = customerPaymentRepository.findByOrderOrderId(orderId);
         return payments.stream()
-                .filter(p -> "completed".equalsIgnoreCase(p.getStatus()))
+                .filter(p -> p.getStatus() == CustomerPaymentStatus.COMPLETED)
                 .map(CustomerPayment::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
@@ -158,18 +161,18 @@ public class CustomerPaymentService {
         if (order.getTotalAmount() != null && totalPaid.compareTo(order.getTotalAmount()) >= 0) {
             // Fully paid
             order.setPaymentStatus(PaymentStatus.PAID);
-            order.setStatus("paid");
+            order.setStatus(OrderStatus.PAID);
             
             // Update Inventory status to "sold" if fully paid
             if (order.getInventory() != null) {
                 VehicleInventory inventory = order.getInventory();
-                inventory.setStatus("sold");
+                inventory.setStatus(VehicleStatus.SOLD);
                 vehicleInventoryRepository.save(inventory);
             }
         } else if (totalPaid.compareTo(BigDecimal.ZERO) > 0) {
             // Partially paid
             order.setPaymentStatus(PaymentStatus.PARTIAL);
-            order.setStatus("confirmed");
+            order.setStatus(OrderStatus.CONFIRMED);
         }
         
         orderRepository.save(order);

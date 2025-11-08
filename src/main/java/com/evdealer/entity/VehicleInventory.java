@@ -1,6 +1,7 @@
 package com.evdealer.entity;
 
 import com.evdealer.enums.VehicleCondition;
+import com.evdealer.enums.VehicleStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -62,14 +63,15 @@ public class VehicleInventory {
     @Column(name = "arrival_date")
     private LocalDate arrivalDate;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "available";
+    private VehicleStatus status = VehicleStatus.AVAILABLE;
     
     
-    @Column(name = "cost_price", precision = 12, scale = 2)
+    @Column(name = "cost_price", precision = 15, scale = 2)
     private BigDecimal costPrice;
     
-    @Column(name = "selling_price", precision = 12, scale = 2)
+    @Column(name = "selling_price", precision = 15, scale = 2)
     private BigDecimal sellingPrice;
     
     @JdbcTypeCode(SqlTypes.JSON)
@@ -193,12 +195,19 @@ public class VehicleInventory {
         this.arrivalDate = arrivalDate;
     }
     
-    public String getStatus() {
+    public VehicleStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(VehicleStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = VehicleStatus.fromString(status);
     }
     
     

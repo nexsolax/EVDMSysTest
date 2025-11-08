@@ -1,5 +1,7 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.DealerPaymentStatus;
+import com.evdealer.enums.PaymentMethod;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -32,14 +34,16 @@ public class DealerPayment {
     @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_type", length = 50)
-    private String paymentType;
+    private PaymentMethod paymentMethod;
     
     @Column(name = "reference_number", length = 100)
     private String referenceNumber;
     
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "pending";
+    private DealerPaymentStatus status = DealerPaymentStatus.PENDING;
     
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
@@ -99,12 +103,37 @@ public class DealerPayment {
         this.amount = amount;
     }
     
-    public String getPaymentType() {
-        return paymentType;
+    public PaymentMethod getPaymentMethod() {
+        return paymentMethod;
     }
-    
+
+    public void setPaymentMethod(PaymentMethod paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    /**
+     * Set paymentMethod from String (backward compatibility)
+     */
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = PaymentMethod.fromString(paymentMethod);
+    }
+
+    /**
+     * Get paymentType (backward compatibility - returns enum value)
+     * @deprecated Use getPaymentMethod() instead
+     */
+    @Deprecated
+    public String getPaymentType() {
+        return paymentMethod != null ? paymentMethod.getValue() : null;
+    }
+
+    /**
+     * Set paymentType (backward compatibility)
+     * @deprecated Use setPaymentMethod() instead
+     */
+    @Deprecated
     public void setPaymentType(String paymentType) {
-        this.paymentType = paymentType;
+        this.paymentMethod = PaymentMethod.fromString(paymentType);
     }
     
     public String getReferenceNumber() {
@@ -115,12 +144,19 @@ public class DealerPayment {
         this.referenceNumber = referenceNumber;
     }
     
-    public String getStatus() {
+    public DealerPaymentStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(DealerPaymentStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Set status from String (backward compatibility)
+     */
+    public void setStatus(String status) {
+        this.status = DealerPaymentStatus.fromString(status);
     }
     
     public String getNotes() {
