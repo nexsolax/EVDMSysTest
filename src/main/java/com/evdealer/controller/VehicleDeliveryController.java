@@ -78,14 +78,30 @@ public class VehicleDeliveryController {
                 if (currentUser.getDealer() != null) {
                     UUID userDealerId = currentUser.getDealer().getDealerId();
                     deliveries = deliveries.stream()
-                        .filter(delivery -> delivery.getDealerOrder() != null
-                            && delivery.getDealerOrder().getDealer() != null
-                            && delivery.getDealerOrder().getDealer().getDealerId().equals(userDealerId))
+                        .filter(delivery -> {
+                            try {
+                                return delivery.getDealerOrder() != null
+                                    && delivery.getDealerOrder().getDealer() != null
+                                    && delivery.getDealerOrder().getDealer().getDealerId().equals(userDealerId);
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        })
                         .collect(java.util.stream.Collectors.toList());
                 }
             }
             
-            return ResponseEntity.ok(deliveries.stream().map(this::toDTO).toList());
+            return ResponseEntity.ok(deliveries.stream()
+                .map(delivery -> {
+                    try {
+                        return toDTO(delivery);
+                    } catch (Exception e) {
+                        VehicleDeliveryDTO errorDTO = new VehicleDeliveryDTO();
+                        errorDTO.setDeliveryId(delivery.getDeliveryId());
+                        return errorDTO;
+                    }
+                })
+                .toList());
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get deliveries: " + e.getMessage());
@@ -575,7 +591,7 @@ public class VehicleDeliveryController {
             
             if (dealerOrder.getApprovalStatus() != ApprovalStatus.APPROVED) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Cannot create delivery for non-approved order. Order status: " + dealerOrder.getApprovalStatus());
+                error.put("error", "Cannot create delivery for non-approved order. Order status: " + (dealerOrder.getApprovalStatus() != null ? dealerOrder.getApprovalStatus().getValue() : "null"));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
@@ -960,15 +976,31 @@ public class VehicleDeliveryController {
     private VehicleDeliveryDTO toDTO(VehicleDelivery d) {
         VehicleDeliveryDTO dto = new VehicleDeliveryDTO();
         dto.setDeliveryId(d.getDeliveryId());
-        dto.setOrderId(d.getOrder() != null ? d.getOrder().getOrderId() : null);
-        dto.setInventoryId(d.getInventory() != null ? d.getInventory().getInventoryId() : null);
-        dto.setCustomerId(d.getCustomer() != null ? d.getCustomer().getCustomerId() : null);
+        try {
+            dto.setOrderId(d.getOrder() != null ? d.getOrder().getOrderId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded or other error, skip
+        }
+        try {
+            dto.setInventoryId(d.getInventory() != null ? d.getInventory().getInventoryId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded or other error, skip
+        }
+        try {
+            dto.setCustomerId(d.getCustomer() != null ? d.getCustomer().getCustomerId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded or other error, skip
+        }
         dto.setDeliveryDate(d.getDeliveryDate());
         dto.setDeliveryStatus(d.getDeliveryStatus() != null ? d.getDeliveryStatus().getValue() : null);
         dto.setDeliveryAddress(d.getDeliveryAddress());
         dto.setDeliveryContactName(d.getDeliveryContactName());
         dto.setDeliveryContactPhone(d.getDeliveryContactPhone());
-        dto.setDeliveredBy(d.getDeliveredBy() != null ? d.getDeliveredBy().getUserId() : null);
+        try {
+            dto.setDeliveredBy(d.getDeliveredBy() != null ? d.getDeliveredBy().getUserId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded or other error, skip
+        }
         dto.setCreatedAt(d.getCreatedAt());
         dto.setUpdatedAt(d.getUpdatedAt());
         return dto;

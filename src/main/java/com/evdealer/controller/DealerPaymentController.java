@@ -568,7 +568,7 @@ public class DealerPaymentController {
             response.put("amount", amount);
             response.put("paymentMethod", paymentMethod); // Trả về paymentMethod (không phải paymentType)
             response.put("paymentDate", paymentDate.toString());
-            response.put("status", savedPayment.getStatus());
+            response.put("status", savedPayment.getStatus() != null ? savedPayment.getStatus().getValue() : null);
             response.put("remainingBalance", invoice.getTotalAmount().subtract(newPaidAmount));
             response.put("isFullyPaid", newPaidAmount.compareTo(invoice.getTotalAmount()) >= 0);
             
@@ -612,7 +612,7 @@ public class DealerPaymentController {
             
             if (payment.getStatus() != DealerPaymentStatus.COMPLETED) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Cannot refund payment that is not completed. Current status: " + payment.getStatus());
+                error.put("error", "Cannot refund payment that is not completed. Current status: " + (payment.getStatus() != null ? payment.getStatus().getValue() : "null"));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             
@@ -853,7 +853,7 @@ public class DealerPaymentController {
                         "invoiceId", invoiceId,
                         "invoiceNumber", invoice.getInvoiceNumber(),
                         "totalAmount", invoice.getTotalAmount(),
-                        "status", invoice.getStatus()
+                        "status", invoice.getStatus() != null ? invoice.getStatus().getValue() : null
                     ));
                     
                 } catch (Exception e) {

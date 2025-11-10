@@ -132,7 +132,7 @@ public class PublicPaymentController {
                         status.put("amount", payment.getAmount());
                         status.put("paymentMethod", payment.getPaymentMethod() != null ? payment.getPaymentMethod().getValue() : null);
                         status.put("paymentType", payment.getPaymentType());
-                        status.put("status", payment.getStatus());
+                        status.put("status", payment.getStatus() != null ? payment.getStatus().getValue() : null);
                         status.put("paymentDate", payment.getPaymentDate());
                         status.put("orderId", payment.getOrder().getOrderId());
                         status.put("orderNumber", payment.getOrder().getOrderNumber());

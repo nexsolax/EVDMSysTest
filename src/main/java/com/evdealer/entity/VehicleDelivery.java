@@ -41,7 +41,7 @@ public class VehicleDelivery {
     private VehicleInventory inventory;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
+    @JoinColumn(name = "customer_id", nullable = true)
     private Customer customer;
     
     @Column(name = "delivery_date", nullable = false)

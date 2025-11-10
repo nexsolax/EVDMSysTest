@@ -14,6 +14,10 @@ import java.util.UUID;
 @Repository
 public interface VehicleDeliveryRepository extends JpaRepository<VehicleDelivery, UUID> {
     
+    // Native query để lấy tất cả deliveries, tránh lỗi khi có foreign key null
+    @Query(value = "SELECT * FROM vehicle_deliveries ORDER BY delivery_id", nativeQuery = true)
+    List<VehicleDelivery> findAllNative();
+    
     @Query("SELECT vd FROM VehicleDelivery vd")
     List<VehicleDelivery> findAllWithDetails();
     

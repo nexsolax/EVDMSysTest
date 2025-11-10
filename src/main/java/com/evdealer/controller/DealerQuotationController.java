@@ -38,6 +38,9 @@ public class DealerQuotationController {
     private DealerQuotationItemRepository dealerQuotationItemRepository;
     
     @Autowired
+    private com.evdealer.service.DealerQuotationItemService dealerQuotationItemService;
+    
+    @Autowired
     private SecurityUtils securityUtils;
     
     @GetMapping
@@ -399,7 +402,7 @@ public class DealerQuotationController {
             response.put("quotationNumber", quotation.getQuotationNumber());
             response.put("dealerOrderId", dealerOrderId);
             response.put("totalAmount", quotation.getTotalAmount());
-            response.put("status", quotation.getStatus());
+            response.put("status", quotation.getStatus() != null ? quotation.getStatus().getValue() : null);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
@@ -433,7 +436,7 @@ public class DealerQuotationController {
             response.put("message", "Quotation sent successfully to dealer");
             response.put("quotationId", quotationId);
             response.put("quotationNumber", quotation.getQuotationNumber());
-            response.put("status", quotation.getStatus());
+            response.put("status", quotation.getStatus() != null ? quotation.getStatus().getValue() : null);
             response.put("expiryDate", quotation.getExpiryDate());
             
             return ResponseEntity.ok(response);
@@ -539,7 +542,7 @@ public class DealerQuotationController {
             response.put("message", "Quotation rejected successfully");
             response.put("quotationId", quotationId);
             response.put("quotationNumber", quotation.getQuotationNumber());
-            response.put("status", quotation.getStatus());
+            response.put("status", quotation.getStatus() != null ? quotation.getStatus().getValue() : null);
             response.put("rejectionReason", quotation.getRejectionReason());
             
             return ResponseEntity.ok(response);
@@ -547,6 +550,33 @@ public class DealerQuotationController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to reject quotation: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
+    
+    @GetMapping("/items/all")
+    @Operation(summary = "Lấy tất cả items", description = "Lấy danh sách tất cả items của tất cả báo giá đại lý")
+    public ResponseEntity<?> getAllDealerQuotationItems() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xem tất cả items
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can view all quotation items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            List<DealerQuotationItem> allItems = dealerQuotationItemService.getAllItems();
+            return ResponseEntity.ok(allItems);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get all quotation items: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     
@@ -581,7 +611,7 @@ public class DealerQuotationController {
                 }
             }
             
-            List<DealerQuotationItem> items = dealerQuotationItemRepository.findByQuotationQuotationId(quotationId);
+            List<DealerQuotationItem> items = dealerQuotationItemService.getItemsByQuotationId(quotationId);
             
             Map<String, Object> response = new HashMap<>();
             response.put("quotationId", quotationId);
@@ -598,6 +628,145 @@ public class DealerQuotationController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get quotation items: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        }
+    }
+    
+    @PostMapping("/{quotationId}/items")
+    @Operation(summary = "Thêm item vào báo giá", description = "Thêm một sản phẩm vào báo giá đại lý")
+    public ResponseEntity<?> addItemToQuotation(@PathVariable UUID quotationId, @RequestBody DealerQuotationItem item) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ EVM_STAFF hoặc ADMIN mới có thể thêm item
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can add items to quotations");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Validate quotation exists and is pending
+            DealerQuotation quotation = dealerQuotationService.getQuotationById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+            
+            if (quotation.getStatus() != com.evdealer.enums.DealerQuotationStatus.PENDING) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Only pending quotations can have items added");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            // Set quotation
+            item.setQuotation(quotation);
+            
+            // Create item
+            DealerQuotationItem createdItem = dealerQuotationItemService.createItem(item);
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdItem);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to add item: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to add item: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @PutMapping("/{quotationId}/items/{itemId}")
+    @Operation(summary = "Cập nhật item trong báo giá", description = "Cập nhật thông tin của một sản phẩm trong báo giá")
+    public ResponseEntity<?> updateQuotationItem(
+            @PathVariable UUID quotationId,
+            @PathVariable UUID itemId,
+            @RequestBody DealerQuotationItem itemDetails) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ EVM_STAFF hoặc ADMIN mới có thể update item
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can update quotation items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Validate quotation exists and is pending
+            DealerQuotation quotation = dealerQuotationService.getQuotationById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+            
+            if (quotation.getStatus() != com.evdealer.enums.DealerQuotationStatus.PENDING) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Only pending quotations can have items updated");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            // Update item
+            DealerQuotationItem updatedItem = dealerQuotationItemService.updateItem(itemId, itemDetails);
+            
+            return ResponseEntity.ok(updatedItem);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update item: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to update item: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @DeleteMapping("/{quotationId}/items/{itemId}")
+    @Operation(summary = "Xóa item khỏi báo giá", description = "Xóa một sản phẩm khỏi báo giá đại lý")
+    public ResponseEntity<?> deleteQuotationItem(
+            @PathVariable UUID quotationId,
+            @PathVariable UUID itemId) {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ EVM_STAFF hoặc ADMIN mới có thể xóa item
+            if (!securityUtils.hasAnyRole("EVM_STAFF", "ADMIN")) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only EVM staff or admin can delete quotation items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Validate quotation exists and is pending
+            DealerQuotation quotation = dealerQuotationService.getQuotationById(quotationId)
+                .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
+            
+            if (quotation.getStatus() != com.evdealer.enums.DealerQuotationStatus.PENDING) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Only pending quotations can have items deleted");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            // Delete item
+            dealerQuotationItemService.deleteItem(itemId);
+            
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Quotation item deleted successfully");
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete item: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to delete item: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
     

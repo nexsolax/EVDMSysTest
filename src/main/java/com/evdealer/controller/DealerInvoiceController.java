@@ -491,7 +491,7 @@ public class DealerInvoiceController {
             
             if (dealerOrder.getApprovalStatus() != ApprovalStatus.APPROVED) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Cannot generate invoice for non-approved order. Order status: " + dealerOrder.getApprovalStatus());
+                error.put("error", "Cannot generate invoice for non-approved order. Order status: " + (dealerOrder.getApprovalStatus() != null ? dealerOrder.getApprovalStatus().getValue() : "null"));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             

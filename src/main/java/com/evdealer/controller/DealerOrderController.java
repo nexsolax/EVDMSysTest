@@ -481,6 +481,33 @@ public class DealerOrderController {
         }
     }
     
+    @GetMapping("/items/all")
+    @Operation(summary = "Lấy tất cả items", description = "Lấy danh sách tất cả items của tất cả đơn hàng đại lý")
+    public ResponseEntity<?> getAllDealerOrderItems() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xem tất cả items
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can view all order items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            List<DealerOrderItem> allItems = dealerOrderItemService.getAllItems();
+            return ResponseEntity.ok(allItems);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get all order items: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
     @GetMapping("/{dealerOrderId}/items")
     @Operation(summary = "Lấy chi tiết xe trong đơn hàng", description = "Lấy danh sách xe trong đơn hàng đại lý")
     public ResponseEntity<?> getDealerOrderItems(@PathVariable UUID dealerOrderId) {
@@ -945,7 +972,7 @@ public class DealerOrderController {
             // Validate order is approved
             if (dealerOrder.getApprovalStatus() != ApprovalStatus.APPROVED) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Order must be approved before requesting quotation. Current status: " + dealerOrder.getApprovalStatus());
+                error.put("error", "Order must be approved before requesting quotation. Current status: " + (dealerOrder.getApprovalStatus() != null ? dealerOrder.getApprovalStatus().getValue() : "null"));
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
             }
             

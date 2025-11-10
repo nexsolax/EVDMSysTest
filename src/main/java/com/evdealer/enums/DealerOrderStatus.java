@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa các trạng thái của đơn hàng đại lý
  */
@@ -22,6 +24,7 @@ public enum DealerOrderStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

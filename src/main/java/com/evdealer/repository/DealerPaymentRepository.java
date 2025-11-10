@@ -2,6 +2,7 @@ package com.evdealer.repository;
 
 import com.evdealer.entity.DealerPayment;
 import com.evdealer.enums.DealerPaymentStatus;
+import com.evdealer.enums.PaymentMethod;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,12 +33,20 @@ public interface DealerPaymentRepository extends JpaRepository<DealerPayment, UU
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentDate BETWEEN :startDate AND :endDate")
     List<DealerPayment> findByPaymentDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     
-    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentMethod = :paymentMethod")
-    List<DealerPayment> findByPaymentMethod(@Param("paymentMethod") com.evdealer.enums.PaymentMethod paymentMethod);
+    @Query("""
+           SELECT DISTINCT dp
+           FROM DealerPayment dp
+           LEFT JOIN FETCH dp.invoice i
+           LEFT JOIN FETCH i.dealerOrder do
+           LEFT JOIN FETCH do.dealer
+           WHERE dp.paymentMethod = :paymentMethod
+           """)
+    List<DealerPayment> findByPaymentMethod(@Param("paymentMethod") PaymentMethod paymentMethod);
     
-    // Backward compatibility - accepts String (enum value)
-    @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.paymentMethod.value = :paymentType")
-    List<DealerPayment> findByPaymentType(@Param("paymentType") String paymentType);
+    // ✅ Backward compatibility (nhận String, convert sang enum)
+    default List<DealerPayment> findByPaymentType(String paymentType) {
+        return findByPaymentMethod(PaymentMethod.fromString(paymentType));
+    }
     
     @Query("SELECT DISTINCT dp FROM DealerPayment dp LEFT JOIN FETCH dp.invoice i LEFT JOIN FETCH i.dealerOrder do LEFT JOIN FETCH do.dealer WHERE dp.referenceNumber = :referenceNumber")
     List<DealerPayment> findByReferenceNumber(@Param("referenceNumber") String referenceNumber);

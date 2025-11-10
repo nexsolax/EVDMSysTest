@@ -1,5 +1,6 @@
 package com.evdealer.entity;
 
+import com.evdealer.enums.DealerQuotationStatus;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -69,8 +70,9 @@ public class Quotation {
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
     
+    @Convert(converter = com.evdealer.converter.DealerQuotationStatusConverter.class)
     @Column(name = "status", length = 50, nullable = false)
-    private String status = "pending";
+    private DealerQuotationStatus status = DealerQuotationStatus.PENDING;
     
     @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
@@ -196,12 +198,21 @@ public class Quotation {
         this.validityDays = validityDays;
     }
     
-    public String getStatus() {
+    public DealerQuotationStatus getStatus() {
         return status;
     }
     
-    public void setStatus(String status) {
+    public void setStatus(DealerQuotationStatus status) {
         this.status = status;
+    }
+    
+    /**
+     * Backward compatibility: Set status from String
+     * @deprecated Use setStatus(DealerQuotationStatus) instead
+     */
+    @Deprecated
+    public void setStatus(String status) {
+        this.status = DealerQuotationStatus.fromString(status);
     }
     
     public String getNotes() {

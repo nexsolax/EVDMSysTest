@@ -49,6 +49,12 @@ public interface VehicleInventoryRepository extends JpaRepository<VehicleInvento
     @Query("SELECT vi FROM VehicleInventory vi WHERE vi.sellingPrice BETWEEN :minPrice AND :maxPrice")
     List<VehicleInventory> findByPriceRange(@Param("minPrice") BigDecimal minPrice, @Param("maxPrice") BigDecimal maxPrice);
     
+    // Native query để set null reserved_for_customer (tránh foreign key constraint)
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(value = "UPDATE vehicle_inventory SET reserved_for_customer = NULL WHERE reserved_for_customer = :customerId", nativeQuery = true)
+    void clearReservedForCustomer(@Param("customerId") UUID customerId);
+    
     @Query("SELECT vi FROM VehicleInventory vi WHERE vi.manufacturingDate BETWEEN :startDate AND :endDate")
     List<VehicleInventory> findByManufacturingDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     

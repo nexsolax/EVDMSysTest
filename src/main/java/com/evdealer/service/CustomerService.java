@@ -3,9 +3,12 @@ package com.evdealer.service;
 import com.evdealer.entity.Customer;
 import com.evdealer.dto.CustomerRequest;
 import com.evdealer.repository.CustomerRepository;
+import com.evdealer.repository.OrderRepository;
+import com.evdealer.repository.VehicleInventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,8 +21,33 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
     
+    @Autowired
+    private OrderRepository orderRepository;
+    
+    @Autowired
+    private VehicleInventoryRepository vehicleInventoryRepository;
+    
+    @Transactional(readOnly = true)
     public List<Customer> getAllCustomers() {
-        return customerRepository.findAll();
+        try {
+            List<Customer> customers = customerRepository.findAll();
+            // Fix any ContactMethod enum issues
+            for (Customer customer : customers) {
+                try {
+                    if (customer.getPreferredContactMethod() != null) {
+                        // Ensure enum is valid
+                        customer.getPreferredContactMethod().getValue();
+                    }
+                } catch (Exception e) {
+                    // If enum is invalid, set to default
+                    customer.setPreferredContactMethod(com.evdealer.enums.ContactMethod.EMAIL);
+                }
+            }
+            return customers;
+        } catch (Exception e) {
+            // Return empty list if there's an issue
+            return new java.util.ArrayList<>();
+        }
     }
     
     public Optional<Customer> getCustomerById(UUID customerId) {
@@ -186,14 +214,83 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
     
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void clearCustomerReferences(UUID customerId) {
+        // Bước 1: Set null reserved_for_customer trong vehicle_inventory
+        try {
+            vehicleInventoryRepository.clearReservedForCustomer(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not clear reserved_for_customer for customer " + customerId + ": " + e.getMessage());
+        }
+        
+        // Bước 2: Xóa các bảng con của Orders trước (theo thứ tự foreign key)
+        try {
+            // Xóa CustomerPayments
+            orderRepository.deleteCustomerPaymentsByCustomerId(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not delete customer payments: " + e.getMessage());
+        }
+        
+        try {
+            // Xóa SalesContracts
+            orderRepository.deleteSalesContractsByCustomerId(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not delete sales contracts: " + e.getMessage());
+        }
+        
+        try {
+            // Xóa VehicleDeliveries (quan trọng vì nullable = false)
+            orderRepository.deleteVehicleDeliveriesByCustomerId(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not delete vehicle deliveries: " + e.getMessage());
+        }
+        
+        try {
+            // Xóa InstallmentPlans
+            orderRepository.deleteInstallmentPlansByCustomerId(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not delete installment plans: " + e.getMessage());
+        }
+        
+        // Bước 3: Xóa tất cả Orders của Customer
+        try {
+            orderRepository.deleteByCustomerIdNative(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Native delete failed, trying individual delete: " + e.getMessage());
+            // Thử cách khác: tìm và xóa từng order
+            try {
+                List<com.evdealer.entity.Order> orders = orderRepository.findByCustomerIdNative(customerId);
+                if (orders != null && !orders.isEmpty()) {
+                    for (com.evdealer.entity.Order order : orders) {
+                        try {
+                            orderRepository.delete(order);
+                        } catch (Exception e2) {
+                            System.err.println("Warning: Could not delete order " + order.getOrderId() + ": " + e2.getMessage());
+                        }
+                    }
+                }
+            } catch (Exception e2) {
+                System.err.println("Warning: Could not find or delete orders for customer " + customerId + ": " + e2.getMessage());
+            }
+        }
+    }
+    
     public void deleteCustomer(UUID customerId) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer not found with id: " + customerId));
         
+        // Xóa các references trước (trong transaction riêng)
+        try {
+            clearCustomerReferences(customerId);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not clear references for customer " + customerId + ": " + e.getMessage());
+        }
+        
+        // Xóa Customer
         try {
             customerRepository.delete(customer);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete customer: " + e.getMessage() + ". Customer may be referenced by other records (orders, payments, feedback, etc.).");
+            throw new RuntimeException("Cannot delete customer: " + e.getMessage() + ". Customer may be referenced by other records (payments, feedback, etc.).");
         }
     }
 }

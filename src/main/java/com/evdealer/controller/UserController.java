@@ -60,7 +60,7 @@ public class UserController {
         userMap.put("profileImageUrl", user.getProfileImageUrl());
         userMap.put("profileImagePath", user.getProfileImagePath());
         userMap.put("userType", user.getUserType() != null ? user.getUserType().toString() : null);
-        userMap.put("status", user.getStatus() != null ? user.getStatus().toString() : null);
+        userMap.put("status", user.getStatus() != null ? user.getStatus().name() : null);
         userMap.put("createdAt", user.getCreatedAt());
         userMap.put("updatedAt", user.getUpdatedAt());
         

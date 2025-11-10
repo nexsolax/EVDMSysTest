@@ -34,7 +34,19 @@ public class CustomerController {
     public ResponseEntity<?> getAllCustomers() {
         try {
             List<Customer> customers = customerService.getAllCustomers();
-            return ResponseEntity.ok(customers.stream().map(this::toDTO).toList());
+            return ResponseEntity.ok(customers.stream()
+                .map(customer -> {
+                    try {
+                        return toDTO(customer);
+                    } catch (Exception e) {
+                        // Return basic info if mapping fails
+                        Map<String, Object> errorMap = new HashMap<>();
+                        errorMap.put("customerId", customer.getCustomerId());
+                        errorMap.put("error", "Failed to map customer: " + e.getMessage());
+                        return errorMap;
+                    }
+                })
+                .toList());
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to retrieve customers: " + e.getMessage());

@@ -36,7 +36,7 @@ public class PublicQuotationController {
                         response.put("totalPrice", quotation.getTotalPrice());
                         response.put("discountAmount", quotation.getDiscountAmount());
                         response.put("finalPrice", quotation.getFinalPrice());
-                        response.put("status", quotation.getStatus());
+                        response.put("status", quotation.getStatus() != null ? quotation.getStatus().getValue() : null);
                         response.put("quotationDate", quotation.getQuotationDate());
                         response.put("expiryDate", quotation.getExpiryDate());
                         response.put("notes", quotation.getNotes());
@@ -89,7 +89,7 @@ public class PublicQuotationController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("quotationId", quotation.getQuotationId());
-            response.put("status", quotation.getStatus());
+            response.put("status", quotation.getStatus() != null ? quotation.getStatus().getValue() : null);
             response.put("rejectedAt", quotation.getRejectedAt());
             response.put("rejectionReason", quotation.getRejectionReason());
             response.put("message", "Quotation rejected. Dealer staff will review and may create a new quotation.");
@@ -122,7 +122,7 @@ public class PublicQuotationController {
             
             Map<String, Object> response = new HashMap<>();
             response.put("quotationId", quotation.getQuotationId());
-            response.put("status", quotation.getStatus());
+            response.put("status", quotation.getStatus() != null ? quotation.getStatus().getValue() : null);
             response.put("message", "Adjustment request received. Dealer staff will review and update the quotation.");
             
             return ResponseEntity.ok(response);

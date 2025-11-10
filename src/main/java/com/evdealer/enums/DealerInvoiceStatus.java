@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa các trạng thái của hóa đơn đại lý
  * Lưu ý: Giá trị là lowercase, snake_case
@@ -19,6 +21,7 @@ public enum DealerInvoiceStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

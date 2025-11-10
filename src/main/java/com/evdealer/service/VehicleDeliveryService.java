@@ -7,6 +7,7 @@ import com.evdealer.repository.VehicleDeliveryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,7 +16,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@Transactional
+@Transactional(noRollbackFor = {Exception.class})
 public class VehicleDeliveryService {
     
     @Autowired
@@ -27,12 +28,26 @@ public class VehicleDeliveryService {
     @Autowired
     private com.evdealer.service.DealerOrderItemService dealerOrderItemService;
     
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<VehicleDelivery> getAllDeliveries() {
+        // Dùng native query để tránh lỗi khi customer/order đã bị xóa
         try {
-            return vehicleDeliveryRepository.findAll();
+            List<VehicleDelivery> deliveries = vehicleDeliveryRepository.findAllNative();
+            System.out.println("VehicleDeliveryService.getAllDeliveries() - Found " + deliveries.size() + " deliveries (native query)");
+            return deliveries;
         } catch (Exception e) {
-            // Return empty list if there's an issue
-            return new java.util.ArrayList<>();
+            System.err.println("VehicleDeliveryService.getAllDeliveries() - Native query failed: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: thử findAll thông thường
+            try {
+                List<VehicleDelivery> deliveries = vehicleDeliveryRepository.findAll();
+                System.out.println("VehicleDeliveryService.getAllDeliveries() - Found " + deliveries.size() + " deliveries (simple findAll)");
+                return deliveries;
+            } catch (Exception e2) {
+                System.err.println("VehicleDeliveryService.getAllDeliveries() - Simple findAll also failed: " + e2.getMessage());
+                e2.printStackTrace();
+                return new java.util.ArrayList<>();
+            }
         }
     }
     

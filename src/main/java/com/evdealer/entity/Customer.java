@@ -48,7 +48,7 @@ public class Customer {
     @Column(name = "credit_score")
     private Integer creditScore;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.evdealer.converter.ContactMethodConverter.class)
     @Column(name = "preferred_contact_method", length = 50)
     private ContactMethod preferredContactMethod;
     

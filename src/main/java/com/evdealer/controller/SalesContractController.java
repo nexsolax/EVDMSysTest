@@ -32,9 +32,34 @@ public class SalesContractController {
     
     @GetMapping
     @Operation(summary = "Lấy danh sách hợp đồng bán hàng", description = "Lấy tất cả hợp đồng bán hàng")
-    public ResponseEntity<List<SalesContractDTO>> getAllContracts() {
-        List<SalesContract> contracts = salesContractService.getAllContracts();
-        return ResponseEntity.ok(contracts.stream().map(this::toDTO).toList());
+    public ResponseEntity<?> getAllContracts() {
+        try {
+            List<SalesContract> contracts = salesContractService.getAllContracts();
+            if (contracts == null) {
+                contracts = new java.util.ArrayList<>();
+            }
+            List<SalesContractDTO> contractList = contracts.stream()
+                .map(contract -> {
+                    try {
+                        return toDTO(contract);
+                    } catch (Exception e) {
+                        // Return basic DTO if mapping fails
+                        SalesContractDTO errorDTO = new SalesContractDTO();
+                        try {
+                            errorDTO.setContractId(contract.getContractId());
+                        } catch (Exception e2) {
+                            // Skip if contract is null
+                        }
+                        return errorDTO;
+                    }
+                })
+                .toList();
+            return ResponseEntity.ok(contractList);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to retrieve contracts: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/{contractId}")
@@ -274,16 +299,55 @@ public class SalesContractController {
         }
     }
     private SalesContractDTO toDTO(SalesContract c) {
+        if (c == null) {
+            return new SalesContractDTO();
+        }
         SalesContractDTO dto = new SalesContractDTO();
-        dto.setContractId(c.getContractId());
-        dto.setContractNumber(c.getContractNumber());
-        dto.setOrderId(c.getOrder() != null ? c.getOrder().getOrderId() : null);
-        dto.setCustomerId(c.getCustomer() != null ? c.getCustomer().getCustomerId() : null);
-        dto.setUserId(c.getUser() != null ? c.getUser().getUserId() : null);
-        dto.setContractDate(c.getContractDate());
-        dto.setDeliveryDate(c.getDeliveryDate());
-        dto.setContractValue(c.getContractValue());
-        dto.setContractStatus(c.getContractStatus() != null ? c.getContractStatus().getValue() : null);
+        try {
+            dto.setContractId(c.getContractId());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setContractNumber(c.getContractNumber());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setOrderId(c.getOrder() != null ? c.getOrder().getOrderId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded, skip
+        }
+        try {
+            dto.setCustomerId(c.getCustomer() != null ? c.getCustomer().getCustomerId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded, skip
+        }
+        try {
+            dto.setUserId(c.getUser() != null ? c.getUser().getUserId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded, skip
+        }
+        try {
+            dto.setContractDate(c.getContractDate());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setDeliveryDate(c.getDeliveryDate());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setContractValue(c.getContractValue());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setContractStatus(c.getContractStatus() != null ? c.getContractStatus().getValue() : null);
+        } catch (Exception e) {
+            // Skip if error
+        }
         return dto;
     }
 }

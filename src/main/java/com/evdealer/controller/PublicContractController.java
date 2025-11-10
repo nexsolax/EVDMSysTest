@@ -63,7 +63,7 @@ public class PublicContractController {
                         Map<String, Object> contractDetails = new HashMap<>();
                         contractDetails.put("contractId", contract.getContractId());
                         contractDetails.put("contractNumber", contract.getContractNumber());
-                        contractDetails.put("status", contract.getContractStatus());
+                        contractDetails.put("status", contract.getContractStatus() != null ? contract.getContractStatus().getValue() : null);
                         contractDetails.put("contractDate", contract.getContractDate());
                         contractDetails.put("totalAmount", contract.getContractValue());
                         contractDetails.put("orderId", contract.getOrder().getOrderId());
@@ -162,7 +162,7 @@ public class PublicContractController {
                         Map<String, Object> status = new HashMap<>();
                         status.put("contractId", contractId);
                         status.put("contractNumber", contract.getContractNumber());
-                        status.put("status", contract.getContractStatus());
+                        status.put("status", contract.getContractStatus() != null ? contract.getContractStatus().getValue() : null);
                         status.put("isSigned", contract.getContractStatus() == SalesContractStatus.SIGNED);
                         status.put("signatureDate", contract.getSignedDate());
                         status.put("signatureMethod", "electronic");

@@ -11,6 +11,7 @@ import com.evdealer.repository.VehicleColorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -21,7 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@Transactional
+@Transactional(noRollbackFor = {Exception.class})
 public class VehicleInventoryService {
     
     @Autowired
@@ -39,10 +40,33 @@ public class VehicleInventoryService {
     @PersistenceContext
     private EntityManager entityManager;
     
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<VehicleInventory> getAllVehicleInventory() {
         try {
-            // Use JOIN FETCH to eagerly load relationships
-            return vehicleInventoryRepository.findAllWithRelationships();
+            // Use simple findAll to avoid query issues
+            List<VehicleInventory> result = vehicleInventoryRepository.findAll();
+            // Fix any enum issues in the result
+            for (VehicleInventory inv : result) {
+                try {
+                    // Ensure status enum is valid
+                    if (inv.getStatus() != null) {
+                        inv.getStatus().getValue();
+                    }
+                } catch (Exception e) {
+                    // If status is invalid, set to default
+                    inv.setStatus(com.evdealer.enums.VehicleStatus.AVAILABLE);
+                }
+                try {
+                    // Ensure condition enum is valid
+                    if (inv.getCondition() != null) {
+                        inv.getCondition().toString();
+                    }
+                } catch (Exception e) {
+                    // If condition is invalid, set to default
+                    inv.setCondition(com.evdealer.enums.VehicleCondition.NEW);
+                }
+            }
+            return result;
         } catch (Exception e) {
             // Log error and return empty list
             return new java.util.ArrayList<>();

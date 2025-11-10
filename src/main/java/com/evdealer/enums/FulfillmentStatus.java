@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa trạng thái thực hiện đơn hàng (Order fulfillment)
  * Dùng cho Order.fulfillmentStatus
@@ -20,6 +22,7 @@ public enum FulfillmentStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

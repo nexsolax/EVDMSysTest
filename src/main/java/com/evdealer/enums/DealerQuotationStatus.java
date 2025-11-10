@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa các trạng thái của báo giá đại lý
  * Lưu ý: Giá trị là lowercase (khác với các enum khác dùng uppercase)
@@ -20,6 +22,7 @@ public enum DealerQuotationStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

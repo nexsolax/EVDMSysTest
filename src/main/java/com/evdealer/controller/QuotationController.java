@@ -431,7 +431,7 @@ public class QuotationController {
         dto.setFinalPrice(q.getFinalPrice());
         dto.setValidityDays(q.getValidityDays());
         dto.setExpiryDate(q.getExpiryDate());
-        dto.setStatus(q.getStatus());
+        dto.setStatus(q.getStatus() != null ? q.getStatus().getValue() : null);
         dto.setAcceptedAt(q.getAcceptedAt());
         dto.setRejectedAt(q.getRejectedAt());
         dto.setRejectionReason(q.getRejectionReason());

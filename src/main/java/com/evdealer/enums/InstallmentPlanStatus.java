@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa trạng thái kế hoạch trả góp (Installment Plan)
  * Dùng cho DealerInstallmentPlan.planStatus và InstallmentPlan.planStatus
@@ -18,6 +20,7 @@ public enum InstallmentPlanStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

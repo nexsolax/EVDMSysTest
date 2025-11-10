@@ -37,7 +37,26 @@ public class OrderController {
     public ResponseEntity<?> getAllOrders() {
         try {
             List<Order> orders = orderService.getAllOrders();
-            return ResponseEntity.ok(orders.stream().map(this::toDTO).toList());
+            if (orders == null) {
+                orders = new java.util.ArrayList<>();
+            }
+            List<OrderDTO> orderList = orders.stream()
+                .map(order -> {
+                    try {
+                        return toDTO(order);
+                    } catch (Exception e) {
+                        // Return basic DTO if mapping fails
+                        OrderDTO errorDTO = new OrderDTO();
+                        try {
+                            errorDTO.setOrderId(order.getOrderId());
+                        } catch (Exception e2) {
+                            // Skip if order is null
+                        }
+                        return errorDTO;
+                    }
+                })
+                .toList();
+            return ResponseEntity.ok(orderList);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to retrieve orders: " + e.getMessage());
@@ -361,15 +380,50 @@ public class OrderController {
     }
 
     private OrderDTO toDTO(Order o) {
+        if (o == null) {
+            return new OrderDTO();
+        }
         OrderDTO dto = new OrderDTO();
-        dto.setOrderId(o.getOrderId());
-        dto.setOrderNumber(o.getOrderNumber());
-        dto.setCustomerId(o.getCustomer() != null ? o.getCustomer().getCustomerId() : null);
-        dto.setUserId(o.getUser() != null ? o.getUser().getUserId() : null);
-        dto.setInventoryId(o.getInventory() != null ? o.getInventory().getInventoryId() : null);
-        dto.setOrderDate(o.getOrderDate());
-        dto.setStatus(o.getStatus() != null ? o.getStatus().getValue() : null);
-        dto.setTotalAmount(o.getTotalAmount());
+        try {
+            dto.setOrderId(o.getOrderId());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setOrderNumber(o.getOrderNumber());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setCustomerId(o.getCustomer() != null ? o.getCustomer().getCustomerId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded, skip
+        }
+        try {
+            dto.setUserId(o.getUser() != null ? o.getUser().getUserId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded, skip
+        }
+        try {
+            dto.setInventoryId(o.getInventory() != null ? o.getInventory().getInventoryId() : null);
+        } catch (Exception e) {
+            // Relationship not loaded, skip
+        }
+        try {
+            dto.setOrderDate(o.getOrderDate());
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setStatus(o.getStatus() != null ? o.getStatus().getValue() : null);
+        } catch (Exception e) {
+            // Skip if error
+        }
+        try {
+            dto.setTotalAmount(o.getTotalAmount());
+        } catch (Exception e) {
+            // Skip if error
+        }
         return dto;
     }
 }

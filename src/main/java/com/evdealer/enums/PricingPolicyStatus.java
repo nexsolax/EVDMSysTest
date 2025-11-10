@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa trạng thái chính sách giá (Pricing Policy)
  * Dùng cho PricingPolicy.status
@@ -17,6 +19,7 @@ public enum PricingPolicyStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

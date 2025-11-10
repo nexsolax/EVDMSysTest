@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa các trạng thái giao hàng xe
  * Lưu ý: Giá trị là lowercase, snake_case
@@ -20,6 +22,7 @@ public enum VehicleDeliveryStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

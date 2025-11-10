@@ -26,6 +26,10 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.quotation q LEFT JOIN FETCH q.customer LEFT JOIN FETCH q.variant LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.user LEFT JOIN FETCH o.inventory i LEFT JOIN FETCH i.variant v LEFT JOIN FETCH v.model m LEFT JOIN FETCH m.brand LEFT JOIN FETCH i.color")
     List<Order> findAllWithRelationships();
     
+    // Native query để lấy tất cả orders, tránh lỗi khi có foreign key null
+    @Query(value = "SELECT * FROM orders ORDER BY order_id", nativeQuery = true)
+    List<Order> findAllNative();
+    
     Optional<Order> findByOrderNumber(String orderNumber);
     
     @Query("SELECT o FROM Order o WHERE o.customer.customerId = :customerId")
@@ -83,4 +87,36 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     // Tìm Order theo Quotation ID
     @Query("SELECT o FROM Order o WHERE o.quotation.quotationId = :quotationId")
     Optional<Order> findByQuotationQuotationId(@Param("quotationId") UUID quotationId);
+    
+    // Native query để xóa Orders theo customer_id (tránh lazy loading issues)
+    // Lưu ý: Cần xóa các bảng con trước (customer_payments, sales_contracts, vehicle_deliveries, installment_plans)
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(value = "DELETE FROM orders WHERE customer_id = :customerId", nativeQuery = true)
+    void deleteByCustomerIdNative(@Param("customerId") UUID customerId);
+    
+    // Native query để xóa các bảng con trước khi xóa Orders
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(value = "DELETE FROM customer_payments WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = :customerId)", nativeQuery = true)
+    void deleteCustomerPaymentsByCustomerId(@Param("customerId") UUID customerId);
+    
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(value = "DELETE FROM sales_contracts WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = :customerId)", nativeQuery = true)
+    void deleteSalesContractsByCustomerId(@Param("customerId") UUID customerId);
+    
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(value = "DELETE FROM vehicle_deliveries WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = :customerId)", nativeQuery = true)
+    void deleteVehicleDeliveriesByCustomerId(@Param("customerId") UUID customerId);
+    
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query(value = "DELETE FROM installment_plans WHERE order_id IN (SELECT order_id FROM orders WHERE customer_id = :customerId)", nativeQuery = true)
+    void deleteInstallmentPlansByCustomerId(@Param("customerId") UUID customerId);
+    
+    // Native query để tìm Orders theo customer_id (tránh lazy loading issues)
+    @Query(value = "SELECT * FROM orders WHERE customer_id = :customerId", nativeQuery = true)
+    List<Order> findByCustomerIdNative(@Param("customerId") UUID customerId);
 }

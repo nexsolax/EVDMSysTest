@@ -31,9 +31,32 @@ public class AppointmentController {
     public ResponseEntity<?> getAllAppointments() {
         try {
             List<Appointment> appointments = appointmentService.getAllAppointments();
-            List<Map<String, Object>> appointmentList = appointments.stream().map(this::appointmentToMap).collect(Collectors.toList());
+            System.out.println("AppointmentController.getAllAppointments() - Service returned " + appointments.size() + " appointments");
+            
+            List<Map<String, Object>> appointmentList = appointments.stream()
+                .map(appointment -> {
+                    try {
+                        return appointmentToMap(appointment);
+                    } catch (Exception e) {
+                        System.err.println("AppointmentController - Error mapping appointment " + appointment.getAppointmentId() + ": " + e.getMessage());
+                        e.printStackTrace();
+                        Map<String, Object> errorMap = new HashMap<>();
+                        try {
+                            errorMap.put("appointmentId", appointment.getAppointmentId());
+                        } catch (Exception e2) {
+                            errorMap.put("appointmentId", "unknown");
+                        }
+                        errorMap.put("error", "Failed to map appointment: " + e.getMessage());
+                        return errorMap;
+                    }
+                })
+                .collect(Collectors.toList());
+            
+            System.out.println("AppointmentController.getAllAppointments() - Returning " + appointmentList.size() + " mapped appointments");
             return ResponseEntity.ok(appointmentList);
         } catch (Exception e) {
+            System.err.println("AppointmentController.getAllAppointments() - Exception: " + e.getMessage());
+            e.printStackTrace();
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to retrieve appointments: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
@@ -42,28 +65,74 @@ public class AppointmentController {
     
     private Map<String, Object> appointmentToMap(Appointment appointment) {
         Map<String, Object> appointmentMap = new HashMap<>();
-        appointmentMap.put("appointmentId", appointment.getAppointmentId());
-        appointmentMap.put("appointmentType", appointment.getAppointmentType() != null ? appointment.getAppointmentType().getValue() : null);
-        appointmentMap.put("title", appointment.getTitle());
-        appointmentMap.put("description", appointment.getDescription());
-        appointmentMap.put("appointmentDate", appointment.getAppointmentDate());
-        appointmentMap.put("durationMinutes", appointment.getDurationMinutes());
-        appointmentMap.put("location", appointment.getLocation());
-        appointmentMap.put("status", appointment.getStatus() != null ? appointment.getStatus().getValue() : null);
-        appointmentMap.put("notes", appointment.getNotes());
-        appointmentMap.put("createdAt", appointment.getCreatedAt());
-        appointmentMap.put("updatedAt", appointment.getUpdatedAt());
-        
-        if (appointment.getCustomer() != null) {
-            appointmentMap.put("customerId", appointment.getCustomer().getCustomerId());
+        try {
+            appointmentMap.put("appointmentId", appointment.getAppointmentId());
+            
+            // Map enum values safely
+            try {
+                appointmentMap.put("appointmentType", appointment.getAppointmentType() != null ? appointment.getAppointmentType().getValue() : null);
+            } catch (Exception e) {
+                appointmentMap.put("appointmentType", appointment.getAppointmentType() != null ? appointment.getAppointmentType().name() : null);
+            }
+            
+            appointmentMap.put("title", appointment.getTitle());
+            appointmentMap.put("description", appointment.getDescription());
+            appointmentMap.put("appointmentDate", appointment.getAppointmentDate());
+            appointmentMap.put("durationMinutes", appointment.getDurationMinutes());
+            appointmentMap.put("location", appointment.getLocation());
+            
+            try {
+                appointmentMap.put("status", appointment.getStatus() != null ? appointment.getStatus().getValue() : null);
+            } catch (Exception e) {
+                appointmentMap.put("status", appointment.getStatus() != null ? appointment.getStatus().name() : null);
+            }
+            
+            appointmentMap.put("notes", appointment.getNotes());
+            appointmentMap.put("createdAt", appointment.getCreatedAt());
+            appointmentMap.put("updatedAt", appointment.getUpdatedAt());
+            
+            // Safely access relationships - không load nếu null hoặc có lỗi
+            try {
+                if (appointment.getCustomer() != null) {
+                    appointmentMap.put("customerId", appointment.getCustomer().getCustomerId());
+                } else {
+                    appointmentMap.put("customerId", null);
+                }
+            } catch (Exception e) {
+                // Customer có thể đã bị xóa hoặc không load được
+                appointmentMap.put("customerId", null);
+                appointmentMap.put("customerError", "Customer not available: " + e.getMessage());
+            }
+            
+            try {
+                if (appointment.getStaff() != null) {
+                    appointmentMap.put("staffId", appointment.getStaff().getUserId());
+                } else {
+                    appointmentMap.put("staffId", null);
+                }
+            } catch (Exception e) {
+                appointmentMap.put("staffId", null);
+            }
+            
+            try {
+                if (appointment.getVariant() != null) {
+                    appointmentMap.put("variantId", appointment.getVariant().getVariantId());
+                } else {
+                    appointmentMap.put("variantId", null);
+                }
+            } catch (Exception e) {
+                appointmentMap.put("variantId", null);
+            }
+        } catch (Exception e) {
+            // Nếu có lỗi nghiêm trọng, vẫn cố gắng trả về appointmentId
+            try {
+                appointmentMap.put("appointmentId", appointment.getAppointmentId());
+            } catch (Exception e2) {
+                appointmentMap.put("appointmentId", "unknown");
+            }
+            appointmentMap.put("error", "Failed to map appointment: " + e.getMessage());
+            e.printStackTrace();
         }
-        if (appointment.getStaff() != null) {
-            appointmentMap.put("staffId", appointment.getStaff().getUserId());
-        }
-        if (appointment.getVariant() != null) {
-            appointmentMap.put("variantId", appointment.getVariant().getVariantId());
-        }
-        
         return appointmentMap;
     }
     

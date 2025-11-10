@@ -40,7 +40,7 @@ public class DealerContractController {
         map.put("territory", contract.getTerritory());
         map.put("commissionRate", contract.getCommissionRate());
         map.put("minimumSalesTarget", contract.getMinimumSalesTarget());
-        map.put("contractStatus", contract.getContractStatus() != null ? contract.getContractStatus().toString() : null);
+        map.put("contractStatus", contract.getContractStatus() != null ? contract.getContractStatus().name() : null);
         map.put("signedDate", contract.getSignedDate());
         map.put("contractFileUrl", contract.getContractFileUrl());
         map.put("contractFilePath", contract.getContractFilePath());

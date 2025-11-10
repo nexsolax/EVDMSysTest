@@ -32,15 +32,15 @@ public class PublicOrderController {
             Map<String, Object> response = new HashMap<>();
             response.put("orderId", createdOrder.getOrderId());
             response.put("orderNumber", createdOrder.getOrderNumber());
-            response.put("status", createdOrder.getStatus());
+            response.put("status", createdOrder.getStatus() != null ? createdOrder.getStatus().getValue() : null);
             response.put("orderDate", createdOrder.getOrderDate());
             response.put("totalAmount", createdOrder.getTotalAmount());
             response.put("depositAmount", createdOrder.getDepositAmount());
             response.put("balanceAmount", createdOrder.getBalanceAmount());
             response.put("paymentMethod", createdOrder.getPaymentMethod() != null ? createdOrder.getPaymentMethod().getValue() : null);
             response.put("orderType", createdOrder.getOrderType() != null ? createdOrder.getOrderType().toString() : null);
-            response.put("paymentStatus", createdOrder.getPaymentStatus() != null ? createdOrder.getPaymentStatus().toString() : null);
-            response.put("deliveryStatus", createdOrder.getDeliveryStatus() != null ? createdOrder.getDeliveryStatus().toString() : null);
+            response.put("paymentStatus", createdOrder.getPaymentStatus() != null ? createdOrder.getPaymentStatus().name() : null);
+            response.put("deliveryStatus", createdOrder.getDeliveryStatus() != null ? createdOrder.getDeliveryStatus().name() : null);
             response.put("notes", createdOrder.getNotes());
             
             if (createdOrder.getCustomer() != null) {
@@ -77,15 +77,15 @@ public class PublicOrderController {
                         Map<String, Object> response = new HashMap<>();
                         response.put("orderId", order.getOrderId());
                         response.put("orderNumber", order.getOrderNumber());
-                        response.put("status", order.getStatus());
+                        response.put("status", order.getStatus() != null ? order.getStatus().getValue() : null);
                         response.put("orderDate", order.getOrderDate());
                         response.put("totalAmount", order.getTotalAmount());
                         response.put("depositAmount", order.getDepositAmount());
                         response.put("balanceAmount", order.getBalanceAmount());
                         response.put("paymentMethod", order.getPaymentMethod() != null ? order.getPaymentMethod().getValue() : null);
                         response.put("orderType", order.getOrderType() != null ? order.getOrderType().toString() : null);
-                        response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().toString() : null);
-                        response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().toString() : null);
+                        response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().name() : null);
+                        response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().name() : null);
                         response.put("notes", order.getNotes());
                         response.put("deliveryDate", order.getDeliveryDate());
                         
@@ -122,15 +122,15 @@ public class PublicOrderController {
                         Map<String, Object> response = new HashMap<>();
                         response.put("orderId", order.getOrderId());
                         response.put("orderNumber", order.getOrderNumber());
-                        response.put("status", order.getStatus());
+                        response.put("status", order.getStatus() != null ? order.getStatus().getValue() : null);
                         response.put("orderDate", order.getOrderDate());
                         response.put("totalAmount", order.getTotalAmount());
                         response.put("depositAmount", order.getDepositAmount());
                         response.put("balanceAmount", order.getBalanceAmount());
                         response.put("paymentMethod", order.getPaymentMethod() != null ? order.getPaymentMethod().getValue() : null);
                         response.put("orderType", order.getOrderType() != null ? order.getOrderType().toString() : null);
-                        response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().toString() : null);
-                        response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().toString() : null);
+                        response.put("paymentStatus", order.getPaymentStatus() != null ? order.getPaymentStatus().name() : null);
+                        response.put("deliveryStatus", order.getDeliveryStatus() != null ? order.getDeliveryStatus().name() : null);
                         response.put("notes", order.getNotes());
                         response.put("deliveryDate", order.getDeliveryDate());
                         
@@ -175,7 +175,7 @@ public class PublicOrderController {
             response.put("message", "Order cancelled successfully. Inventory status has been updated if applicable.");
             response.put("orderId", orderId);
             response.put("orderNumber", cancelledOrder.getOrderNumber());
-            response.put("status", cancelledOrder.getStatus());
+            response.put("status", cancelledOrder.getStatus() != null ? cancelledOrder.getStatus().getValue() : null);
             response.put("reason", reason);
             
             return ResponseEntity.ok(response);
@@ -199,7 +199,7 @@ public class PublicOrderController {
                         Map<String, Object> status = new HashMap<>();
                         status.put("orderId", order.getOrderId());
                         status.put("orderNumber", order.getOrderNumber());
-                        status.put("status", order.getStatus());
+                        status.put("status", order.getStatus() != null ? order.getStatus().getValue() : null);
                         status.put("orderDate", order.getOrderDate());
                         status.put("totalAmount", order.getTotalAmount());
                         status.put("notes", order.getNotes());
@@ -221,7 +221,7 @@ public class PublicOrderController {
                     .map(order -> {
                         Map<String, Object> tracking = new HashMap<>();
                         tracking.put("orderNumber", order.getOrderNumber());
-                        tracking.put("status", order.getStatus());
+                        tracking.put("status", order.getStatus() != null ? order.getStatus().getValue() : null);
                         tracking.put("orderDate", order.getOrderDate());
                         tracking.put("totalAmount", order.getTotalAmount());
                         tracking.put("customerName", order.getCustomer() != null ? 

@@ -53,17 +53,24 @@ public class DealerQuotationService {
     
     @Transactional(readOnly = true)
     public List<DealerQuotation> getAllQuotations() {
-        // Filter by dealer nếu là dealer user
-        if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
-            var currentUser = securityUtils.getCurrentUser()
-                .orElseThrow(() -> new RuntimeException("User not authenticated"));
-            if (currentUser.getDealer() != null) {
-                UUID dealerId = currentUser.getDealer().getDealerId();
-                return dealerQuotationRepository.findByDealerDealerId(dealerId);
+        try {
+            // Filter by dealer nếu là dealer user
+            if (securityUtils.isDealerUser() && !securityUtils.isAdmin()) {
+                var currentUserOpt = securityUtils.getCurrentUser();
+                if (currentUserOpt.isPresent()) {
+                    var currentUser = currentUserOpt.get();
+                    if (currentUser.getDealer() != null) {
+                        UUID dealerId = currentUser.getDealer().getDealerId();
+                        return dealerQuotationRepository.findByDealerDealerId(dealerId);
+                    }
+                }
             }
+            // Use findAllWithDetails to eagerly load dealer and dealerOrder
+            return dealerQuotationRepository.findAllWithDetails();
+        } catch (Exception e) {
+            // Return empty list if there's an issue
+            return new java.util.ArrayList<>();
         }
-        // Use findAllWithDetails to eagerly load dealer and dealerOrder
-        return dealerQuotationRepository.findAllWithDetails();
     }
     
     @Transactional(readOnly = true)
@@ -190,7 +197,7 @@ public class DealerQuotationService {
         List<DealerQuotation> existingQuotations = dealerQuotationRepository.findByDealerOrderDealerOrderId(dealerOrderId);
         if (!existingQuotations.isEmpty()) {
             DealerQuotation existing = existingQuotations.stream()
-                .filter(q -> q.getStatus().equals(DealerQuotationStatus.PENDING) || q.getStatus().equals(DealerQuotationStatus.SENT))
+                .filter(q -> q.getStatus() == DealerQuotationStatus.PENDING || q.getStatus() == DealerQuotationStatus.SENT)
                 .findFirst()
                 .orElse(null);
             if (existing != null) {
@@ -415,7 +422,7 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals(DealerQuotationStatus.PENDING)) {
+        if (quotation.getStatus() != DealerQuotationStatus.PENDING) {
             throw new RuntimeException("Only pending quotations can be updated");
         }
         
@@ -433,7 +440,7 @@ public class DealerQuotationService {
         DealerQuotation quotation = dealerQuotationRepository.findById(quotationId)
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
-        if (!quotation.getStatus().equals(DealerQuotationStatus.PENDING)) {
+        if (quotation.getStatus() != DealerQuotationStatus.PENDING) {
             throw new RuntimeException("Only pending quotations can be deleted");
         }
         

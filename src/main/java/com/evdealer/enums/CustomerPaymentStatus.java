@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa các trạng thái thanh toán của khách hàng
  * Lưu ý: Giá trị là lowercase
@@ -18,6 +20,7 @@ public enum CustomerPaymentStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

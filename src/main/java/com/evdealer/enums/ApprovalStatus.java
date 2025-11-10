@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa trạng thái duyệt
  */
@@ -16,6 +18,7 @@ public enum ApprovalStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

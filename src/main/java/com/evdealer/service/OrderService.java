@@ -10,6 +10,7 @@ import com.evdealer.enums.VehicleStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,13 +37,26 @@ public class OrderService {
     @Autowired
     private VehicleInventoryRepository vehicleInventoryRepository;
     
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<Order> getAllOrders() {
+        // Dùng native query để tránh lỗi khi customer/quotation đã bị xóa
         try {
-            // Use JOIN FETCH to eagerly load relationships
-            return orderRepository.findAllWithRelationships();
+            List<Order> orders = orderRepository.findAllNative();
+            System.out.println("OrderService.getAllOrders() - Found " + orders.size() + " orders (native query)");
+            return orders;
         } catch (Exception e) {
-            // Log error and return empty list
-            return new java.util.ArrayList<>();
+            System.err.println("OrderService.getAllOrders() - Native query failed: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: thử findAll thông thường
+            try {
+                List<Order> orders = orderRepository.findAll();
+                System.out.println("OrderService.getAllOrders() - Found " + orders.size() + " orders (simple findAll)");
+                return orders;
+            } catch (Exception e2) {
+                System.err.println("OrderService.getAllOrders() - Simple findAll also failed: " + e2.getMessage());
+                e2.printStackTrace();
+                return new java.util.ArrayList<>();
+            }
         }
     }
     
@@ -315,8 +329,8 @@ public class OrderService {
         if (request.getTotalAmount() != null) {
             // Kiểm tra nếu Order đã có quotation accepted hoặc converted
             if (order.getQuotation() != null && 
-                (order.getQuotation().getStatus().equals(DealerQuotationStatus.ACCEPTED.getValue()) || 
-                 order.getQuotation().getStatus().equals(DealerQuotationStatus.CONVERTED.getValue()))) {
+                (order.getQuotation().getStatus() == DealerQuotationStatus.ACCEPTED || 
+                 order.getQuotation().getStatus() == DealerQuotationStatus.CONVERTED)) {
                 order.setTotalAmount(request.getTotalAmount());
             } else if (order.getStatus() == OrderStatus.CONFIRMED || 
                        order.getStatus() == OrderStatus.PAID) {

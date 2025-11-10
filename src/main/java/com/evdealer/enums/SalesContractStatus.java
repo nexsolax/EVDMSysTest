@@ -1,5 +1,7 @@
 package com.evdealer.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 /**
  * Enum định nghĩa trạng thái hợp đồng bán hàng (Sales Contract)
  * Dùng cho SalesContract.contractStatus
@@ -21,6 +23,7 @@ public enum SalesContractStatus {
         this.description = description;
     }
     
+    @JsonValue
     public String getValue() {
         return value;
     }

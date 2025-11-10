@@ -13,6 +13,7 @@ import com.evdealer.repository.VehicleInventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,7 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@Transactional
+@Transactional(noRollbackFor = {Exception.class})
 public class CustomerPaymentService {
     
     @Autowired
@@ -36,12 +37,26 @@ public class CustomerPaymentService {
     @Autowired
     private SalesContractService salesContractService;
     
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<CustomerPayment> getAllCustomerPayments() {
+        // Dùng native query để tránh lỗi khi customer/order đã bị xóa
         try {
-            return customerPaymentRepository.findAll();
+            List<CustomerPayment> payments = customerPaymentRepository.findAllNative();
+            System.out.println("CustomerPaymentService.getAllCustomerPayments() - Found " + payments.size() + " payments (native query)");
+            return payments;
         } catch (Exception e) {
-            // Return empty list if there's an issue
-            return new java.util.ArrayList<>();
+            System.err.println("CustomerPaymentService.getAllCustomerPayments() - Native query failed: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: thử findAll thông thường
+            try {
+                List<CustomerPayment> payments = customerPaymentRepository.findAll();
+                System.out.println("CustomerPaymentService.getAllCustomerPayments() - Found " + payments.size() + " payments (simple findAll)");
+                return payments;
+            } catch (Exception e2) {
+                System.err.println("CustomerPaymentService.getAllCustomerPayments() - Simple findAll also failed: " + e2.getMessage());
+                e2.printStackTrace();
+                return new java.util.ArrayList<>();
+            }
         }
     }
     
@@ -67,7 +82,9 @@ public class CustomerPaymentService {
     }
     
     public List<CustomerPayment> getPaymentsByMethod(String paymentMethod) {
-        return customerPaymentRepository.findByPaymentMethod(paymentMethod);
+        // Convert String to enum and query
+        com.evdealer.enums.PaymentMethod paymentMethodEnum = com.evdealer.enums.PaymentMethod.fromString(paymentMethod);
+        return customerPaymentRepository.findByPaymentMethod(paymentMethodEnum);
     }
     
     public List<CustomerPayment> getPaymentsByProcessedBy(UUID userId) {

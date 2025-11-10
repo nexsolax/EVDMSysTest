@@ -39,18 +39,31 @@ public class QuotationService {
     private OrderRepository orderRepository;
     
     public List<Quotation> getAllQuotations() {
+        // Dùng native query để tránh lỗi khi customer/user đã bị xóa
         try {
-            // Use JOIN FETCH to eagerly load relationships
-            return quotationRepository.findAllWithRelationships();
+            List<Quotation> quotations = quotationRepository.findAllNative();
+            System.out.println("QuotationService.getAllQuotations() - Found " + quotations.size() + " quotations (native query)");
+            return quotations;
         } catch (Exception e) {
-            // Log error and return empty list
-            return new java.util.ArrayList<>();
+            System.err.println("QuotationService.getAllQuotations() - Native query failed: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: thử findAllWithRelationships
+            try {
+                List<Quotation> quotations = quotationRepository.findAllWithRelationships();
+                System.out.println("QuotationService.getAllQuotations() - Found " + quotations.size() + " quotations (with relationships)");
+                return quotations;
+            } catch (Exception e2) {
+                System.err.println("QuotationService.getAllQuotations() - findAllWithRelationships also failed: " + e2.getMessage());
+                e2.printStackTrace();
+                return new java.util.ArrayList<>();
+            }
         }
     }
     
     public List<Quotation> getQuotationsByStatus(String status) {
         try {
-            return quotationRepository.findByStatus(status);
+            DealerQuotationStatus statusEnum = DealerQuotationStatus.fromString(status);
+            return quotationRepository.findByStatus(statusEnum);
         } catch (Exception e) {
             // Return empty list if there's an issue
             return new java.util.ArrayList<>();
@@ -87,7 +100,7 @@ public class QuotationService {
     public List<Quotation> getExpiredQuotations() {
         try {
             LocalDate currentDate = LocalDate.now();
-            return quotationRepository.findExpiredQuotations(currentDate);
+            return quotationRepository.findExpiredQuotations(currentDate, DealerQuotationStatus.PENDING);
         } catch (Exception e) {
             // Return empty list if there's an issue
             return new java.util.ArrayList<>();
@@ -128,9 +141,9 @@ public class QuotationService {
                     .orElseThrow(() -> new RuntimeException("Color not found with id: " + quotation.getColor().getColorId())));
         }
         
-        // normalize status using enum
-        if (quotation.getStatus() != null) {
-            quotation.setStatus(DealerQuotationStatus.fromString(quotation.getStatus()).getValue());
+        // normalize status using enum (nếu status là String từ DB cũ, sẽ được converter tự động convert)
+        if (quotation.getStatus() == null) {
+            quotation.setStatus(DealerQuotationStatus.PENDING);
         }
         return quotationRepository.save(quotation);
     }
@@ -193,9 +206,9 @@ public class QuotationService {
         // expiryDate sẽ được tính tự động bởi @PrePersist/@PreUpdate
         
         if (request.getStatus() != null) {
-            quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()).getValue());
+            quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()));
         } else {
-            quotation.setStatus(DealerQuotationStatus.PENDING.getValue());
+            quotation.setStatus(DealerQuotationStatus.PENDING);
         }
         quotation.setNotes(request.getNotes());
         
@@ -237,7 +250,7 @@ public class QuotationService {
         quotation.setFinalPrice(quotationDetails.getFinalPrice());
         quotation.setValidityDays(quotationDetails.getValidityDays());
         if (quotationDetails.getStatus() != null) {
-            quotation.setStatus(DealerQuotationStatus.fromString(quotationDetails.getStatus()).getValue());
+            quotation.setStatus(quotationDetails.getStatus());
         }
         quotation.setNotes(quotationDetails.getNotes());
         
@@ -252,19 +265,19 @@ public class QuotationService {
         // - status = "pending" (chưa gửi)
         // - status = "sent" (đã gửi, đang đàm phán)
         // - status = "rejected" (khách từ chối, điều chỉnh lại)
-        String currentStatus = quotation.getStatus();
-        if (!currentStatus.equals(DealerQuotationStatus.PENDING.getValue()) && 
-            !currentStatus.equals(DealerQuotationStatus.SENT.getValue()) && 
-            !currentStatus.equals(DealerQuotationStatus.REJECTED.getValue())) {
+        DealerQuotationStatus currentStatus = quotation.getStatus();
+        if (currentStatus != DealerQuotationStatus.PENDING && 
+            currentStatus != DealerQuotationStatus.SENT && 
+            currentStatus != DealerQuotationStatus.REJECTED) {
             throw new RuntimeException(
                 "Quotation can only be updated when status is 'pending', 'sent', or 'rejected'. " +
-                "Current status: " + currentStatus
+                "Current status: " + (currentStatus != null ? currentStatus.getValue() : "null")
             );
         }
         
         // Nếu đang ở status "rejected", sau khi update có thể reset về "pending" để gửi lại
-        if (currentStatus.equals(DealerQuotationStatus.REJECTED.getValue()) && request.getStatus() != null && 
-            request.getStatus().equals(DealerQuotationStatus.PENDING.getValue())) {
+        if (currentStatus == DealerQuotationStatus.REJECTED && request.getStatus() != null && 
+            DealerQuotationStatus.fromString(request.getStatus()) == DealerQuotationStatus.PENDING) {
             quotation.setRejectedAt(null);
             quotation.setRejectionReason(null);
         }
@@ -323,7 +336,7 @@ public class QuotationService {
             }
         }
         if (request.getStatus() != null) {
-            quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()).getValue());
+            quotation.setStatus(DealerQuotationStatus.fromString(request.getStatus()));
         }
         if (request.getNotes() != null) {
             quotation.setNotes(request.getNotes());
@@ -348,9 +361,10 @@ public class QuotationService {
         
         // Kiểm tra Order chưa có Quotation (hoặc Quotation đã rejected)
         if (order.getQuotation() != null) {
-            String quotationStatus = order.getQuotation().getStatus();
-            if (!quotationStatus.equals(DealerQuotationStatus.REJECTED.getValue())) {
-                throw new RuntimeException("Order already has an active quotation. Current quotation status: " + quotationStatus);
+            DealerQuotationStatus quotationStatus = order.getQuotation().getStatus();
+            if (quotationStatus != DealerQuotationStatus.REJECTED) {
+                throw new RuntimeException("Order already has an active quotation. Current quotation status: " + 
+                    (quotationStatus != null ? quotationStatus.getValue() : "null"));
             }
         }
         
@@ -388,12 +402,13 @@ public class QuotationService {
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
         // Kiểm tra status = "pending"
-        if (!quotation.getStatus().equals(DealerQuotationStatus.PENDING.getValue())) {
-            throw new RuntimeException("Quotation must be in 'pending' status to send. Current status: " + quotation.getStatus());
+        if (quotation.getStatus() != DealerQuotationStatus.PENDING) {
+            throw new RuntimeException("Quotation must be in 'pending' status to send. Current status: " + 
+                (quotation.getStatus() != null ? quotation.getStatus().getValue() : "null"));
         }
         
         // Chuyển status thành "sent" (đã gửi cho khách)
-        quotation.setStatus(DealerQuotationStatus.SENT.getValue());
+        quotation.setStatus(DealerQuotationStatus.SENT);
         quotationRepository.save(quotation);
         
         // (Có thể gửi email/notification cho khách)
@@ -411,12 +426,13 @@ public class QuotationService {
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
         // Kiểm tra status = "sent"
-        if (!quotation.getStatus().equals(DealerQuotationStatus.SENT.getValue())) {
-            throw new RuntimeException("Quotation must be in 'sent' status to reject. Current status: " + quotation.getStatus());
+        if (quotation.getStatus() != DealerQuotationStatus.SENT) {
+            throw new RuntimeException("Quotation must be in 'sent' status to reject. Current status: " + 
+                (quotation.getStatus() != null ? quotation.getStatus().getValue() : "null"));
         }
         
         // Cập nhật status
-        quotation.setStatus(DealerQuotationStatus.REJECTED.getValue());
+        quotation.setStatus(DealerQuotationStatus.REJECTED);
         quotation.setRejectedAt(LocalDateTime.now());
         if (reason != null && !reason.trim().isEmpty()) {
             quotation.setRejectionReason(reason);
@@ -450,14 +466,15 @@ public class QuotationService {
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
         // Kiểm tra status = "sent"
-        if (!quotation.getStatus().equals(DealerQuotationStatus.SENT.getValue())) {
-            throw new RuntimeException("Quotation must be in 'sent' status to accept. Current status: " + quotation.getStatus());
+        if (quotation.getStatus() != DealerQuotationStatus.SENT) {
+            throw new RuntimeException("Quotation must be in 'sent' status to accept. Current status: " + 
+                (quotation.getStatus() != null ? quotation.getStatus().getValue() : "null"));
         }
         
         // Kiểm tra hết hạn (kiểm tra cả trường hợp bằng ngày hôm nay)
         if (quotation.getExpiryDate() != null && 
             !quotation.getExpiryDate().isAfter(LocalDate.now())) {
-            quotation.setStatus(DealerQuotationStatus.EXPIRED.getValue());
+            quotation.setStatus(DealerQuotationStatus.EXPIRED);
             quotationRepository.save(quotation);
             throw new RuntimeException("Quotation has expired. Expiry date: " + quotation.getExpiryDate());
         }
@@ -483,7 +500,7 @@ public class QuotationService {
         orderRepository.save(order);
         
         // Cập nhật Quotation status = "converted" (bỏ qua "accepted" để đơn giản)
-        quotation.setStatus(DealerQuotationStatus.CONVERTED.getValue());
+        quotation.setStatus(DealerQuotationStatus.CONVERTED);
         quotation.setAcceptedAt(LocalDateTime.now());
         quotationRepository.save(quotation);
         
@@ -500,8 +517,9 @@ public class QuotationService {
             .orElseThrow(() -> new RuntimeException("Quotation not found with ID: " + quotationId));
         
         // Kiểm tra status = "sent"
-        if (!quotation.getStatus().equals(DealerQuotationStatus.SENT.getValue())) {
-            throw new RuntimeException("Quotation must be in 'sent' status to request adjustment. Current status: " + quotation.getStatus());
+        if (quotation.getStatus() != DealerQuotationStatus.SENT) {
+            throw new RuntimeException("Quotation must be in 'sent' status to request adjustment. Current status: " + 
+                (quotation.getStatus() != null ? quotation.getStatus().getValue() : "null"));
         }
         
         // Lưu yêu cầu điều chỉnh
@@ -525,8 +543,9 @@ public class QuotationService {
             .orElseThrow(() -> new RuntimeException("Rejected quotation not found"));
         
         // Kiểm tra quotation đã bị reject
-        if (!rejectedQuotation.getStatus().equals(DealerQuotationStatus.REJECTED.getValue())) {
-            throw new RuntimeException("Can only create new quotation from rejected quotation. Current status: " + rejectedQuotation.getStatus());
+        if (rejectedQuotation.getStatus() != DealerQuotationStatus.REJECTED) {
+            throw new RuntimeException("Can only create new quotation from rejected quotation. Current status: " + 
+                (rejectedQuotation.getStatus() != null ? rejectedQuotation.getStatus().getValue() : "null"));
         }
         
         // Tìm Order liên quan
@@ -535,9 +554,10 @@ public class QuotationService {
         
         // Kiểm tra Order chưa có Quotation active khác (đồng bộ với createQuotationFromOrder)
         if (order.getQuotation() != null && !order.getQuotation().getQuotationId().equals(rejectedQuotationId)) {
-            String quotationStatus = order.getQuotation().getStatus();
-            if (!quotationStatus.equals(DealerQuotationStatus.REJECTED.getValue())) {
-                throw new RuntimeException("Order already has an active quotation. Current quotation status: " + quotationStatus);
+            DealerQuotationStatus quotationStatus = order.getQuotation().getStatus();
+            if (quotationStatus != DealerQuotationStatus.REJECTED) {
+                throw new RuntimeException("Order already has an active quotation. Current quotation status: " + 
+                    (quotationStatus != null ? quotationStatus.getValue() : "null"));
             }
         }
         
@@ -600,7 +620,7 @@ public class QuotationService {
                 .orElseThrow(() -> new RuntimeException("Quotation not found"));
         // Use DealerQuotationStatus enum for validation and normalization
         DealerQuotationStatus statusEnum = DealerQuotationStatus.fromString(status);
-        quotation.setStatus(statusEnum.getValue());
+        quotation.setStatus(statusEnum);
         return quotationRepository.save(quotation);
     }
 }

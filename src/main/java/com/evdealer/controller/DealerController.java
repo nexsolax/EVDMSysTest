@@ -46,7 +46,7 @@ public class DealerController {
         map.put("bankAccount", dealer.getBankAccount());
         map.put("bankName", dealer.getBankName());
         map.put("commissionRate", dealer.getCommissionRate());
-        map.put("status", dealer.getStatus() != null ? dealer.getStatus().toString() : null);
+        map.put("status", dealer.getStatus() != null ? dealer.getStatus().name() : null);
         map.put("notes", dealer.getNotes());
         map.put("contractStartDate", dealer.getContractStartDate());
         map.put("contractEndDate", dealer.getContractEndDate());

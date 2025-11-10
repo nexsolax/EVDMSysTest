@@ -10,6 +10,7 @@ import com.evdealer.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -32,12 +33,26 @@ public class SalesContractService {
     @Autowired
     private UserRepository userRepository;
     
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public List<SalesContract> getAllContracts() {
+        // Dùng native query để tránh lỗi khi customer/order đã bị xóa
         try {
-            return salesContractRepository.findAll();
+            List<SalesContract> contracts = salesContractRepository.findAllNative();
+            System.out.println("SalesContractService.getAllContracts() - Found " + contracts.size() + " contracts (native query)");
+            return contracts;
         } catch (Exception e) {
-            // Return empty list if there's an issue
-            return new java.util.ArrayList<>();
+            System.err.println("SalesContractService.getAllContracts() - Native query failed: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: thử findAll thông thường
+            try {
+                List<SalesContract> contracts = salesContractRepository.findAll();
+                System.out.println("SalesContractService.getAllContracts() - Found " + contracts.size() + " contracts (simple findAll)");
+                return contracts;
+            } catch (Exception e2) {
+                System.err.println("SalesContractService.getAllContracts() - Simple findAll also failed: " + e2.getMessage());
+                e2.printStackTrace();
+                return new java.util.ArrayList<>();
+            }
         }
     }
     

@@ -36,7 +36,19 @@ public class CustomerPaymentController {
         try {
             List<CustomerPayment> payments = customerPaymentService.getAllCustomerPayments();
             
-            List<Map<String, Object>> paymentList = payments.stream().map(this::paymentToMap).collect(Collectors.toList());
+            List<Map<String, Object>> paymentList = payments.stream()
+                .map(payment -> {
+                    try {
+                        return paymentToMap(payment);
+                    } catch (Exception e) {
+                        // Handle LazyInitializationException or other mapping errors
+                        Map<String, Object> errorMap = new HashMap<>();
+                        errorMap.put("paymentId", payment.getPaymentId());
+                        errorMap.put("error", "Failed to map payment: " + e.getMessage());
+                        return errorMap;
+                    }
+                })
+                .collect(Collectors.toList());
             
             return ResponseEntity.ok(paymentList);
         } catch (Exception e) {
@@ -48,27 +60,45 @@ public class CustomerPaymentController {
     
     private Map<String, Object> paymentToMap(CustomerPayment payment) {
         Map<String, Object> paymentMap = new HashMap<>();
-        paymentMap.put("paymentId", payment.getPaymentId());
-        paymentMap.put("paymentNumber", payment.getPaymentNumber());
-        paymentMap.put("paymentDate", payment.getPaymentDate());
-        paymentMap.put("amount", payment.getAmount());
-        paymentMap.put("paymentType", payment.getPaymentType());
-        paymentMap.put("paymentMethod", payment.getPaymentMethod() != null ? payment.getPaymentMethod().getValue() : null);
-        paymentMap.put("referenceNumber", payment.getReferenceNumber());
-        paymentMap.put("status", payment.getStatus());
-        paymentMap.put("notes", payment.getNotes());
-        paymentMap.put("createdAt", payment.getCreatedAt());
-        
-        if (payment.getOrder() != null) {
-            paymentMap.put("orderId", payment.getOrder().getOrderId());
+        try {
+            paymentMap.put("paymentId", payment.getPaymentId());
+            paymentMap.put("paymentNumber", payment.getPaymentNumber());
+            paymentMap.put("paymentDate", payment.getPaymentDate());
+            paymentMap.put("amount", payment.getAmount());
+            paymentMap.put("paymentType", payment.getPaymentType());
+            paymentMap.put("paymentMethod", payment.getPaymentMethod() != null ? payment.getPaymentMethod().getValue() : null);
+            paymentMap.put("referenceNumber", payment.getReferenceNumber());
+            paymentMap.put("status", payment.getStatus() != null ? payment.getStatus().getValue() : null);
+            paymentMap.put("notes", payment.getNotes());
+            paymentMap.put("createdAt", payment.getCreatedAt());
+            
+            // Safely access relationships
+            try {
+                if (payment.getOrder() != null) {
+                    paymentMap.put("orderId", payment.getOrder().getOrderId());
+                }
+            } catch (Exception e) {
+                // Relationship not loaded or other error, skip
+            }
+            try {
+                if (payment.getCustomer() != null) {
+                    paymentMap.put("customerId", payment.getCustomer().getCustomerId());
+                }
+            } catch (Exception e) {
+                // Relationship not loaded or other error, skip
+            }
+            try {
+                if (payment.getProcessedBy() != null) {
+                    paymentMap.put("processedBy", payment.getProcessedBy().getUserId());
+                }
+            } catch (Exception e) {
+                // Relationship not loaded or other error, skip
+            }
+        } catch (Exception e) {
+            // If any other error occurs, at least return basic info
+            paymentMap.put("paymentId", payment.getPaymentId());
+            paymentMap.put("error", "Failed to map payment: " + e.getMessage());
         }
-        if (payment.getCustomer() != null) {
-            paymentMap.put("customerId", payment.getCustomer().getCustomerId());
-        }
-        if (payment.getProcessedBy() != null) {
-            paymentMap.put("processedBy", payment.getProcessedBy().getUserId());
-        }
-        
         return paymentMap;
     }
     

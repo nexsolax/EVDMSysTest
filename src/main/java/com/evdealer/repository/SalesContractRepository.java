@@ -15,6 +15,10 @@ import java.util.UUID;
 @Repository
 public interface SalesContractRepository extends JpaRepository<SalesContract, UUID> {
     
+    // Native query để lấy tất cả sales contracts, tránh lỗi khi có foreign key null
+    @Query(value = "SELECT * FROM sales_contracts ORDER BY contract_id", nativeQuery = true)
+    List<SalesContract> findAllNative();
+    
     @Query("SELECT sc FROM SalesContract sc")
     List<SalesContract> findAllWithDetails();
     

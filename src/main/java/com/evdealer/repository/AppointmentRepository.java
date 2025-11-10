@@ -44,5 +44,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     
     @Query("SELECT a FROM Appointment a WHERE a.title LIKE %:title%")
     List<Appointment> findByTitleContaining(@Param("title") String title);
+    
+    // Native query để lấy tất cả appointments, tránh lỗi khi có foreign key null
+    @Query(value = "SELECT * FROM appointments ORDER BY appointment_id", nativeQuery = true)
+    List<Appointment> findAllNative();
+    
+    // Query với DISTINCT và LEFT JOIN để tránh duplicate và lỗi khi customer null
+    @Query("SELECT DISTINCT a FROM Appointment a LEFT JOIN FETCH a.customer LEFT JOIN FETCH a.staff LEFT JOIN FETCH a.variant")
+    List<Appointment> findAllWithRelationships();
+    
+    // Query đơn giản không load relationships - để tránh lỗi khi customer null
+    @Query("SELECT a FROM Appointment a")
+    List<Appointment> findAllSimple();
 }
 

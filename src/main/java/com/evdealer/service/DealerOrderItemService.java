@@ -35,6 +35,15 @@ public class DealerOrderItemService {
     @Autowired
     private VehicleInventoryRepository vehicleInventoryRepository;
     
+    @Transactional(readOnly = true)
+    public List<DealerOrderItem> getAllItems() {
+        try {
+            return dealerOrderItemRepository.findAll();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve all order items: " + e.getMessage(), e);
+        }
+    }
+    
     public DealerOrderItem createDealerOrderItem(DealerOrderItem item) {
         // Validate variant exists
         VehicleVariant variant = vehicleVariantRepository.findById(item.getVariant().getVariantId())
