@@ -139,7 +139,8 @@ public class VehicleDeliveryService {
         VehicleDelivery delivery = vehicleDeliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new RuntimeException("Vehicle delivery not found with id: " + deliveryId));
         
-        delivery.setDeliveryStatus(VehicleDeliveryStatus.DELIVERED);
+        // Set status = IN_TRANSIT khi EVM xác nhận bắt đầu vận chuyển (thay vì DELIVERED)
+        delivery.setDeliveryStatus(VehicleDeliveryStatus.IN_TRANSIT);
         delivery.setDeliveredBy(deliveredBy);
         delivery.setDeliveryConfirmationDate(LocalDateTime.now());
         
@@ -151,6 +152,10 @@ public class VehicleDeliveryService {
         // This would need to be implemented based on dealer relationship
         // For now, return empty list
         return new java.util.ArrayList<>();
+    }
+    
+    public List<VehicleDelivery> getDeliveriesByDealerOrder(UUID dealerOrderId) {
+        return vehicleDeliveryRepository.findByDealerOrderDealerOrderId(dealerOrderId);
     }
     
     public List<VehicleDelivery> getDeliveriesByDealerAndStatus(UUID dealerId, String status) {
@@ -241,6 +246,17 @@ public class VehicleDeliveryService {
             delivery.setNotes("Tự động tạo sau khi thanh toán đủ");
             
             vehicleDeliveryRepository.save(delivery);
+        }
+        
+        // Cập nhật DealerOrder status = READY_FOR_DELIVERY sau khi tạo delivery
+        try {
+            dealerOrderService.updateDealerOrderStatus(
+                dealerOrderId, 
+                com.evdealer.enums.DealerOrderStatus.READY_FOR_DELIVERY.getValue()
+            );
+        } catch (Exception e) {
+            // Log error nhưng không fail delivery creation
+            System.err.println("Failed to update dealer order status to READY_FOR_DELIVERY: " + e.getMessage());
         }
     }
 }

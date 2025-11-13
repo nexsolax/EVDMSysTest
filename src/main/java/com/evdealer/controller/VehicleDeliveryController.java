@@ -531,7 +531,7 @@ public class VehicleDeliveryController {
             }
             
             VehicleDelivery updatedDelivery = vehicleDeliveryService.confirmDelivery(deliveryId, deliveredBy);
-            return ResponseEntity.ok(updatedDelivery);
+            return ResponseEntity.ok(toDTO(updatedDelivery));
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to confirm delivery: " + e.getMessage());
@@ -557,7 +557,9 @@ public class VehicleDeliveryController {
             }
             
             vehicleDeliveryService.deleteDelivery(deliveryId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Vehicle delivery deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete delivery: " + e.getMessage());
@@ -831,17 +833,62 @@ public class VehicleDeliveryController {
             vehicleDeliveryService.updateDelivery(deliveryId, delivery);
             
             // Update order item status
-            if (delivery.getDealerOrderItem() != null) {
-                DealerOrderItem item = delivery.getDealerOrderItem();
-                item.setStatus(DealerOrderItemStatus.DELIVERED);
-                dealerOrderItemService.updateDealerOrderItem(item.getItemId(), item);
+            try {
+                if (delivery.getDealerOrderItem() != null) {
+                    DealerOrderItem item = delivery.getDealerOrderItem();
+                    item.setStatus(DealerOrderItemStatus.DELIVERED);
+                    dealerOrderItemService.updateDealerOrderItem(item.getItemId(), item);
+                }
+            } catch (Exception e) {
+                // Ignore if relationship not loaded
+            }
+            
+            // Kiểm tra và cập nhật DealerOrder status = DELIVERED nếu tất cả deliveries đã delivered
+            try {
+                UUID dealerOrderId = null;
+                try {
+                    if (delivery.getDealerOrder() != null) {
+                        dealerOrderId = delivery.getDealerOrder().getDealerOrderId();
+                    }
+                } catch (Exception e) {
+                    // Ignore if relationship not loaded
+                }
+                
+                if (dealerOrderId != null) {
+                    // Lấy tất cả deliveries của dealer order
+                    List<VehicleDelivery> allDeliveries = vehicleDeliveryService.getDeliveriesByDealerOrder(dealerOrderId);
+                    
+                    // Kiểm tra xem tất cả deliveries đã delivered chưa
+                    boolean allDelivered = !allDeliveries.isEmpty() && 
+                        allDeliveries.stream().allMatch(d -> 
+                            d.getDeliveryStatus() == VehicleDeliveryStatus.DELIVERED);
+                    
+                    if (allDelivered) {
+                        // Cập nhật DealerOrder status = DELIVERED
+                        dealerOrderService.updateDealerOrderStatus(
+                            dealerOrderId, 
+                            com.evdealer.enums.DealerOrderStatus.DELIVERED.getValue()
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                // Log error nhưng không fail delivery confirmation
+                System.err.println("Failed to update dealer order status to DELIVERED: " + e.getMessage());
             }
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Delivery confirmed by dealer successfully");
             response.put("deliveryId", deliveryId);
-            response.put("dealerOrderId", delivery.getDealerOrder().getDealerOrderId());
-            response.put("dealerName", delivery.getDealerOrder().getDealer().getDealerName());
+            try {
+                if (delivery.getDealerOrder() != null) {
+                    response.put("dealerOrderId", delivery.getDealerOrder().getDealerOrderId());
+                    if (delivery.getDealerOrder().getDealer() != null) {
+                        response.put("dealerName", delivery.getDealerOrder().getDealer().getDealerName());
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore if relationship not loaded
+            }
             response.put("actualDeliveryDate", LocalDate.now());
             response.put("condition", condition);
             response.put("dealerNotes", dealerNotes);

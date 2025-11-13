@@ -38,6 +38,9 @@ public class DealerPaymentController {
     private com.evdealer.service.VehicleDeliveryService vehicleDeliveryService;
     
     @Autowired
+    private com.evdealer.service.DealerOrderService dealerOrderService;
+    
+    @Autowired
     private SecurityUtils securityUtils;
     
     @GetMapping
@@ -439,7 +442,9 @@ public class DealerPaymentController {
             }
             
             dealerPaymentService.deleteDealerPayment(paymentId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Dealer payment deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete payment: " + e.getMessage());
@@ -545,6 +550,17 @@ public class DealerPaymentController {
             if (isFullyPaid) {
                 invoice.setStatus(DealerInvoiceStatus.PAID);
                 dealerInvoiceService.updateInvoice(invoiceId, invoice);
+                
+                // Cập nhật DealerOrder status = READY_FOR_DELIVERY sau khi thanh toán đủ
+                try {
+                    if (invoice.getDealerOrder() != null) {
+                        UUID dealerOrderId = invoice.getDealerOrder().getDealerOrderId();
+                        dealerOrderService.updateDealerOrderStatus(dealerOrderId, com.evdealer.enums.DealerOrderStatus.READY_FOR_DELIVERY.getValue());
+                    }
+                } catch (Exception e) {
+                    // Log error nhưng không fail payment
+                    System.err.println("Failed to update dealer order status after payment: " + e.getMessage());
+                }
                 
                 // Tự động tạo VehicleDelivery sau khi thanh toán đủ
                 try {
