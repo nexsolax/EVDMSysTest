@@ -64,7 +64,7 @@ public class DealerOrder {
     @Column(name = "status", length = 50, nullable = false)
     private DealerOrderStatus status = DealerOrderStatus.PENDING;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.evdealer.converter.PriorityConverter.class)
     @Column(name = "priority", length = 20, nullable = false)
     private Priority priority = Priority.NORMAL;
     

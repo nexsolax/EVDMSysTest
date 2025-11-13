@@ -449,7 +449,9 @@ public class DealerInvoiceController {
             }
             
             dealerInvoiceService.deleteInvoice(invoiceId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Invoice deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete invoice: " + e.getMessage());

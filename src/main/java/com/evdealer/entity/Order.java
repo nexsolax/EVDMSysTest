@@ -6,6 +6,7 @@ import com.evdealer.enums.DeliveryStatus;
 import com.evdealer.enums.OrderStatus;
 import com.evdealer.enums.PaymentMethod;
 import com.evdealer.enums.FulfillmentStatus;
+import com.evdealer.converter.OrderStatusConverter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -61,7 +62,7 @@ public class Order {
     @Column(name = "order_date", nullable = false)
     private LocalDate orderDate;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = OrderStatusConverter.class)
     @Column(name = "status", length = 50, nullable = false)
     private OrderStatus status = OrderStatus.PENDING;
     

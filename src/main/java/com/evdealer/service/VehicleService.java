@@ -12,11 +12,21 @@ import com.evdealer.repository.VehicleBrandRepository;
 import com.evdealer.repository.VehicleModelRepository;
 import com.evdealer.repository.VehicleVariantRepository;
 import com.evdealer.repository.VehicleColorRepository;
+import com.evdealer.repository.VehicleInventoryRepository;
+import com.evdealer.repository.DealerOrderItemRepository;
+import com.evdealer.repository.DealerQuotationItemRepository;
+import com.evdealer.repository.QuotationRepository;
+import com.evdealer.repository.PromotionRepository;
+import com.evdealer.repository.PricingPolicyRepository;
+import com.evdealer.repository.DealerDiscountPolicyRepository;
+import com.evdealer.repository.AppointmentRepository;
+import com.evdealer.repository.TestDriveScheduleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +45,33 @@ public class VehicleService {
     
     @Autowired
     private VehicleColorRepository vehicleColorRepository;
+    
+    @Autowired
+    private VehicleInventoryRepository vehicleInventoryRepository;
+    
+    @Autowired
+    private DealerOrderItemRepository dealerOrderItemRepository;
+    
+    @Autowired
+    private DealerQuotationItemRepository dealerQuotationItemRepository;
+    
+    @Autowired
+    private QuotationRepository quotationRepository;
+    
+    @Autowired
+    private PromotionRepository promotionRepository;
+    
+    @Autowired
+    private PricingPolicyRepository pricingPolicyRepository;
+    
+    @Autowired
+    private DealerDiscountPolicyRepository dealerDiscountPolicyRepository;
+    
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+    
+    @Autowired
+    private TestDriveScheduleRepository testDriveScheduleRepository;
     
     // Vehicle Brand methods
     public List<VehicleBrand> getAllBrands() {
@@ -147,10 +184,22 @@ public class VehicleService {
         VehicleBrand brand = vehicleBrandRepository.findById(brandId)
                 .orElseThrow(() -> new RuntimeException("Brand not found with id: " + brandId));
         
+        // Check for dependencies: VehicleModel
+        List<VehicleModel> models = vehicleModelRepository.findByBrandBrandId(brandId);
+        if (!models.isEmpty()) {
+            List<String> modelNames = new ArrayList<>();
+            for (VehicleModel model : models) {
+                modelNames.add(model.getModelName() + " (ID: " + model.getModelId() + ")");
+            }
+            throw new RuntimeException("Cannot delete brand '" + brand.getBrandName() + "' (ID: " + brandId + "). " +
+                    "Brand is referenced by " + models.size() + " vehicle model(s): " + String.join(", ", modelNames) +
+                    ". Please delete or update these models first.");
+        }
+        
         try {
             vehicleBrandRepository.delete(brand);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete brand: " + e.getMessage() + ". Brand may be referenced by vehicle models.");
+            throw new RuntimeException("Cannot delete brand: " + e.getMessage());
         }
     }
     
@@ -310,10 +359,22 @@ public class VehicleService {
         VehicleModel model = vehicleModelRepository.findById(modelId)
                 .orElseThrow(() -> new RuntimeException("Model not found with id: " + modelId));
         
+        // Check for dependencies: VehicleVariant
+        List<VehicleVariant> variants = vehicleVariantRepository.findByModelModelId(modelId);
+        if (!variants.isEmpty()) {
+            List<String> variantNames = new ArrayList<>();
+            for (VehicleVariant variant : variants) {
+                variantNames.add(variant.getVariantName() + " (ID: " + variant.getVariantId() + ")");
+            }
+            throw new RuntimeException("Cannot delete model '" + model.getModelName() + "' (ID: " + modelId + "). " +
+                    "Model is referenced by " + variants.size() + " vehicle variant(s): " + String.join(", ", variantNames) +
+                    ". Please delete or update these variants first.");
+        }
+        
         try {
             vehicleModelRepository.delete(model);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete model: " + e.getMessage() + ". Model may be referenced by vehicle variants.");
+            throw new RuntimeException("Cannot delete model: " + e.getMessage());
         }
     }
     
@@ -529,10 +590,79 @@ public class VehicleService {
         VehicleVariant variant = vehicleVariantRepository.findById(variantId)
                 .orElseThrow(() -> new RuntimeException("Variant not found with id: " + variantId));
         
+        // Check for dependencies
+        List<String> dependencies = new ArrayList<>();
+        
+        // Check VehicleInventory
+        List<com.evdealer.entity.VehicleInventory> inventory = vehicleInventoryRepository.findByVariantVariantId(variantId);
+        if (!inventory.isEmpty()) {
+            dependencies.add("VehicleInventory (" + inventory.size() + " record(s))");
+        }
+        
+        // Check DealerOrderItem
+        List<com.evdealer.entity.DealerOrderItem> orderItems = dealerOrderItemRepository.findByVariantId(variantId);
+        if (!orderItems.isEmpty()) {
+            dependencies.add("DealerOrderItem (" + orderItems.size() + " record(s))");
+        }
+        
+        // Check DealerQuotationItem - need to check all items
+        List<com.evdealer.entity.DealerQuotationItem> allQuotationItems = dealerQuotationItemRepository.findAll();
+        long quotationItemCount = allQuotationItems.stream()
+                .filter(item -> item.getVariant() != null && item.getVariant().getVariantId().equals(variantId))
+                .count();
+        if (quotationItemCount > 0) {
+            dependencies.add("DealerQuotationItem (" + quotationItemCount + " record(s))");
+        }
+        
+        // Check Quotation
+        List<com.evdealer.entity.Quotation> quotations = quotationRepository.findByVariantVariantId(variantId);
+        if (!quotations.isEmpty()) {
+            dependencies.add("Quotation (" + quotations.size() + " record(s))");
+        }
+        
+        // Check Promotion
+        List<com.evdealer.entity.Promotion> promotions = promotionRepository.findByVariantVariantId(variantId);
+        if (!promotions.isEmpty()) {
+            dependencies.add("Promotion (" + promotions.size() + " record(s))");
+        }
+        
+        // Check PricingPolicy
+        List<com.evdealer.entity.PricingPolicy> pricingPolicies = pricingPolicyRepository.findByVariantId(variantId);
+        if (!pricingPolicies.isEmpty()) {
+            dependencies.add("PricingPolicy (" + pricingPolicies.size() + " record(s))");
+        }
+        
+        // Check DealerDiscountPolicy
+        List<com.evdealer.entity.DealerDiscountPolicy> discountPolicies = dealerDiscountPolicyRepository.findByVariantId(variantId);
+        if (!discountPolicies.isEmpty()) {
+            dependencies.add("DealerDiscountPolicy (" + discountPolicies.size() + " record(s))");
+        }
+        
+        // Check Appointment
+        List<com.evdealer.entity.Appointment> appointments = appointmentRepository.findByVariantId(variantId);
+        if (!appointments.isEmpty()) {
+            dependencies.add("Appointment (" + appointments.size() + " record(s))");
+        }
+        
+        // Check TestDriveSchedule - need to check all and filter by variantId (repository method has wrong signature)
+        List<com.evdealer.entity.TestDriveSchedule> allTestDrives = testDriveScheduleRepository.findAll();
+        long testDriveCount = allTestDrives.stream()
+                .filter(td -> td.getVariant() != null && td.getVariant().getVariantId().equals(variantId))
+                .count();
+        if (testDriveCount > 0) {
+            dependencies.add("TestDriveSchedule (" + testDriveCount + " record(s))");
+        }
+        
+        if (!dependencies.isEmpty()) {
+            throw new RuntimeException("Cannot delete variant '" + variant.getVariantName() + "' (ID: " + variantId + "). " +
+                    "Variant is referenced by: " + String.join(", ", dependencies) +
+                    ". Please delete or update these records first.");
+        }
+        
         try {
             vehicleVariantRepository.delete(variant);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete variant: " + e.getMessage() + ". Variant may be referenced by inventory, orders, or quotations.");
+            throw new RuntimeException("Cannot delete variant: " + e.getMessage());
         }
     }
     
@@ -656,10 +786,46 @@ public class VehicleService {
         VehicleColor color = vehicleColorRepository.findById(colorId)
                 .orElseThrow(() -> new RuntimeException("Color not found with id: " + colorId));
         
+        // Check for dependencies
+        List<String> dependencies = new ArrayList<>();
+        
+        // Check VehicleInventory
+        List<com.evdealer.entity.VehicleInventory> inventory = vehicleInventoryRepository.findByColorColorId(colorId);
+        if (!inventory.isEmpty()) {
+            dependencies.add("VehicleInventory (" + inventory.size() + " record(s))");
+        }
+        
+        // Check DealerOrderItem
+        List<com.evdealer.entity.DealerOrderItem> orderItems = dealerOrderItemRepository.findByColorId(colorId);
+        if (!orderItems.isEmpty()) {
+            dependencies.add("DealerOrderItem (" + orderItems.size() + " record(s))");
+        }
+        
+        // Check DealerQuotationItem - need to check all items
+        List<com.evdealer.entity.DealerQuotationItem> allQuotationItems = dealerQuotationItemRepository.findAll();
+        long quotationItemCount = allQuotationItems.stream()
+                .filter(item -> item.getColor() != null && item.getColor().getColorId().equals(colorId))
+                .count();
+        if (quotationItemCount > 0) {
+            dependencies.add("DealerQuotationItem (" + quotationItemCount + " record(s))");
+        }
+        
+        // Check Quotation
+        List<com.evdealer.entity.Quotation> quotations = quotationRepository.findByColorColorId(colorId);
+        if (!quotations.isEmpty()) {
+            dependencies.add("Quotation (" + quotations.size() + " record(s))");
+        }
+        
+        if (!dependencies.isEmpty()) {
+            throw new RuntimeException("Cannot delete color '" + color.getColorName() + "' (ID: " + colorId + "). " +
+                    "Color is referenced by: " + String.join(", ", dependencies) +
+                    ". Please delete or update these records first.");
+        }
+        
         try {
             vehicleColorRepository.delete(color);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete color: " + e.getMessage() + ". Color may be referenced by inventory, orders, or quotations.");
+            throw new RuntimeException("Cannot delete color: " + e.getMessage());
         }
     }
 }

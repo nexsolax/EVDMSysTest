@@ -71,7 +71,7 @@ public class DealerQuotation {
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.evdealer.converter.DealerQuotationStatusConverter.class)
     @Column(name = "status", length = 50, nullable = false)
     private DealerQuotationStatus status = DealerQuotationStatus.PENDING;
     

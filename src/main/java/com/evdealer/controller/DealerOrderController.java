@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -83,6 +82,33 @@ public class DealerOrderController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to get orders: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @GetMapping("/all-items")
+    @Operation(summary = "Lấy tất cả items", description = "Lấy danh sách tất cả items của tất cả đơn hàng đại lý")
+    public ResponseEntity<?> getAllDealerOrderItems() {
+        try {
+            // Kiểm tra authentication
+            if (!securityUtils.getCurrentUser().isPresent()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Authentication required");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
+            
+            // Chỉ ADMIN mới có thể xem tất cả items
+            if (!securityUtils.isAdmin()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Access denied. Only admin can view all order items");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            List<DealerOrderItem> allItems = dealerOrderItemService.getAllItems();
+            return ResponseEntity.ok(allItems);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Failed to get all order items: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -398,7 +424,9 @@ public class DealerOrderController {
             }
             
             dealerOrderService.deleteDealerOrder(dealerOrderId);
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Dealer order deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete order: " + e.getMessage());
@@ -477,33 +505,6 @@ public class DealerOrderController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Dealer order creation failed: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
-    }
-    
-    @GetMapping("/items/all")
-    @Operation(summary = "Lấy tất cả items", description = "Lấy danh sách tất cả items của tất cả đơn hàng đại lý")
-    public ResponseEntity<?> getAllDealerOrderItems() {
-        try {
-            // Kiểm tra authentication
-            if (!securityUtils.getCurrentUser().isPresent()) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Authentication required");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
-            }
-            
-            // Chỉ ADMIN mới có thể xem tất cả items
-            if (!securityUtils.isAdmin()) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin can view all order items");
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-            }
-            
-            List<DealerOrderItem> allItems = dealerOrderItemService.getAllItems();
-            return ResponseEntity.ok(allItems);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Failed to get all order items: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
@@ -682,7 +683,9 @@ public class DealerOrderController {
             // Recalculate totals
             dealerOrderService.recalculateOrderTotals(dealerOrderId);
             
-            return ResponseEntity.noContent().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Dealer order item deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Failed to delete item: " + e.getMessage());

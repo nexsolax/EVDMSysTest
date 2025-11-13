@@ -385,7 +385,7 @@ public class UserController {
     }
     
     @DeleteMapping("/{userId}")
-    @Operation(summary = "Xóa người dùng", description = "Xóa người dùng")
+    @Operation(summary = "Xóa người dùng", description = "Xóa người dùng. Không cho phép xóa tài khoản admin (username: admin).")
     public ResponseEntity<?> deleteUser(@PathVariable UUID userId) {
         try {
             // Kiểm tra authentication
@@ -400,6 +400,17 @@ public class UserController {
                 Map<String, String> error = new HashMap<>();
                 error.put("error", "Access denied. Only admin can delete users");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+            }
+            
+            // Kiểm tra không cho phép xóa admin user
+            Optional<User> userOpt = userService.getUserById(userId);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                if (user.getUsername() != null && user.getUsername().equals("admin")) {
+                    Map<String, String> error = new HashMap<>();
+                    error.put("error", "Cannot delete admin user. Admin account is protected.");
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+                }
             }
             
             userService.deleteUser(userId);

@@ -3,10 +3,19 @@ package com.evdealer.service;
 import com.evdealer.dto.DealerRequest;
 import com.evdealer.entity.Dealer;
 import com.evdealer.repository.DealerRepository;
+import com.evdealer.repository.DealerOrderRepository;
+import com.evdealer.repository.DealerQuotationRepository;
+import com.evdealer.repository.DealerContractRepository;
+import com.evdealer.repository.UserRepository;
+import com.evdealer.repository.VehicleInventoryRepository;
+import com.evdealer.repository.DealerTargetRepository;
+import com.evdealer.repository.PricingPolicyRepository;
+import com.evdealer.repository.InstallmentPlanRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +26,30 @@ public class DealerService {
     
     @Autowired
     private DealerRepository dealerRepository;
+    
+    @Autowired
+    private DealerOrderRepository dealerOrderRepository;
+    
+    @Autowired
+    private DealerQuotationRepository dealerQuotationRepository;
+    
+    @Autowired
+    private DealerContractRepository dealerContractRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private VehicleInventoryRepository vehicleInventoryRepository;
+    
+    @Autowired
+    private DealerTargetRepository dealerTargetRepository;
+    
+    @Autowired
+    private PricingPolicyRepository pricingPolicyRepository;
+    
+    @Autowired
+    private InstallmentPlanRepository installmentPlanRepository;
     
     public List<Dealer> getAllDealers() {
         try {
@@ -180,10 +213,76 @@ public class DealerService {
         Dealer dealer = dealerRepository.findById(dealerId)
                 .orElseThrow(() -> new RuntimeException("Dealer not found with id: " + dealerId));
         
+        // Check for dependencies
+        List<String> dependencies = new ArrayList<>();
+        
+        // Check DealerOrder
+        List<com.evdealer.entity.DealerOrder> dealerOrders = dealerOrderRepository.findByDealerId(dealerId);
+        if (!dealerOrders.isEmpty()) {
+            dependencies.add("DealerOrder (" + dealerOrders.size() + " record(s))");
+        }
+        
+        // Check DealerQuotation
+        List<com.evdealer.entity.DealerQuotation> dealerQuotations = dealerQuotationRepository.findByDealerDealerId(dealerId);
+        if (!dealerQuotations.isEmpty()) {
+            dependencies.add("DealerQuotation (" + dealerQuotations.size() + " record(s))");
+        }
+        
+        // Check DealerContract - need to check all and filter
+        List<com.evdealer.entity.DealerContract> allContracts = dealerContractRepository.findAll();
+        long contractCount = allContracts.stream()
+                .filter(contract -> contract.getDealer() != null && contract.getDealer().getDealerId().equals(dealerId))
+                .count();
+        if (contractCount > 0) {
+            dependencies.add("DealerContract (" + contractCount + " record(s))");
+        }
+        
+        // Check User (excluding admin)
+        List<com.evdealer.entity.User> users = userRepository.findByDealerDealerId(dealerId);
+        long nonAdminUserCount = users.stream()
+                .filter(user -> user.getUsername() == null || !user.getUsername().equals("admin"))
+                .count();
+        if (nonAdminUserCount > 0) {
+            dependencies.add("User (" + nonAdminUserCount + " record(s), excluding admin)");
+        }
+        
+        // Check VehicleInventory (reserved_for_dealer) - need to check all and filter
+        List<com.evdealer.entity.VehicleInventory> allInventory = vehicleInventoryRepository.findAll();
+        long reservedInventoryCount = allInventory.stream()
+                .filter(inv -> inv.getReservedForDealer() != null && inv.getReservedForDealer().getDealerId().equals(dealerId))
+                .count();
+        if (reservedInventoryCount > 0) {
+            dependencies.add("VehicleInventory (reserved_for_dealer: " + reservedInventoryCount + " record(s))");
+        }
+        
+        // Check DealerTarget
+        List<com.evdealer.entity.DealerTarget> dealerTargets = dealerTargetRepository.findByDealerDealerId(dealerId);
+        if (!dealerTargets.isEmpty()) {
+            dependencies.add("DealerTarget (" + dealerTargets.size() + " record(s))");
+        }
+        
+        // Check PricingPolicy
+        List<com.evdealer.entity.PricingPolicy> pricingPolicies = pricingPolicyRepository.findByDealerId(dealerId);
+        if (!pricingPolicies.isEmpty()) {
+            dependencies.add("PricingPolicy (" + pricingPolicies.size() + " record(s))");
+        }
+        
+        // Check InstallmentPlan
+        List<com.evdealer.entity.InstallmentPlan> installmentPlans = installmentPlanRepository.findByDealerDealerId(dealerId);
+        if (!installmentPlans.isEmpty()) {
+            dependencies.add("InstallmentPlan (" + installmentPlans.size() + " record(s))");
+        }
+        
+        if (!dependencies.isEmpty()) {
+            throw new RuntimeException("Cannot delete dealer '" + dealer.getDealerName() + "' (ID: " + dealerId + ", Code: " + dealer.getDealerCode() + "). " +
+                    "Dealer is referenced by: " + String.join(", ", dependencies) +
+                    ". Please delete or update these records first.");
+        }
+        
         try {
             dealerRepository.delete(dealer);
         } catch (Exception e) {
-            throw new RuntimeException("Cannot delete dealer: " + e.getMessage() + ". Dealer may be referenced by other records (users, orders, contracts, etc.).");
+            throw new RuntimeException("Cannot delete dealer: " + e.getMessage());
         }
     }
     

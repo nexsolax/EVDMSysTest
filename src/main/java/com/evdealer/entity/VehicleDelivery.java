@@ -33,11 +33,11 @@ public class VehicleDelivery {
     private UUID deliveryId;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = true)
     private Order order;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "inventory_id", nullable = false)
+    @JoinColumn(name = "inventory_id", nullable = true)
     private VehicleInventory inventory;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -59,9 +59,12 @@ public class VehicleDelivery {
     @Column(name = "delivery_contact_phone", length = 20)
     private String deliveryContactPhone;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.evdealer.converter.VehicleDeliveryStatusConverter.class)
     @Column(name = "delivery_status", length = 50, nullable = false)
     private VehicleDeliveryStatus deliveryStatus = VehicleDeliveryStatus.SCHEDULED;
+    
+    @Column(name = "delivery_notes", columnDefinition = "TEXT")
+    private String deliveryNotes;
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivered_by")
@@ -117,6 +120,15 @@ public class VehicleDelivery {
     public VehicleDelivery(Order order, VehicleInventory inventory, Customer customer, LocalDate deliveryDate, String deliveryAddress) {
         this.order = order;
         this.inventory = inventory;
+        this.customer = customer;
+        this.deliveryDate = deliveryDate;
+        this.deliveryAddress = deliveryAddress;
+    }
+    
+    // Constructor for dealer order deliveries (without order_id and inventory_id)
+    public VehicleDelivery(DealerOrder dealerOrder, DealerOrderItem dealerOrderItem, Customer customer, LocalDate deliveryDate, String deliveryAddress) {
+        this.dealerOrder = dealerOrder;
+        this.dealerOrderItem = dealerOrderItem;
         this.customer = customer;
         this.deliveryDate = deliveryDate;
         this.deliveryAddress = deliveryAddress;
@@ -208,6 +220,14 @@ public class VehicleDelivery {
      */
     public void setDeliveryStatus(String deliveryStatus) {
         this.deliveryStatus = VehicleDeliveryStatus.fromString(deliveryStatus);
+    }
+    
+    public String getDeliveryNotes() {
+        return deliveryNotes;
+    }
+    
+    public void setDeliveryNotes(String deliveryNotes) {
+        this.deliveryNotes = deliveryNotes;
     }
     
     public User getDeliveredBy() {

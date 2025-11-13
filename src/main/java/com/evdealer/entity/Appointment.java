@@ -2,6 +2,8 @@ package com.evdealer.entity;
 
 import com.evdealer.enums.AppointmentStatus;
 import com.evdealer.enums.AppointmentType;
+import com.evdealer.converter.AppointmentTypeConverter;
+import com.evdealer.converter.AppointmentStatusConverter;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -30,7 +32,7 @@ public class Appointment {
     @JoinColumn(name = "variant_id", nullable = true)
     private VehicleVariant variant;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = AppointmentTypeConverter.class)
     @Column(name = "appointment_type", length = 50, nullable = false)
     private AppointmentType appointmentType = AppointmentType.CONSULTATION;
     
@@ -49,7 +51,7 @@ public class Appointment {
     @Column(name = "location", length = 255)
     private String location;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = AppointmentStatusConverter.class)
     @Column(name = "status", length = 50, nullable = false)
     private AppointmentStatus status = AppointmentStatus.SCHEDULED;
     

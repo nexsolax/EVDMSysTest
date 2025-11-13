@@ -63,7 +63,7 @@ public class VehicleInventory {
     @Column(name = "arrival_date")
     private LocalDate arrivalDate;
     
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.evdealer.converter.VehicleStatusConverter.class)
     @Column(name = "status", length = 50, nullable = false)
     private VehicleStatus status = VehicleStatus.AVAILABLE;
     
