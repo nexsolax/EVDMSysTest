@@ -8,6 +8,9 @@ public class VehicleVariantDTO {
     private String variantName;
     private BigDecimal priceBase;
     private Integer rangeKm;
+    private String variantImageUrl;
+    private String variantImagePath;
+    private Boolean isActive;
 
     public Integer getVariantId() { return variantId; }
     public void setVariantId(Integer variantId) { this.variantId = variantId; }
@@ -19,6 +22,12 @@ public class VehicleVariantDTO {
     public void setPriceBase(BigDecimal priceBase) { this.priceBase = priceBase; }
     public Integer getRangeKm() { return rangeKm; }
     public void setRangeKm(Integer rangeKm) { this.rangeKm = rangeKm; }
+    public String getVariantImageUrl() { return variantImageUrl; }
+    public void setVariantImageUrl(String variantImageUrl) { this.variantImageUrl = variantImageUrl; }
+    public String getVariantImagePath() { return variantImagePath; }
+    public void setVariantImagePath(String variantImagePath) { this.variantImagePath = variantImagePath; }
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 }
 
 

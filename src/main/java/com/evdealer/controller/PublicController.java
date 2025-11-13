@@ -452,6 +452,9 @@ public class PublicController {
         dto.setVariantName(v.getVariantName());
         dto.setPriceBase(v.getPriceBase());
         dto.setRangeKm(v.getRangeKm());
+        dto.setVariantImageUrl(v.getVariantImageUrl());
+        dto.setVariantImagePath(v.getVariantImagePath());
+        dto.setIsActive(v.getIsActive());
         return dto;
     }
 
@@ -473,6 +476,16 @@ public class PublicController {
         dto.setVin(inv.getVin());
         dto.setArrivalDate(inv.getArrivalDate());
         dto.setSellingPrice(inv.getSellingPrice());
+        // Thông tin ảnh của inventory
+        dto.setVehicleImages(inv.getVehicleImages());
+        dto.setInteriorImages(inv.getInteriorImages());
+        dto.setExteriorImages(inv.getExteriorImages());
+        // Thông tin variant để frontend có thể hiển thị variantImageUrl
+        if (inv.getVariant() != null) {
+            dto.setVariantName(inv.getVariant().getVariantName());
+            dto.setVariantImageUrl(inv.getVariant().getVariantImageUrl());
+            dto.setPriceBase(inv.getVariant().getPriceBase());
+        }
         return dto;
     }
 

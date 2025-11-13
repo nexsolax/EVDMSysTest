@@ -13,6 +13,13 @@ public class VehicleInventoryDTO {
     private String vin;
     private LocalDate arrivalDate;
     private BigDecimal sellingPrice;
+    private String vehicleImages;
+    private String interiorImages;
+    private String exteriorImages;
+    // Thông tin variant để frontend có thể lấy variantImageUrl
+    private String variantName;
+    private String variantImageUrl;
+    private BigDecimal priceBase;
 
     public UUID getInventoryId() { return inventoryId; }
     public void setInventoryId(UUID inventoryId) { this.inventoryId = inventoryId; }
@@ -30,6 +37,18 @@ public class VehicleInventoryDTO {
     public void setArrivalDate(LocalDate arrivalDate) { this.arrivalDate = arrivalDate; }
     public BigDecimal getSellingPrice() { return sellingPrice; }
     public void setSellingPrice(BigDecimal sellingPrice) { this.sellingPrice = sellingPrice; }
+    public String getVehicleImages() { return vehicleImages; }
+    public void setVehicleImages(String vehicleImages) { this.vehicleImages = vehicleImages; }
+    public String getInteriorImages() { return interiorImages; }
+    public void setInteriorImages(String interiorImages) { this.interiorImages = interiorImages; }
+    public String getExteriorImages() { return exteriorImages; }
+    public void setExteriorImages(String exteriorImages) { this.exteriorImages = exteriorImages; }
+    public String getVariantName() { return variantName; }
+    public void setVariantName(String variantName) { this.variantName = variantName; }
+    public String getVariantImageUrl() { return variantImageUrl; }
+    public void setVariantImageUrl(String variantImageUrl) { this.variantImageUrl = variantImageUrl; }
+    public BigDecimal getPriceBase() { return priceBase; }
+    public void setPriceBase(BigDecimal priceBase) { this.priceBase = priceBase; }
 }
 
 

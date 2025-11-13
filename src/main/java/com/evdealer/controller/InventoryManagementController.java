@@ -130,6 +130,23 @@ public class InventoryManagementController {
             } catch (Exception e) {
                 // Relationship not loaded or other error, skip
             }
+            
+            // Add image information
+            try {
+                map.put("vehicleImages", inventory.getVehicleImages());
+            } catch (Exception e) {
+                map.put("vehicleImages", null);
+            }
+            try {
+                map.put("interiorImages", inventory.getInteriorImages());
+            } catch (Exception e) {
+                map.put("interiorImages", null);
+            }
+            try {
+                map.put("exteriorImages", inventory.getExteriorImages());
+            } catch (Exception e) {
+                map.put("exteriorImages", null);
+            }
         } catch (Exception e) {
             try {
                 map.put("inventoryId", inventory != null && inventory.getInventoryId() != null ? inventory.getInventoryId() : "unknown");

@@ -416,10 +416,10 @@ public class DealerOrderController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
             }
             
-            // Kiểm tra phân quyền: Chỉ ADMIN có thể xóa order
-            if (!securityUtils.isAdmin()) {
+            // Kiểm tra phân quyền: EVM_STAFF hoặc ADMIN có thể xóa order
+            if (!securityUtils.hasAnyRole("DEALER_MANAGER", "EVM_STAFF", "ADMIN")) {
                 Map<String, String> error = new HashMap<>();
-                error.put("error", "Access denied. Only admin can delete dealer orders");
+                error.put("error", "Access denied. Only EVM staff or admin can delete dealer orders");
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
             }
             
